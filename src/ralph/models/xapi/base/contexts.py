@@ -1,8 +1,9 @@
 """Base xAPI `Context` definitions."""
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
+from pydantic import model_validator
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
@@ -25,10 +26,23 @@ class BaseXapiContextContextActivities(BaseModelWithConfig):
             properties.
     """
 
-    parent: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
-    grouping: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
-    category: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
-    other: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
+    parent: Optional[List[BaseXapiActivity]] = None
+    grouping: Optional[List[BaseXapiActivity]] = None
+    category: Optional[List[BaseXapiActivity]] = None
+    other: Optional[List[BaseXapiActivity]] = None
+
+    # TODO: Est-ce le bon endroit pour faire ça ? Ou faudrait-il appliquer cette modif dans le get plutôt ?
+    @model_validator(mode="before")
+    @classmethod
+    def convert_children_to_arrays(cls, values: Any) -> Any:
+        """Convert children to arrays if they are not."""
+        if not isinstance(values, dict):
+            return values
+
+        for k, v in values.items():
+            if not isinstance(v, list):
+                values[k] = [v]
+        return values
 
 
 class BaseXapiContext(BaseModelWithConfig):
@@ -47,7 +61,7 @@ class BaseXapiContext(BaseModelWithConfig):
     """
 
     registration: Optional[UUID] = None
-    instructor: Optional[BaseXapiAgent] = None
+    instructor: Optional[Union[BaseXapiAgent, BaseXapiGroup]] = None
     team: Optional[BaseXapiGroup] = None
     contextActivities: Optional[BaseXapiContextContextActivities] = None
     revision: Optional[NonEmptyStrictStr] = None

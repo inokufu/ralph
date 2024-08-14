@@ -26,6 +26,23 @@ class IRI(RootModel[Union["IRI", str]]):
         return str(iri)
 
 
+class URI(RootModel[Union["URI", str]]):
+    """Pydantic custom data type validating RFC 3987 URIs."""
+
+    def __hash__(self):  # noqa: D105
+        return hash(str(self.root))
+
+    def __str__(self):  # noqa: D105
+        return str(self.root)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_uri(cls, uri):
+        """Check whether the provided URI is a valid RFC 3987 URI."""
+        parse(str(uri), rule="URI")
+        return str(uri)
+
+
 class LanguageTag(RootModel[Union[str, "LanguageTag"]]):
     """Pydantic custom data type validating RFC 5646 Language tags."""
 

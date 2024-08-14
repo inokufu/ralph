@@ -26,7 +26,8 @@ from typing_extensions import Annotated
 from ralph.api.auth import get_authenticated_user
 from ralph.api.auth.user import AuthenticatedUser
 from ralph.api.forwarding import forward_xapi_statements, get_active_xapi_forwardings
-from ralph.api.models import ErrorDetail, LaxStatement
+from ralph.api.models import ErrorDetail
+from ralph.models.xapi.base.statements import BaseXapiStatement
 from ralph.backends.loader import get_lrs_backends
 from ralph.backends.lrs.base import (
     AgentParameters,
@@ -53,9 +54,30 @@ from ralph.utils import (
 
 logger = logging.getLogger(__name__)
 
+# TODO: We should use a Custom Middleware instead of a Dependency
+# Add a header check for X-Experience-API-Version
+def check_headers(request: Request) -> None:
+    """Check the headers for the X-Experience-API-Version."""
+    if "X-Experience-API-Version" not in request.headers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing X-Experience-API-Version header",
+        )
+    
+    # Check the value of the header if present
+    VALID_XAPI_VERSIONS = ["1.0.3"]
+    if request.headers["X-Experience-API-Version"] not in VALID_XAPI_VERSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid X-Experience-API-Version header",
+        )
+
 router = APIRouter(
     prefix="/xAPI/statements",
-    dependencies=[Depends(get_authenticated_user)],
+    dependencies=[
+        Depends(get_authenticated_user),
+        Depends(check_headers),
+    ],
 )
 
 
@@ -144,6 +166,8 @@ def strict_query_params(request: Request) -> None:
 
 @router.get("")
 @router.get("/")
+@router.head("")
+@router.head("/")
 async def get(  # noqa: PLR0913
     request: Request,
     current_user: Annotated[
@@ -414,6 +438,18 @@ async def get(  # noqa: PLR0913
             detail="xAPI statements query failed",
         ) from error
 
+    # TODO: Here, every child field of 'BaseXapiContextContextActivities' should be returned as a list, even if only one item is present.
+    # def _format_context_activities(context_activities: Union[Dict]):
+    #     for key, value in context_activities.items():
+    #         if isinstance(value, dict):
+    #             context_activities[key] = [value]
+    #     return context_activities
+
+    # if query_result.statements:
+    #     for statement in query_result.statements:
+    #         if context_activities := statement.get("context", {}).get("contextActivities"):
+    #             statement["context"]["contextActivities"] = _format_context_activities(context_activities)
+
     # Prepare the link to get the next page of the request, while preserving the
     # consistency of search results.
     # NB: There is an unhandled edge case where the total number of results is
@@ -445,6 +481,22 @@ async def get(  # noqa: PLR0913
             }
         )
 
+    # TODO: Can't this be done in a custom Middleware ?
+    # If the request was a HEAD request, we return a response with no body
+    if request.method.upper() == "HEAD":
+        if statement_id and not query_result.statements:
+            return Response(status_code=status.HTTP_404_NOT_FOUND)
+        return Response(status_code=status.HTTP_200_OK)
+
+    # If the request was done with a statement Id, we return the statement
+    if statement_id:
+        if not query_result.statements:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Statement not found",
+            )
+        return query_result.statements[0]
+
     return {**response, "statements": query_result.statements}
 
 
@@ -455,7 +507,7 @@ async def put(
         AuthenticatedUser,
         Security(get_authenticated_user, scopes=["statements/write"]),
     ],
-    statement: LaxStatement,
+    statement: BaseXapiStatement,
     background_tasks: BackgroundTasks,
     statement_id: UUID = Query(alias="statementId"),
     _=Depends(strict_query_params),
@@ -545,7 +597,7 @@ async def post(
         AuthenticatedUser,
         Security(get_authenticated_user, scopes=["statements/write"]),
     ],
-    statements: Union[LaxStatement, List[LaxStatement]],
+    statements: Union[BaseXapiStatement, List[BaseXapiStatement]],
     background_tasks: BackgroundTasks,
     response: Response,
     _=Depends(strict_query_params),

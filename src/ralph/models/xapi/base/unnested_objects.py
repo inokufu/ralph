@@ -8,8 +8,10 @@ from typing_extensions import Annotated
 
 from ralph.conf import NonEmptyStrictStr
 
+from .agents import BaseXapiAgent
 from ..config import BaseModelWithConfig
 from .common import IRI, LanguageMap
+from .groups import BaseXapiGroup
 
 
 class BaseXapiActivityDefinition(BaseModelWithConfig):
@@ -103,6 +105,15 @@ class BaseXapiActivity(BaseModelWithConfig):
         ]
     ] = None
 
+    # Consider empty definition as None
+    @field_validator("definition", mode='before')
+    @classmethod
+    def remove_empty_definition(cls, value: Optional[Any]) -> Optional[Any]:
+        """Remove empty definition."""
+        if value == {}:
+            return None
+        return value
+
 
 class BaseXapiStatementRef(BaseModelWithConfig):
     """Pydantic model for `StatementRef` type property.
@@ -116,4 +127,4 @@ class BaseXapiStatementRef(BaseModelWithConfig):
     objectType: Literal["StatementRef"]
 
 
-BaseXapiUnnestedObject = Union[BaseXapiActivity, BaseXapiStatementRef]
+BaseXapiUnnestedObject = Union[BaseXapiAgent, BaseXapiGroup, BaseXapiActivity, BaseXapiStatementRef]

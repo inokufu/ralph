@@ -42,6 +42,7 @@ class BaseXapiStatement(BaseModelWithConfig):
     context: Optional[BaseXapiContext] = None
     timestamp: Optional[datetime] = None
     stored: Optional[datetime] = None
+    # TODO: Authority should only be xAPI Groups consinsting of OAuth Agents ? --> To be checked
     authority: Optional[Union[BaseXapiAgent, BaseXapiGroup]] = None
     version: Annotated[str, StringConstraints(pattern=r"^1\.0\.[0-9]+$")] = "1.0.0"
     attachments: Optional[List[BaseXapiAttachment]] = None
@@ -54,8 +55,12 @@ class BaseXapiStatement(BaseModelWithConfig):
         Check that the `context` field contains `platform` and `revision` fields
         only if the `object.objectType` property is equal to `Activity`.
         """
+        # Here, there is a problem if values is a list; values can be Any but the type is not checked and dict is assumed
+        if isinstance(values, list):
+            raise ValueError("Invalid list value")
+        
         for field, value in list(values.items()):
-            if value in [None, "", {}]:
+            if value in [None, ""]:
                 raise ValueError(f"{field}: invalid empty value")
             if isinstance(value, dict) and field != "extensions":
                 cls.check_absence_of_empty_and_invalid_values(value)

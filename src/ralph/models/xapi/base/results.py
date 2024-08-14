@@ -4,7 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Dict, Optional, Union
 
-from pydantic import Field, StrictBool, model_validator
+from pydantic import Field, StrictBool, field_validator, model_validator
 from typing_extensions import Annotated
 
 from ralph.conf import NonEmptyStrictStr
@@ -61,3 +61,9 @@ class BaseXapiResult(BaseModelWithConfig):
     response: Optional[NonEmptyStrictStr] = None
     duration: Optional[timedelta] = None
     extensions: Optional[Dict[IRI, Union[str, int, bool, list, dict, None]]] = None
+
+    @field_validator('duration', mode='before')
+    def check_duration_type(cls, value):
+        if not (isinstance(value, timedelta) or isinstance(value, str)):
+            raise ValueError('Duration must be a timedelta instance')
+        return value

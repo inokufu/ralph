@@ -12,7 +12,7 @@ from ralph.conf import settings
 from .. import __version__
 from .auth import get_authenticated_user
 from .auth.user import AuthenticatedUser
-from .routers import health, statements
+from .routers import health, statements, xapi
 
 
 @lru_cache(maxsize=None)
@@ -44,6 +44,7 @@ if settings.SENTRY_DSN is not None:
 app = FastAPI()
 app.include_router(statements.router)
 app.include_router(health.router)
+app.include_router(xapi.router)
 
 
 @app.get("/whoami")
@@ -55,3 +56,23 @@ async def whoami(
         "agent": user.agent.model_dump(mode="json", exclude_none=True),
         "scopes": user.scopes,
     }
+
+# TODO: Overriding exceptions should be done in a separate file
+from fastapi.exceptions import RequestValidationError
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc.errors())},
+    )
+
+@app.exception_handler(TypeError)
+async def type_exception_handler(request: Request, exc: TypeError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc)},
+    )
