@@ -22,7 +22,6 @@ from ralph.backends.data.base import (
 )
 from ralph.conf import BASE_SETTINGS_CONFIG, ClientOptions
 from ralph.exceptions import BackendException, BackendParameterException
-from ralph.utils import iter_by_batch
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +106,6 @@ class CouchDataBackend(BaseDataBackend[Settings, CouchQuery], Writable, Listable
             if self.client.resource.get_json('/_up').get("status") != 'ok':
                 logger.error("CouchDB `_up` endpoint did not return 'ok'")
                 return DataBackendStatus.ERROR
-        # except (ConnectionFailure, InvalidOperation) as error:
-        # TODO: Check that the exception is well caught; a more accurate error should exist
         except Exception as error:
             logger.error("Failed to connect to CouchDB: %s", error)
             return DataBackendStatus.AWAY
@@ -191,15 +188,10 @@ class CouchDataBackend(BaseDataBackend[Settings, CouchQuery], Writable, Listable
         kwargs = query.model_dump(exclude_none=True)
         database = self._get_target_database(target)
         try:
-            # TODO: Here, I should keep only the docs, and update the query to add the bookmark ?
-            # documents = database.find(batch_size=chunk_size, **kwargs)
-            # documents = database.find(mango_query=kwargs)
             _, _, response = database.resource.post_json(path='_find', body=kwargs)
             documents = response['docs']
             bookmark = response.get('bookmark', None)
-            # yield from {document["source"] for document in documents}
             yield from (d.update({"bookmark": bookmark}) or d for d in documents)
-        # TODO: Check error handling here
         except (ServerError, IndexError, TypeError, ValueError) as error:
             msg = "Failed to execute CouchDB query: %s"
             logger.error(msg, error)
