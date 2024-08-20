@@ -49,6 +49,9 @@ backend-clickhouse = [
     "clickhouse-connect[numpy,pandas]<0.6",
     "python-dateutil>=2.8.2",
 ]
+backend-couch = [
+    "couchdb>=1.1",
+]
 backend-es = [
     "elasticsearch[async]>=8.0.0",
 ]
@@ -77,7 +80,7 @@ backend-ws = [
     "websockets>=13.0",
 ]
 backends = [
-    "ralph-malph[backend-clickhouse,backend-es,backend-ldp,backend-lrs,backend-mongo,backend-s3,backend-swift]",
+    "ralph-malph[backend-couch,backend-clickhouse,backend-es,backend-ldp,backend-lrs,backend-mongo,backend-s3,backend-swift]",
 ]
 ci = [
     "twine==5.1.1",
@@ -138,6 +141,7 @@ async_es = "ralph.backends.data.async_es:AsyncESDataBackend"
 async_lrs = "ralph.backends.data.async_lrs:AsyncLRSDataBackend"
 async_mongo = "ralph.backends.data.async_mongo:AsyncMongoDataBackend"
 async_ws = "ralph.backends.data.async_ws:AsyncWSDataBackend"
+couch = "ralph.backends.data.couch:CouchDataBackend"
 clickhouse = "ralph.backends.data.clickhouse:ClickHouseDataBackend"
 es = "ralph.backends.data.es:ESDataBackend"
 fs = "ralph.backends.data.fs:FSDataBackend"
@@ -150,6 +154,7 @@ swift = "ralph.backends.data.swift:SwiftDataBackend"
 [project.entry-points."ralph.backends.lrs"]
 async_es = "ralph.backends.lrs.async_es:AsyncESLRSBackend"
 async_mongo = "ralph.backends.lrs.async_mongo:AsyncMongoLRSBackend"
+couch = "ralph.backends.lrs.couch:CouchLRSBackend"
 clickhouse = "ralph.backends.lrs.clickhouse:ClickHouseLRSBackend"
 es = "ralph.backends.lrs.es:ESLRSBackend"
 fs = "ralph.backends.lrs.fs:FSLRSBackend"

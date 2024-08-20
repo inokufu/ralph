@@ -53,6 +53,18 @@ services:
       interval: 1s
       retries: 60
 
+  couch:
+    image: couchdb:3.3.3
+    ports:
+      - "5984:5984"
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-password}
+    healthcheck:
+      test: curl -f http://localhost:5984/_up
+      interval: 1s
+      retries: 60
+
   clickhouse:
       image: clickhouse/clickhouse-server:23.1.1.3077-alpine
       environment:

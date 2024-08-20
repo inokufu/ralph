@@ -228,6 +228,10 @@ run: \
 	@$(COMPOSE) up -d app
 .PHONY: run
 
+run-lrs: ## run LRS server (development mode)
+	@$(COMPOSE) up -d app
+.PHONY: run-lrs
+
 run-all: ## start all supported local backends
 run-all: \
 	run-databases \
@@ -255,6 +259,11 @@ run-mongo: ## start mongodb backend
 	@echo "Waiting for mongo to be up and running..."
 	@$(COMPOSE) up -d --wait mongo
 .PHONY: run-mongo
+
+run-couch: ## start couchdb backend
+	@echo "Waiting for couch to be up and running..."
+	@$(COMPOSE) up -d --wait couch
+.PHONY: run-couch
 
 run-swift: ## start swift backend
 	@echo "Waiting for swift to be up and running..."
