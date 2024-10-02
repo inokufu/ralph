@@ -38,6 +38,7 @@ from ..helpers import (
     assert_statement_get_responses_are_equivalent,
     mock_agent,
     mock_statement,
+    statements_are_equivalent,
     string_is_date,
 )
 
@@ -394,9 +395,7 @@ async def test_api_statements_put_duplicate_of_existing_statement(  # noqa: PLR0
         headers={"Authorization": f"Basic {basic_auth_credentials}"},
     )
     assert response.status_code == 200
-    assert_statement_get_responses_are_equivalent(
-        response.json(), {"statements": [statement]}
-    )
+    assert statements_are_equivalent(response.json(), statement)
 
 
 @pytest.mark.anyio

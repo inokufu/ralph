@@ -93,7 +93,7 @@ async def test_api_statements_head_with_no_matching_statement(
         headers={"Authorization": f"Basic {basic_auth_credentials}"},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 404
     assert len(response.content) == 0
 
 

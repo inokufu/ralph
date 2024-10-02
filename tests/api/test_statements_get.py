@@ -126,13 +126,13 @@ async def test_api_statements_get_mine(
     assert response.status_code == 200
     assert response.json() == {"statements": [statements[0]]}
 
-    # Fetch "mine" by id with a single forbidden statement : Return empty list
+    # Fetch "mine" by id with a single forbidden statement : Return 404 not found
     response = await client.get(
         f"/xAPI/statements/?statementId={statements[1]['id']}&mine=True",
         headers={"Authorization": f"Basic {credentials_1_bis}"},
     )
-    assert response.status_code == 200
-    assert response.json() == {"statements": []}
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Statement not found"}
 
     # Check that invalid parameters returns an error
     response = await client.get(
@@ -282,7 +282,7 @@ async def test_api_statements_get_by_statement_id(
     )
 
     assert response.status_code == 200
-    assert response.json() == {"statements": [statements[1]]}
+    assert response.json() == statements[1]
 
 
 @pytest.mark.anyio
@@ -631,8 +631,8 @@ async def test_api_statements_get_with_no_matching_statement(
         headers={"Authorization": f"Basic {basic_auth_credentials}"},
     )
 
-    assert response.status_code == 200
-    assert response.json() == {"statements": []}
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Statement not found"}
 
 
 @pytest.mark.anyio

@@ -1,6 +1,7 @@
 """Main module for Ralph's LRS API."""
 
 from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Any, Dict, List, Union
 from urllib.parse import urlparse
@@ -105,6 +106,20 @@ async def set_x_experience_api_version_header(
     else:
         response.headers["X-Experience-API-Version"] = settings.XAPI_VERSION_FALLBACK
 
+    return response
+
+
+@app.middleware("http")
+async def set_x_experience_api_consistent_through_header(
+    request: Request, call_next: Callable[[Request], Response]
+) -> Response:
+    """Set X-Experience-API-Version header in every response."""
+    response = await call_next(request)
+
+    # this arbitrary value is based on
+    # https://github.com/adlnet/ADL_LRS/blob/master/lrs/utils/XAPIConsistentThroughMiddleware.py#L16
+    time = datetime.now(tz=timezone.utc) - timedelta(seconds=3)
+    response.headers["X-Experience-API-Consistent-Through"] = time.isoformat()
     return response
 
 

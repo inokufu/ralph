@@ -147,7 +147,7 @@ def strict_query_params(request: Request) -> None:
 @router.get("/")
 @router.head("")
 @router.head("/")
-async def get(  # noqa: PLR0913
+async def get(  # noqa: PLR0912, PLR0913
     request: Request,
     current_user: Annotated[
         AuthenticatedUser,
@@ -447,6 +447,15 @@ async def get(  # noqa: PLR0913
                 ).geturl(),
             }
         )
+
+    # If the request was done with a statement Id, we return the statement
+    if statement_id:
+        if not query_result.statements:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Statement not found",
+            )
+        return query_result.statements[0]
 
     return {**response, "statements": query_result.statements}
 
