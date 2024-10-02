@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from ralph.models.edx.navigational.fields.events import NavigationalEventField
 from ralph.models.edx.navigational.statements import UISeqNext, UISeqPrev
-from ralph.models.xapi.base.common import IRI, LanguageTag, MailtoEmail
+from ralph.models.xapi.base.common import IRI, URI, LanguageTag, MailtoEmail
 from ralph.models.xapi.base.contexts import (
     BaseXapiContext,
 )
@@ -170,6 +170,13 @@ class IRIFactory(ModelFactory[IRI]):
     __set_as_default_factory_for_type__ = True
 
     root = lambda: IRI(mock_url())  # noqa: E731
+
+
+class URIFactory(ModelFactory[URI]):
+    __model__ = URI
+    __set_as_default_factory_for_type__ = True
+
+    root = lambda: URI(mock_url())  # noqa: E731
 
 
 class MailtoEmailFactory(ModelFactory[MailtoEmail]):

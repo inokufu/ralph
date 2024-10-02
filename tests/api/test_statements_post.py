@@ -791,7 +791,7 @@ async def test_api_statements_post_scopes(  # noqa: PLR0913
         get_basic_auth_user.cache_clear()
 
     elif auth_method == "oidc":
-        sub = "123|oidc"
+        sub = "123_oidc"
         agent = {"openid": sub}
         oidc_token = mock_oidc_user(sub=sub, scopes=scopes)
         headers = {"Authorization": f"Bearer {oidc_token}"}

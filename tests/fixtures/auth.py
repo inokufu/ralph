@@ -255,7 +255,7 @@ def _create_oidc_token(sub, scopes, target=None):
     )
 
 
-def mock_oidc_user(sub="123|oidc", scopes=None, target=None):
+def mock_oidc_user(sub="123_oidc", scopes=None, target=None):
     """Instantiate mock oidc user and return auth token."""
     # Default value for scope
     if scopes is None:
@@ -288,4 +288,4 @@ def mock_oidc_user(sub="123|oidc", scopes=None, target=None):
 @pytest.fixture
 def encoded_token():
     """Encode token with the private key (fixture)."""
-    return _create_oidc_token(sub="123|oidc", scopes=["all", "statements/read"])
+    return _create_oidc_token(sub="123_oidc", scopes=["all", "statements/read"])

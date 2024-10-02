@@ -782,7 +782,7 @@ async def test_api_statements_get_scopes(  # noqa: PLR0913
             AUDIENCE,
         )
 
-        sub = "123|oidc"
+        sub = "123_oidc"
         iss = "https://iss.example.com"
         agent = {"openid": f"{iss}/{sub}"}
         oidc_token = mock_oidc_user(sub=sub, scopes=scopes)

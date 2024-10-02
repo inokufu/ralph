@@ -6,7 +6,7 @@ from typing_extensions import Annotated
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
-from .common import IRI, MailtoEmail
+from .common import IRI, URI, MailtoEmail
 
 
 class BaseXapiAccount(BaseModelWithConfig):
@@ -48,7 +48,7 @@ class BaseXapiOpenIdIFI(BaseModelWithConfig):
         openid (URI): Consists of an openID that uniquely identifies the Agent.
     """
 
-    openid: str
+    openid: URI
 
 
 class BaseXapiAccountIFI(BaseModelWithConfig):
