@@ -9,14 +9,18 @@ from rfc3987 import parse
 from ralph.conf import NonEmptyStrictStr
 
 
-class IRI(RootModel[Union["IRI", str]]):
-    """Pydantic custom data type validating RFC 3987 IRIs."""
+class ResourceIdentifier(RootModel[Union[str]]):
+    """Pydantic custom data type for Resource Identifiers."""
 
     def __hash__(self):  # noqa: D105
         return hash(str(self.root))
 
     def __str__(self):  # noqa: D105
         return str(self.root)
+
+
+class IRI(ResourceIdentifier):
+    """Pydantic custom data type validating RFC 3987 IRIs."""
 
     @model_validator(mode="before")
     @classmethod
@@ -26,14 +30,8 @@ class IRI(RootModel[Union["IRI", str]]):
         return str(iri)
 
 
-class URI(RootModel[Union["URI", str]]):
+class URI(ResourceIdentifier):
     """Pydantic custom data type validating RFC 3987 URIs."""
-
-    def __hash__(self):  # noqa: D105
-        return hash(str(self.root))
-
-    def __str__(self):  # noqa: D105
-        return str(self.root)
 
     @model_validator(mode="before")
     @classmethod

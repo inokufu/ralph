@@ -11,7 +11,6 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
-    Header,
     HTTPException,
     Query,
     Request,
@@ -22,6 +21,7 @@ from fastapi import (
 from fastapi.dependencies.models import Dependant
 from pydantic import TypeAdapter
 from pydantic.types import Json
+from starlette.datastructures import Headers
 from typing_extensions import Annotated
 
 from ralph.api.auth import get_authenticated_user
@@ -102,6 +102,12 @@ def _enrich_statement_with_authority(
     statement["authority"] = current_user.agent.model_dump(
         exclude_none=True, mode="json"
     )
+
+
+def _filter_headers_before_forwarding(headers: Headers):
+    # forward headers except content-length which would not match
+    # since statements has been enriched
+    return {name: value for name, value in headers.items() if name != "content-length"}
 
 
 def _parse_agent_parameters(agent_obj: dict) -> AgentParameters:
@@ -469,7 +475,7 @@ async def put(
     ],
     statement: LaxStatement,
     background_tasks: BackgroundTasks,
-    x_experience_api_version: Annotated[str | None, Header()],
+    request: Request,
     statement_id: UUID = Query(alias="statementId"),
     _=Depends(strict_query_params),
 ) -> None:
@@ -497,7 +503,7 @@ async def put(
             forward_xapi_statements,
             statement_as_dict,
             method="put",
-            headers={"X-Experience-API-Version": x_experience_api_version},
+            headers=_filter_headers_before_forwarding(headers=request.headers),
         )
 
     # Finish enriching statements after forwarding
@@ -563,7 +569,7 @@ async def post(
     ],
     statements: Union[LaxStatement, List[LaxStatement]],
     background_tasks: BackgroundTasks,
-    x_experience_api_version: Annotated[str | None, Header()],
+    request: Request,
     response: Response,
     _=Depends(strict_query_params),
 ) -> Union[List, None]:
@@ -601,7 +607,7 @@ async def post(
             forward_xapi_statements,
             list(statements_dict.values()),
             method="post",
-            headers={"X-Experience-API-Version": x_experience_api_version},
+            headers=_filter_headers_before_forwarding(headers=request.headers),
         )
 
     try:
