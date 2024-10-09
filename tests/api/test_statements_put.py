@@ -38,6 +38,7 @@ from ..helpers import (
     assert_statement_get_responses_are_equivalent,
     mock_agent,
     mock_statement,
+    statements_are_equivalent,
     string_is_date,
 )
 
@@ -343,7 +344,7 @@ async def test_api_statements_put_list_of_one(  # noqa: PLR0913
         json=[statement],
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 400
 
 
 @pytest.mark.anyio
@@ -394,9 +395,7 @@ async def test_api_statements_put_duplicate_of_existing_statement(  # noqa: PLR0
         headers={"Authorization": f"Basic {basic_auth_credentials}"},
     )
     assert response.status_code == 200
-    assert_statement_get_responses_are_equivalent(
-        response.json(), {"statements": [statement]}
-    )
+    assert statements_are_equivalent(response.json(), statement)
 
 
 @pytest.mark.anyio
@@ -604,7 +603,9 @@ async def test_api_statements_put_with_forwarding(  # noqa: PLR0913
         )
         # Start forwarding LRS client
         async with AsyncClient(
-            app=app, base_url="http://testserver"
+            app=app,
+            base_url="http://testserver",
+            headers={"X-Experience-API-Version": "1.0.3"},
         ) as forwarding_client:
             # Send an xAPI statement to the forwarding client
             response = await forwarding_client.put(
@@ -628,7 +629,9 @@ async def test_api_statements_put_with_forwarding(  # noqa: PLR0913
             )
 
     # The statement should also be stored on the receiving client
-    async with AsyncClient() as receiving_client:
+    async with AsyncClient(
+        headers={"X-Experience-API-Version": "1.0.3"}
+    ) as receiving_client:
         response = await receiving_client.get(
             f"http://{RUNSERVER_TEST_HOST}:{RUNSERVER_TEST_PORT}/xAPI/statements/",
             headers={"Authorization": f"Basic {basic_auth_credentials}"},
@@ -674,7 +677,7 @@ async def test_api_statements_put_scopes(  # noqa: PLR0913
         get_basic_auth_user.cache_clear()
 
     elif auth_method == "oidc":
-        sub = "123|oidc"
+        sub = "123_oidc"
         agent = {"openid": sub}
         oidc_token = mock_oidc_user(sub=sub, scopes=scopes)
         headers = {"Authorization": f"Bearer {oidc_token}"}

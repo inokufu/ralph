@@ -21,6 +21,7 @@ from fastapi import (
 from fastapi.dependencies.models import Dependant
 from pydantic import TypeAdapter
 from pydantic.types import Json
+from starlette.datastructures import Headers
 from typing_extensions import Annotated
 
 from ralph.api.auth import get_authenticated_user
@@ -103,6 +104,12 @@ def _enrich_statement_with_authority(
     )
 
 
+def _filter_headers_before_forwarding(headers: Headers):
+    # forward headers except content-length which would not match
+    # since statements has been enriched
+    return {name: value for name, value in headers.items() if name != "content-length"}
+
+
 def _parse_agent_parameters(agent_obj: dict) -> AgentParameters:
     """Parse a dict and return an AgentParameters object to use in queries."""
     # Transform agent to `dict` as FastAPI cannot parse JSON (seen as string)
@@ -144,7 +151,9 @@ def strict_query_params(request: Request) -> None:
 
 @router.get("")
 @router.get("/")
-async def get(  # noqa: PLR0913
+@router.head("")
+@router.head("/")
+async def get(  # noqa: PLR0912, PLR0913
     request: Request,
     current_user: Annotated[
         AuthenticatedUser,
@@ -445,6 +454,15 @@ async def get(  # noqa: PLR0913
             }
         )
 
+    # If the request was done with a statement Id, we return the statement
+    if statement_id:
+        if not query_result.statements:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Statement not found",
+            )
+        return query_result.statements[0]
+
     return {**response, "statements": query_result.statements}
 
 
@@ -457,6 +475,7 @@ async def put(
     ],
     statement: LaxStatement,
     background_tasks: BackgroundTasks,
+    request: Request,
     statement_id: UUID = Query(alias="statementId"),
     _=Depends(strict_query_params),
 ) -> None:
@@ -481,7 +500,10 @@ async def put(
 
     if get_active_xapi_forwardings():
         background_tasks.add_task(
-            forward_xapi_statements, statement_as_dict, method="put"
+            forward_xapi_statements,
+            statement_as_dict,
+            method="put",
+            headers=_filter_headers_before_forwarding(headers=request.headers),
         )
 
     # Finish enriching statements after forwarding
@@ -547,6 +569,7 @@ async def post(
     ],
     statements: Union[LaxStatement, List[LaxStatement]],
     background_tasks: BackgroundTasks,
+    request: Request,
     response: Response,
     _=Depends(strict_query_params),
 ) -> Union[List, None]:
@@ -581,7 +604,10 @@ async def post(
     # Forward statements
     if get_active_xapi_forwardings():
         background_tasks.add_task(
-            forward_xapi_statements, list(statements_dict.values()), method="post"
+            forward_xapi_statements,
+            list(statements_dict.values()),
+            method="post",
+            headers=_filter_headers_before_forwarding(headers=request.headers),
         )
 
     try:
