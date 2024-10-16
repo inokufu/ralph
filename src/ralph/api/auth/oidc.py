@@ -9,9 +9,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, OpenIdConnect
 from jose import ExpiredSignatureError, JWTError, jwt
 from jose.exceptions import JWTClaimsError
-from pydantic import AnyUrl, BaseModel, ConfigDict
+from pydantic import AnyUrl
 from typing_extensions import Annotated
 
+from ralph.api.auth.token import OpenIDConnectIDToken
 from ralph.api.auth.user import AuthenticatedUser, UserScopes
 from ralph.conf import settings
 
@@ -24,34 +25,6 @@ oauth2_scheme = OpenIdConnect(
 
 # API auth logger
 logger = logging.getLogger(__name__)
-
-
-class IDToken(BaseModel):
-    """Pydantic model representing the core of an OpenID Connect ID Token.
-
-    ID Tokens are polymorphic and may have many attributes not defined in the
-    specification. This model ignores all additional fields.
-
-    Attributes:
-        iss (str): Issuer Identifier for the Issuer of the response.
-        sub (str): Subject Identifier.
-        aud (str): Audience(s) that this ID Token is intended for.
-        exp (int): Expiration time on or after which the ID Token MUST NOT be
-                   accepted for processing.
-        iat (int): Time at which the JWT was issued.
-        scope (str): Scope(s) for resource authorization.
-        target (str): Target for storing the statements.
-    """
-
-    iss: str
-    sub: str
-    aud: Optional[str] = None
-    exp: int
-    iat: int
-    scope: Optional[str] = None
-    target: Optional[str] = None
-
-    model_config = ConfigDict(extra="ignore")
 
 
 @lru_cache()
@@ -143,7 +116,7 @@ def get_oidc_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
-    id_token = IDToken.model_validate(decoded_token)
+    id_token = OpenIDConnectIDToken.model_validate(decoded_token)
 
     user = AuthenticatedUser(
         agent={"openid": f"{id_token.iss}/{id_token.sub}"},
