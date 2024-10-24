@@ -92,6 +92,7 @@ dev = [
     "anyio==4.4.0",
     "black==24.8.0",
     "cryptography==43.0.0",
+    "debugpy==1.8.6",
     "factory-boy==3.3.1",
     "logging-gelf==0.0.32",
     "mike==2.1.3",
@@ -146,6 +147,7 @@ lrs = "ralph.backends.data.lrs:LRSDataBackend"
 mongo = "ralph.backends.data.mongo:MongoDataBackend"
 s3 = "ralph.backends.data.s3:S3DataBackend"
 swift = "ralph.backends.data.swift:SwiftDataBackend"
+cozystack = "ralph.backends.data.cozystack:CozyStackDataBackend"
 
 [project.entry-points."ralph.backends.lrs"]
 async_es = "ralph.backends.lrs.async_es:AsyncESLRSBackend"
@@ -154,6 +156,7 @@ clickhouse = "ralph.backends.lrs.clickhouse:ClickHouseLRSBackend"
 es = "ralph.backends.lrs.es:ESLRSBackend"
 fs = "ralph.backends.lrs.fs:FSLRSBackend"
 mongo = "ralph.backends.lrs.mongo:MongoLRSBackend"
+cozystack = "ralph.backends.lrs.cozystack:CozyStackLRSBackend"
 
 [tool.setuptools]
 packages = { find = { where = ["src"] } }
