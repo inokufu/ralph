@@ -11,7 +11,7 @@ import bcrypt
 from cachetools import TTLCache, cached
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from pydantic import RootModel, model_validator
+from pydantic import BaseModel, ConfigDict, RootModel, model_validator
 from starlette.authentication import AuthenticationError
 
 from ralph.api.auth.user import AuthenticatedUser
@@ -73,6 +73,30 @@ class ServerUsersCredentials(RootModel[List[UserCredentials]]):
                 "You cannot create multiple credentials with the same username"
             )
         return self
+
+
+class BaseIDToken(BaseModel):
+    """Pydantic model representing the core of an ID Token.
+
+    ID Tokens are polymorphic and may have many attributes not defined in the
+    specification. This model ignores all additional fields.
+
+    Attributes:
+        iss (str): Issuer Identifier for the Issuer of the response.
+        sub (str): Subject Identifier.
+        aud (str): Audience(s) that this ID Token is intended for.
+        iat (int): Time at which the JWT was issued.
+        scope (str): Scope(s) for resource authorization.
+        target (str): Target for storing the statements.
+    """
+
+    iss: str
+    sub: str
+    iat: int
+    scope: Optional[str] = None
+    target: Optional[str] = None
+
+    model_config = ConfigDict(extra="ignore")
 
 
 @lru_cache()
