@@ -62,3 +62,6 @@ class LaxStatement(BaseModelWithLaxConfig):
     id: Optional[UUID] = None
     object: LaxObjectField
     verb: LaxVerbField
+
+
+
