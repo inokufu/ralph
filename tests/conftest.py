@@ -1,5 +1,7 @@
 """Module py.test fixtures."""
 
+import debugpy
+
 from .fixtures.api import client  # noqa: F401
 from .fixtures.auth import (  # noqa: F401
     basic_auth_credentials,
@@ -42,3 +44,5 @@ from .fixtures.backends import (  # noqa: F401
     ws,
 )
 from .fixtures.logs import gelf_logger  # noqa: F401
+
+debugpy.listen(5678, in_process_debug_adapter=True)
