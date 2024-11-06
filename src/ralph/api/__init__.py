@@ -1,5 +1,6 @@
 """Main module for Ralph's LRS API."""
 
+import os
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -68,7 +69,9 @@ async def check_x_experience_api_version_header(
 ) -> Response:
     """Check the headers for the X-Experience-API-Version in every request."""
     # about resource doesn't need the "X-Experience-API-Version" header
-    if not request.url.path == "/xAPI/about":
+    if request.url.path.startswith(
+        settings.XAPI_PREFIX
+    ) and request.url.path != os.path.join(settings.XAPI_PREFIX, "about"):
         # check that request includes X-Experience-API-Version header
         if "X-Experience-API-Version" not in request.headers:
             return JSONResponse(

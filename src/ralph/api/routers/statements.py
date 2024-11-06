@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Dict, List, Literal, Optional, Union
 from urllib.parse import ParseResult, urlencode
@@ -55,7 +56,7 @@ from ralph.utils import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/xAPI/statements",
+    prefix=os.path.join(settings.XAPI_PREFIX, "statements"),
     dependencies=[Depends(get_authenticated_user)],
 )
 

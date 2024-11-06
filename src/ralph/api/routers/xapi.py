@@ -9,7 +9,7 @@ from ralph.conf import settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/xAPI")
+router = APIRouter(prefix=settings.XAPI_PREFIX)
 
 
 @router.get("/about")
