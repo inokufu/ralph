@@ -13,7 +13,7 @@ from typing_extensions import Annotated
 
 from ralph.api.auth.token import BaseIDToken
 from ralph.api.auth.user import AuthenticatedUser
-from ralph.models.cozy import COZY_AUTH_COOKIE_NAME, CozyAuthData
+from ralph.models.cozy import CozyAuthData
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,6 @@ class CozyIDToken(BaseIDToken):
 
     sub: Optional[str] = None
     aud: List[str]
-    session_id: str
 
 
 def decode_auth_token(x_auth_token: str) -> Dict:
@@ -64,19 +63,17 @@ def decode_auth_token(x_auth_token: str) -> Dict:
         )
     except (ValueError, ExpiredSignatureError, JWTError, JWTClaimsError) as exc:
         logger.error("Unable to decode the ID token: %s", exc)
-
         raise unauthorized_http_exception from exc
 
 
 def validate_auth_against_cozystack(
-    id_token: CozyIDToken, x_auth_token: str, cookie: str
+    id_token: CozyIDToken, x_auth_token: str
 ) -> CozyAuthData:
     """Validate Cozy ID token against Cozy-Stack server.
 
     Attributes:
         id_token (CozyIDToken): Decoded authentication token data.
         x_auth_token (str): Cozy authentication token (jwt).
-        cookie (str): Cozy authentication cookie.
 
     Return:
         CozyAuthData: Cozy authentication data required to request CozyStack.
@@ -92,32 +89,25 @@ def validate_auth_against_cozystack(
     # request cozy-stack to check auth is valid
     try:
         response = httpx.get(
-            os.path.join(instance_url, "apps/"),
-            headers={
-                "Accept": "application/json",
-                "Authorization": x_auth_token,
-                "Cookie": cookie,
-            },
+            os.path.join(instance_url, "data", "_all_doctypes"),
+            headers={"Accept": "application/json", "Authorization": x_auth_token},
         )
 
         response.raise_for_status()
     except httpx.HTTPError as exc:
         logger.error("Unable to authenticate user against cozy-stack: %s", exc)
-
         raise unauthorized_http_exception from exc
 
-    return CozyAuthData(instance_url=instance_url, token=x_auth_token, cookie=cookie)
+    return CozyAuthData(instance_url=instance_url, token=x_auth_token)
 
 
 def get_cozy_user(
-    x_auth_token: Annotated[str | None, Header()] = None,
-    cookie: Annotated[str | None, Header()] = None,
+    x_auth_token: Annotated[str | None, Header()] = None
 ) -> AuthenticatedUser:
     """Decode and validate Cozy ID token against Cozy-Stack server.
 
     Attributes:
         x_auth_token (str): Cozy authentication token (jwt).
-        cookie (str): Cozy authentication cookie.
 
     Return:
         AuthenticatedUser (AuthenticatedUser)
@@ -129,20 +119,15 @@ def get_cozy_user(
         logger.debug("Not using cozy auth which requires a Bearer token")
         return None
 
-    if cookie is None or COZY_AUTH_COOKIE_NAME not in cookie:
-        logger.debug(
-            f"Not using cozy auth which requires a {COZY_AUTH_COOKIE_NAME} cookie"
-        )
-        return None
-
     decoded_token = decode_auth_token(x_auth_token)
 
     try:
         id_token = CozyIDToken.model_validate(decoded_token)
     except ValidationError as exc:
+        logger.error("Unable to validate the ID token: %s", exc)
         raise unauthorized_http_exception from exc
 
-    cozy_auth_data = validate_auth_against_cozystack(id_token, x_auth_token, cookie)
+    cozy_auth_data = validate_auth_against_cozystack(id_token, x_auth_token)
 
     user = AuthenticatedUser(
         agent={"openid": f"{id_token.iss}/{id_token.sub or "cli"}"},

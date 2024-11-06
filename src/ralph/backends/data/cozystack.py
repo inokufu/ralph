@@ -49,7 +49,6 @@ class CozyStackHttpClient:
             "Accept": "application/json",
             "Content-Type": "application/json",
             "Authorization": self.cozy_auth_data.token,
-            "Cookie": self.cozy_auth_data.cookie,
         }
 
         self.client = httpx.Client(base_url=base_url, headers=headers)
