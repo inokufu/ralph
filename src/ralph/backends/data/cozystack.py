@@ -180,7 +180,7 @@ class CozyStackDataBackendSettings(BaseDataBackendSettings):
 
     DEFAULT_DOCTYPE: Annotated[
         str, StringConstraints(pattern=r"(?:[a-z]+\.)+[a-z]+")
-    ] = "com.inokufu.statements"
+    ] = "io.cozy.learningrecord"
 
     CLIENT_OPTIONS: CozyStackClientOptions = CozyStackClientOptions()
 
