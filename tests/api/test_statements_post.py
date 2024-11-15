@@ -118,7 +118,6 @@ async def test_api_statements_post_single_statement_to_target(  # noqa: PLR0913
     client,
     backend,
     monkeypatch,
-    basic_auth_credentials,
     es_custom,
     mongo_custom,
     clickhouse_custom,
