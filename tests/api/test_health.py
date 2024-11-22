@@ -11,6 +11,7 @@ from tests.fixtures.backends import (
     get_async_es_test_backend,
     get_async_mongo_test_backend,
     get_clickhouse_test_backend,
+    get_cozystack_test_backend,
     get_es_test_backend,
     get_mongo_test_backend,
 )
@@ -25,6 +26,7 @@ from tests.fixtures.backends import (
         get_clickhouse_test_backend,
         get_es_test_backend,
         get_mongo_test_backend,
+        get_cozystack_test_backend,
     ],
 )
 async def test_api_health_lbheartbeat(client, backend, monkeypatch):
@@ -45,6 +47,7 @@ async def test_api_health_lbheartbeat(client, backend, monkeypatch):
         get_clickhouse_test_backend,
         get_es_test_backend,
         get_mongo_test_backend,
+        get_cozystack_test_backend,
     ],
 )
 async def test_api_health_heartbeat(client, backend, monkeypatch, clickhouse):

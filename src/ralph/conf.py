@@ -129,6 +129,7 @@ class AuthBackend(str, Enum):
 
     BASIC = "basic"
     OIDC = "oidc"
+    COZY = "cozy"
 
 
 def validate_auth_backends(

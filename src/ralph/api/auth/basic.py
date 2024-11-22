@@ -15,7 +15,7 @@ from pydantic import RootModel, model_validator
 from starlette.authentication import AuthenticationError
 
 from ralph.api.auth.user import AuthenticatedUser
-from ralph.conf import settings
+from ralph.conf import AuthBackend, settings
 
 # Unused password used to avoid timing attacks, by comparing passwords supplied
 # with invalid credentials to something innocuous with the same method as if
@@ -125,6 +125,9 @@ def get_basic_auth_user(
     Raises:
         HTTPException
     """
+    if AuthBackend.BASIC not in settings.RUNSERVER_AUTH_BACKENDS:
+        return None
+
     if not credentials:
         logger.debug("No credentials were found for Basic auth")
         return None

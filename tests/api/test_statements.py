@@ -7,6 +7,7 @@ from ralph.api.routers import statements
 from ralph.backends.lrs.async_es import AsyncESLRSBackend
 from ralph.backends.lrs.async_mongo import AsyncMongoLRSBackend
 from ralph.backends.lrs.clickhouse import ClickHouseLRSBackend
+from ralph.backends.lrs.cozystack import CozyStackLRSBackend
 from ralph.backends.lrs.es import ESLRSBackend
 from ralph.backends.lrs.mongo import MongoLRSBackend
 
@@ -43,3 +44,8 @@ def test_api_statements_backend_instance_with_runserver_backend_env(monkeypatch)
     monkeypatch.setenv("RALPH_RUNSERVER_BACKEND", "async_mongo")
     reload(conf)
     assert isinstance(reload(statements).BACKEND_CLIENT, AsyncMongoLRSBackend)
+
+    # CozyStack backend
+    monkeypatch.setenv("RALPH_RUNSERVER_BACKEND", "cozystack")
+    reload(conf)
+    assert isinstance(reload(statements).BACKEND_CLIENT, CozyStackLRSBackend)

@@ -151,7 +151,7 @@ async def test_api_auth_basic_get_whoami_no_credentials(client):
     """Whoami route returns a 401 error when no credentials are sent."""
     response = await client.get("/whoami")
     assert response.status_code == 401
-    assert response.headers["www-authenticate"] == "Basic"
+    assert response.headers["www-authenticate"] == "Basic,Bearer"
     assert response.json() == {"detail": "Invalid authentication credentials"}
 
 

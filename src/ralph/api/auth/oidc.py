@@ -14,7 +14,7 @@ from typing_extensions import Annotated
 
 from ralph.api.auth.token import BaseIDToken
 from ralph.api.auth.user import AuthenticatedUser, UserScopes
-from ralph.conf import settings
+from ralph.conf import AuthBackend, settings
 
 OPENID_CONFIGURATION_PATH = "/.well-known/openid-configuration"
 oauth2_scheme = OpenIdConnect(
@@ -105,6 +105,9 @@ def get_oidc_user(
     Raises:
         HTTPException
     """
+    if AuthBackend.OIDC not in settings.RUNSERVER_AUTH_BACKENDS:
+        return None
+
     if auth_header is None or "bearer" not in auth_header.lower():
         logger.debug(
             "Not using OIDC auth. The OpenID Connect authentication mode requires a "

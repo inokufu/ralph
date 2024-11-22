@@ -8,7 +8,7 @@ from fastapi.security import SecurityScopes
 from ralph.api.auth.basic import AuthenticatedUser, get_basic_auth_user
 from ralph.api.auth.cozy import get_cozy_user
 from ralph.api.auth.oidc import get_oidc_user
-from ralph.conf import AuthBackend, settings
+from ralph.conf import settings
 
 
 def get_authenticated_user(
@@ -18,12 +18,6 @@ def get_authenticated_user(
     cozy_auth_user: Optional[AuthenticatedUser] = Depends(get_cozy_user),
 ) -> AuthenticatedUser:
     """Authenticate user with any allowed method, using credentials in the header."""
-    if AuthBackend.BASIC not in settings.RUNSERVER_AUTH_BACKENDS:
-        basic_auth_user = None
-
-    if AuthBackend.OIDC not in settings.RUNSERVER_AUTH_BACKENDS:
-        oidc_auth_user = None
-
     if basic_auth_user:
         user = basic_auth_user
         auth_header = "Basic"

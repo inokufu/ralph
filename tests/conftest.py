@@ -5,6 +5,9 @@ import debugpy
 from .fixtures.api import client  # noqa: F401
 from .fixtures.auth import (  # noqa: F401
     basic_auth_credentials,
+    cozy_auth_data,
+    cozy_auth_target,
+    cozy_auth_token,
     encoded_token,
     mock_discovery_response,
     mock_oidc_jwks,
