@@ -121,7 +121,7 @@ class CozyStackLRSBackend(
 
         # Note: `params` fields are validated thus we skip CozyStackQuery validation.
         return CozyStackQuery.model_construct(
-            filter=cozystack_query_filters,
+            selector=cozystack_query_filters,
             limit=params.limit,
             sort=cozystack_query_sort,
             bookmark=params.search_after if params.search_after else None,
