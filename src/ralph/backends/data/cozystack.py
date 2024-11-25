@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import logging
-import os
-from typing import Dict, Iterable, Iterator, List, Optional, TypeVar, Union
+from typing import Iterable, Iterator, List, Optional, TypeVar, Union
 
-import httpx
-from fastapi import HTTPException, status
-from pydantic import StringConstraints, ValidationError
+from pydantic import StringConstraints
 from pydantic_settings import SettingsConfigDict
 from typing_extensions import Annotated
 
+from ralph.backends.cozystack import CozyStackClient, CozyStackError
 from ralph.backends.data.base import (
     BaseDataBackend,
     BaseDataBackendSettings,
@@ -23,140 +21,8 @@ from ralph.backends.data.base import (
 )
 from ralph.conf import BASE_SETTINGS_CONFIG, ClientOptions
 from ralph.exceptions import BackendException
-from ralph.models.cozy import CozyAuthData
 
 logger = logging.getLogger(__name__)
-
-
-class CozyStackHttpClient:
-    """Wrapper of httpx.Client to request CozyStack."""
-
-    def __init__(self, target: Optional[str]):
-        """Instantiate the CozyStack client."""
-        try:
-            self.cozy_auth_data = CozyAuthData.model_validate_json(target)
-        except ValidationError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Can't validate Cozy authentication data",
-            ) from exc
-
-    def __enter__(self) -> httpx.Client:
-        """Instanciate httpx.Client object."""
-        base_url = os.path.join(str(self.cozy_auth_data.instance_url), "data")
-
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": self.cozy_auth_data.token,
-        }
-
-        self.client = httpx.Client(base_url=base_url, headers=headers)
-
-        return self.client
-
-    def __exit__(self, *args):
-        """Close httpx.Client connexion."""
-        self.client.close()
-
-
-class CozyStackClient:
-    """CozyStack low-level client. Provides a straightforward mappingfrom Python to CozyStack REST APIs."""  # noqa: E501
-
-    def __init__(self, doctype: str):
-        """Instanciate the CozyStack client."""
-        self.doctype = doctype
-
-    def list_all_doctypes(self, target: str) -> List[str]:
-        """List all doctypes available on targeted instance.
-
-        Attributes:
-            target (str): The target instance url with auth data.
-
-        Return:
-            List[str]: The doctypes available on targeted instance.
-
-        Raises:
-            fastapi.HTTPException: When target is malformed.
-            httpx.HTTPError: When error during request
-                or HTTP status of 4xx or 5xx.
-        """
-        with CozyStackHttpClient(target=target) as client:
-            response = client.get("/_all_doctypes")
-            response.raise_for_status()
-            return response.json()
-
-    def find(self, target: str, query: CozyStackQuery) -> Dict:
-        """Find document using a mango selector.
-
-        Attributes:
-            target (str): The target instance url with auth data.
-            query (CozyStackQuery): The query to select records to read.
-
-        Return:
-            Dict: Response containing records to read.
-
-        Raises:
-            fastapi.HTTPException: When target is malformed.
-            httpx.HTTPError: When error during request
-                or HTTP status of 4xx or 5xx.
-        """
-        url = os.path.join("/", self.doctype, "_find")
-
-        with CozyStackHttpClient(target=target) as client:
-            response = client.post(url, json=query.model_dump(exclude_none=True))
-            response.raise_for_status()
-            return response.json()
-
-    @staticmethod
-    def _prepare_data(data: Iterable[dict], operation_type: BaseOperationType):
-        """Enrich data based on operation type."""
-        prepared_data = []
-
-        for item in data:
-            prepared_item = {"_id": item["id"]}
-
-            if operation_type in (BaseOperationType.CREATE, BaseOperationType.INDEX):
-                prepared_item["source"] = item
-
-            elif operation_type == BaseOperationType.UPDATE:
-                prepared_item["_rev"] = ""
-                prepared_item["source"] = item
-
-            elif operation_type == BaseOperationType.DELETE:
-                prepared_item["_rev"] = ""
-                prepared_item["_deleted"] = True
-
-            prepared_data.append(prepared_item)
-
-        return prepared_data
-
-    def bulk_operation(
-        self, target: str, data: Iterable[Dict], operation_type: BaseOperationType
-    ) -> int:
-        """Create, update, or delete multiple documents at the same time within a single request.
-
-        Attributes:
-            target (str): The target instance url with auth data.
-            data (Iterable or IOBase): The data to write.
-            operation_type (BaseOperationType): The mode of the write operation.
-
-        Return:
-            int: The number of written records.
-
-        Raises:
-            fastapi.HTTPException: When target is malformed.
-            httpx.HTTPError: When error during request
-                or HTTP status of 4xx or 5xx.
-        """  # noqa: E501
-        url = os.path.join("/", self.doctype, "_bulk_docs")
-        prepared_data = self._prepare_data(data, operation_type)
-
-        with CozyStackHttpClient(target=target) as client:
-            response = client.post(url, json={"docs": prepared_data})
-            response.raise_for_status()
-
-        return len(prepared_data)
 
 
 class CozyStackClientOptions(ClientOptions):
@@ -263,7 +129,7 @@ class CozyStackDataBackend(
 
         try:
             yield from self.client.list_all_doctypes(target)
-        except httpx.HTTPError as exc:
+        except CozyStackError as exc:
             msg = "Failed to list CozyStack doctypes: %s"
             logger.error(msg, exc)
             raise BackendException(msg % exc) from exc
@@ -277,7 +143,7 @@ class CozyStackDataBackend(
     ) -> Iterator[dict]:
         """Method called by `self.read` yielding dictionaries. See `self.read`."""
         try:
-            response = self.client.find(target, query)
+            response = self.client.find(target, query.model_dump(exclude_none=True))
             documents = response["docs"]
 
             # query object is used to pass next and bookmark
@@ -285,7 +151,7 @@ class CozyStackDataBackend(
             query.bookmark = response.get("bookmark")
 
             yield from documents
-        except httpx.HTTPError as exc:
+        except CozyStackError as exc:
             msg = "Failed to execute CozyStack query: %s"
             logger.error(msg, exc)
             logger.info(query)
@@ -302,7 +168,7 @@ class CozyStackDataBackend(
         """Method called by `self.write` writing dictionaries. See `self.write`."""
         try:
             return self.client.bulk_operation(target, data, operation_type)
-        except httpx.HTTPError as exc:
+        except CozyStackError as exc:
             msg = "Failed to insert data: %s"
             logger.error(msg, exc)
             raise BackendException(msg % exc) from exc
