@@ -5,6 +5,7 @@ from elasticsearch.helpers import bulk
 
 from ralph.backends.data.base import BaseOperationType
 from ralph.backends.data.clickhouse import ClickHouseDataBackend
+from ralph.backends.data.cozystack import CozyStackDataBackend
 from ralph.backends.data.mongo import MongoDataBackend
 
 from tests.fixtures.backends import (
@@ -12,15 +13,19 @@ from tests.fixtures.backends import (
     CLICKHOUSE_TEST_HOST,
     CLICKHOUSE_TEST_PORT,
     CLICKHOUSE_TEST_TABLE_NAME,
+    COZYSTACK_TEST_DOCTYPE,
     ES_TEST_INDEX,
     MONGO_TEST_COLLECTION,
     MONGO_TEST_DATABASE,
     get_async_es_test_backend,
     get_async_mongo_test_backend,
     get_clickhouse_test_backend,
+    get_cozystack_test_backend,
     get_es_test_backend,
     get_mongo_test_backend,
 )
+
+from ..helpers import configure_env_for_mock_cozy_auth
 
 
 def insert_es_statements(es_client, statements, index=ES_TEST_INDEX):
@@ -113,3 +118,38 @@ def insert_statements_and_monkeypatch_backend(
             return
 
     return _insert_statements_and_monkeypatch_backend
+
+
+def insert_cozystack_statements(statements, target):
+    settings = CozyStackDataBackend.settings_class(
+        DEFAULT_DOCTYPE=COZYSTACK_TEST_DOCTYPE
+    )
+    backend = CozyStackDataBackend(settings=settings)
+
+    success = backend.write(statements, target=target)
+    assert success == len(statements)
+
+
+@pytest.fixture
+def init_cozystack_db_and_monkeypatch_backend(
+    monkeypatch, cozystack_custom, cozy_auth_target
+):
+    """Return a function that inserts statements into CozyStack backend."""
+
+    def _init_cozystack_db_and_monkeypatch_backend(statements=None):
+        # set cozy as auth backend
+        configure_env_for_mock_cozy_auth(monkeypatch)
+
+        # set up a fresh database
+        cozystack_custom()
+
+        # insert statements if needed
+        if statements is not None:
+            insert_cozystack_statements(statements, cozy_auth_target)
+
+        # set cozystack as data storage backend
+        monkeypatch.setattr(
+            "ralph.api.routers.statements.BACKEND_CLIENT", get_cozystack_test_backend()
+        )
+
+    return _init_cozystack_db_and_monkeypatch_backend

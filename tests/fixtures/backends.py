@@ -22,6 +22,7 @@ from pydantic import AnyHttpUrl, TypeAdapter
 from pymongo import MongoClient
 from pymongo.errors import CollectionInvalid
 
+from ralph.backends import cozystack
 from ralph.backends.data.async_es import AsyncESDataBackend
 from ralph.backends.data.async_lrs import AsyncLRSDataBackend
 from ralph.backends.data.async_mongo import AsyncMongoDataBackend
@@ -623,6 +624,27 @@ def clickhouse_custom():
         client_db.command(f"DROP TABLE IF EXISTS {table}")
 
     client.command(f"DROP DATABASE IF EXISTS {database}")
+
+
+@pytest.fixture
+def cozystack_custom(cozy_auth_target):
+    """Yield `_cozystack_custom` function."""
+
+    client = cozystack.CozyStackClient(doctype=COZYSTACK_TEST_DOCTYPE)
+
+    def _cozystack_custom():
+        """Create indices and yield client."""
+        client.create_index(cozy_auth_target, ["source.id"])
+        client.create_index(cozy_auth_target, ["source.timestamp", "source.id"])
+
+        return client
+
+    yield _cozystack_custom
+
+    try:
+        client.delete_database(target=cozy_auth_target)
+    except cozystack.DatabaseDoesNotExistError:
+        pass
 
 
 @pytest.fixture
