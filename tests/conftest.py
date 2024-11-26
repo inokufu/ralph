@@ -22,6 +22,7 @@ from .fixtures.backends import (  # noqa: F401
     clickhouse_backend,
     clickhouse_custom,
     clickhouse_lrs_backend,
+    cozystack_custom,
     es,
     es_backend,
     es_custom,
@@ -47,5 +48,9 @@ from .fixtures.backends import (  # noqa: F401
     ws,
 )
 from .fixtures.logs import gelf_logger  # noqa: F401
+from .fixtures.statements import (  # noqa: F401
+    init_cozystack_db_and_monkeypatch_backend,
+    insert_statements_and_monkeypatch_backend,
+)
 
 debugpy.listen(5678, in_process_debug_adapter=True)
