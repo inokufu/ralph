@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable, Iterator, List, Optional, TypeVar, Union
 
-from pydantic import StringConstraints
+from pydantic import NonNegativeInt, StringConstraints
 from pydantic_settings import SettingsConfigDict
 from typing_extensions import Annotated
 
@@ -65,8 +65,8 @@ class CozyStackQuery(BaseQuery):
 
     selector: dict = {}
 
-    limit: Optional[int] = None
-    skip: Optional[int] = None
+    limit: Optional[NonNegativeInt] = None
+    skip: Optional[NonNegativeInt] = None
 
     sort: Optional[List[dict]] = None
     fields: Optional[List[str]] = None
@@ -139,9 +139,12 @@ class CozyStackDataBackend(
         query: CozyStackQuery,
         target: Optional[str],
         chunk_size: int,  # noqa: ARG002
-        ignore_errors: bool,  # noqa: ARG002
+        ignore_errors: bool,
     ) -> Iterator[dict]:
         """Method called by `self.read` yielding dictionaries. See `self.read`."""
+        if ignore_errors:
+            logger.warning("The `ignore_errors` argument is ignored")
+
         try:
             response = self.client.find(target, query.model_dump(exclude_none=True))
             documents = response["docs"]
@@ -167,7 +170,9 @@ class CozyStackDataBackend(
     ) -> int:
         """Method called by `self.write` writing dictionaries. See `self.write`."""
         try:
-            return self.client.bulk_operation(target, data, operation_type)
+            count = self.client.bulk_operation(target, data, operation_type)
+            logger.info("Finished writing %d documents with success", count)
+            return count
         except CozyStackError as exc:
             msg = "Failed to insert data: %s"
             logger.error(msg, exc)
