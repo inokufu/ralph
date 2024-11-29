@@ -39,7 +39,7 @@ def test_backends_data_cozystack_default_instantiation(monkeypatch, fs):
 
     backend = CozyStackDataBackend()
 
-    assert backend.settings.DEFAULT_DOCTYPE == "io.cozy.learningrecord"
+    assert backend.settings.DEFAULT_DOCTYPE == "io.cozy.learningrecords"
     assert isinstance(backend.client, CozyStackClient)
 
     # Test overriding default values with environment variables.
@@ -123,7 +123,7 @@ def test_backends_data_cozystack_list_with_ignored_args(
 def test_backends_data_cozystack_list(cozystack_custom, cozy_auth_target):
     cozystack_custom()
     backend = CozyStackDataBackend()
-    assert "io.cozy.learningrecord" in list(backend.list(cozy_auth_target))
+    assert "io.cozy.learningrecords" in list(backend.list(cozy_auth_target))
 
 
 @pytest.mark.parametrize(

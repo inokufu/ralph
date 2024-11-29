@@ -18,13 +18,13 @@ def test_backends_lrs_cozystack_default_instantiation(
 
     monkeypatch.delenv("RALPH_BACKENDS__LRS__COZYSTACK__DEFAULT_DOCTYPE", raising=False)
     backend = CozyStackLRSBackend()
-    assert backend.settings.DEFAULT_DOCTYPE == "io.cozy.learningrecord"
+    assert backend.settings.DEFAULT_DOCTYPE == "io.cozy.learningrecords"
 
     monkeypatch.setenv(
-        "RALPH_BACKENDS__LRS__COZYSTACK__DEFAULT_DOCTYPE", "oi.yzoc.drocergninrael"
+        "RALPH_BACKENDS__LRS__COZYSTACK__DEFAULT_DOCTYPE", "io.test.doctype"
     )
     backend = CozyStackLRSBackend()
-    assert backend.settings.DEFAULT_DOCTYPE == "oi.yzoc.drocergninrael"
+    assert backend.settings.DEFAULT_DOCTYPE == "io.test.doctype"
 
 
 @pytest.mark.parametrize(
