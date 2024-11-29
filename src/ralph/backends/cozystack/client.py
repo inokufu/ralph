@@ -190,4 +190,4 @@ class CozyStackClient:
             response = client.post(url, json={"docs": prepared_data})
             check_cozystack_error(response)
 
-        return len(prepared_data)
+        return len([item for item in response.json() if "error" not in item])
