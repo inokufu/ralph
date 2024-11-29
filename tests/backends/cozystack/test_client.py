@@ -47,7 +47,7 @@ async def test_cozystack_client_list_all_doctypes(cozystack_custom, cozy_auth_ta
     client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
 
     response = client.list_all_doctypes(target=cozy_auth_target)
-    assert "io.cozy.learningrecord" in response
+    assert "io.cozy.learningrecords" in response
 
 
 @pytest.mark.anyio

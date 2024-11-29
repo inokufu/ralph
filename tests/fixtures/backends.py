@@ -91,7 +91,7 @@ MONGO_TEST_CONNECTION_URI = os.environ.get(
 
 # CozyStack backend defaults
 COZYSTACK_TEST_DOCTYPE = os.environ.get(
-    "RALPH_BACKENDS__DATA__COZYSTACK__TEST_DOCTYPE", "io.cozy.learningrecord"
+    "RALPH_BACKENDS__DATA__COZYSTACK__TEST_DOCTYPE", "io.cozy.learningrecords"
 )
 
 RUNSERVER_TEST_HOST = os.environ.get("RALPH_RUNSERVER_TEST_HOST", "0.0.0.0")
