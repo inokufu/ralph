@@ -129,6 +129,7 @@ class AuthBackend(str, Enum):
 
     BASIC = "basic"
     OIDC = "oidc"
+    COZY = "cozy"
 
 
 def validate_auth_backends(
@@ -215,6 +216,7 @@ class Settings(BaseSettings):
     SENTRY_IGNORE_HEALTH_CHECKS: bool = False
     SENTRY_LRS_TRACES_SAMPLE_RATE: float = 1.0
     XAPI_FORWARDINGS: List[XapiForwardingConfigurationSettings] = []
+    XAPI_PREFIX: str = "/xAPI"
     XAPI_VERSIONS_SUPPORTED: List[str] = ["1.0.3"]
     XAPI_VERSION_FALLBACK: str = "1.0.3"
 

@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import List, Optional, Union
 from uuid import UUID
 
-from ralph.api.auth import AuthBackend
+from ralph.conf import AuthBackend
 from ralph.utils import statements_are_equivalent
 
 from tests.fixtures.auth import AUDIENCE, ISSUER_URI
@@ -231,4 +231,12 @@ def configure_env_for_mock_oidc_auth(
     monkeypatch.setattr(
         "ralph.api.auth.oidc.settings.RUNSERVER_AUTH_OIDC_AUDIENCE",
         AUDIENCE,
+    )
+
+
+def configure_env_for_mock_cozy_auth(monkeypatch):
+    """Configure environment variables to simulate Cozy auth use."""
+    monkeypatch.setenv("RUNSERVER_AUTH_BACKENDS", AuthBackend.COZY.value)
+    monkeypatch.setattr(
+        "ralph.api.auth.settings.RUNSERVER_AUTH_BACKENDS", [AuthBackend.COZY]
     )

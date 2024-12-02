@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, Optional, Type, Union
 
 import bcrypt
+from pydantic import AnyHttpUrl, MongoDsn
 
 try:
     import click
@@ -291,7 +292,7 @@ def backends_options(backends: Dict[str, Type], name: Optional[str] = None):
                     option_kwargs["type"] = HeadersParametersParamType(field_type)
                 elif field_type is Path:
                     option_kwargs["type"] = click.Path()
-                elif field_type is AnyUrl:
+                elif field_type in [AnyUrl, AnyHttpUrl, MongoDsn]:
                     option_kwargs["type"] = AnyUrlParamType()
 
                 command = optgroup.option(option.lower(), **option_kwargs)(command)

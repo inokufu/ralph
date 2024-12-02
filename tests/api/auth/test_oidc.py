@@ -231,4 +231,4 @@ async def test_api_auth_oidc_get_whoami_invalid_backend(client, fs, monkeypatch)
     )
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Could not validate credentials"}
+    assert response.json() == {"detail": "Invalid authentication credentials"}
