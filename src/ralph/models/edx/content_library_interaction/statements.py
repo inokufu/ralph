@@ -1,7 +1,6 @@
 """Content library interaction event model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -38,10 +37,10 @@ class EdxLibraryContentBlockContentAssigned(BaseServerModel):
         event_source="server", event_type="edx.librarycontentblock.content.assigned"
     )
 
-    event: Union[
-        Json[EdxLibraryContentBlockContentAssignedEventField],
-        EdxLibraryContentBlockContentAssignedEventField,
-    ]
+    event: (
+        Json[EdxLibraryContentBlockContentAssignedEventField]
+        | EdxLibraryContentBlockContentAssignedEventField
+    )
     event_type: Literal["edx.librarycontentblock.content.assigned"]
     name: Literal["edx.librarycontentblock.content.assigned"]
 
@@ -65,9 +64,9 @@ class EdxLibraryContentBlockContentRemoved(BaseServerModel):
         event_source="server", event_type="edx.librarycontentblock.content.removed"
     )
 
-    event: Union[
-        Json[EdxLibraryContentBlockContentRemovedEventField],
-        EdxLibraryContentBlockContentRemovedEventField,
-    ]
+    event: (
+        Json[EdxLibraryContentBlockContentRemovedEventField]
+        | EdxLibraryContentBlockContentRemovedEventField
+    )
     event_type: Literal["edx.librarycontentblock.content.removed"]
     name: Literal["edx.librarycontentblock.content.removed"]

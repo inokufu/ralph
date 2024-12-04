@@ -2,7 +2,6 @@
 
 import sys
 from pathlib import Path
-from typing import Union
 
 from pydantic import Json
 
@@ -62,4 +61,4 @@ class Server(BaseServerModel):
     )
 
     event_type: Path
-    event: Union[Json[ServerEventField], ServerEventField]
+    event: Json[ServerEventField] | ServerEventField

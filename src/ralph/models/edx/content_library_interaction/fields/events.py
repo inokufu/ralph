@@ -1,7 +1,6 @@
 """Video event fields definitions."""
 
 import sys
-from typing import List, Optional
 
 from pydantic import PositiveInt
 
@@ -26,7 +25,7 @@ class EdxLibraryContentBlockContentComponent(BaseModelWithConfig):
         usage_key (str): Consists of the location of this component in the course.
     """  # noqa: D205
 
-    descendants: Optional[list] = None
+    descendants: list | None = None
     original_usage_key: str
     original_usage_version: str
     usage_key: str
@@ -50,7 +49,7 @@ class ContentLibraryInteractionBaseEventField(AbstractBaseEventField):
     location: str
     max_count: PositiveInt
     previous_count: PositiveInt
-    result: List[EdxLibraryContentBlockContentComponent]
+    result: list[EdxLibraryContentBlockContentComponent]
 
 
 class EdxLibraryContentBlockContentAssignedEventField(
@@ -64,7 +63,7 @@ class EdxLibraryContentBlockContentAssignedEventField(
             EdxLibraryContentBlockContentComponent for more information.
     """
 
-    added: List[EdxLibraryContentBlockContentComponent]
+    added: list[EdxLibraryContentBlockContentComponent]
 
 
 class EdxLibraryContentBlockContentRemovedEventField(
@@ -83,4 +82,4 @@ class EdxLibraryContentBlockContentRemovedEventField(
     """
 
     reason: Literal["overlimit", "invalid"]
-    removed: List[EdxLibraryContentBlockContentComponent]
+    removed: list[EdxLibraryContentBlockContentComponent]

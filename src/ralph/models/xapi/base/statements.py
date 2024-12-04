@@ -1,11 +1,11 @@
 """Base xAPI `Statement` definitions."""
 
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Annotated, Any
 from uuid import UUID
 
 from pydantic import StringConstraints, model_validator
-from typing_extensions import Annotated
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -34,17 +34,17 @@ class BaseXapiStatement(BaseModelWithConfig):
         attachments (list): Consists of a list of attachments.
     """
 
-    id: Optional[UUID] = None
-    actor: Union[BaseXapiAgent, BaseXapiGroup]
+    id: UUID | None = None
+    actor: BaseXapiAgent | BaseXapiGroup
     verb: BaseXapiVerb
     object: BaseXapiObject
-    result: Optional[BaseXapiResult] = None
-    context: Optional[BaseXapiContext] = None
-    timestamp: Optional[datetime] = None
-    stored: Optional[datetime] = None
-    authority: Optional[Union[BaseXapiAgent, BaseXapiGroup]] = None
+    result: BaseXapiResult | None = None
+    context: BaseXapiContext | None = None
+    timestamp: datetime | None = None
+    stored: datetime | None = None
+    authority: BaseXapiAgent | BaseXapiGroup | None = None
     version: Annotated[str, StringConstraints(pattern=r"^1\.0\.[0-9]+$")] = "1.0.0"
-    attachments: Optional[List[BaseXapiAttachment]] = None
+    attachments: list[BaseXapiAttachment] | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -57,7 +57,7 @@ class BaseXapiStatement(BaseModelWithConfig):
         for field, value in list(values.items()):
             if value in [None, "", {}]:
                 raise ValueError(f"{field}: invalid empty value")
-            if isinstance(value, dict) and field != "extensions":
+            if isinstance(value, Mapping) and field != "extensions":
                 cls.check_absence_of_empty_and_invalid_values(value)
 
         context = dict(values.get("context", {}))

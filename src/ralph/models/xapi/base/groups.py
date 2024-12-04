@@ -2,7 +2,7 @@
 
 import sys
 from abc import ABC
-from typing import List, Optional, Union
+from typing import Union
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -32,7 +32,7 @@ class BaseXapiGroupCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Group"]
-    name: Optional[NonEmptyStrictStr] = None
+    name: NonEmptyStrictStr | None = None
 
 
 class BaseXapiAnonymousGroup(BaseXapiGroupCommonProperties):
@@ -44,7 +44,7 @@ class BaseXapiAnonymousGroup(BaseXapiGroupCommonProperties):
         member (list): Consist of a list of the members of this Group.
     """
 
-    member: List[BaseXapiAgent]
+    member: list[BaseXapiAgent]
 
 
 class BaseXapiIdentifiedGroup(BaseXapiGroupCommonProperties):
@@ -56,7 +56,7 @@ class BaseXapiIdentifiedGroup(BaseXapiGroupCommonProperties):
         member (list): Consist of a list of the members of this Group.
     """
 
-    member: Optional[List[BaseXapiAgent]] = None
+    member: list[BaseXapiAgent] | None = None
 
 
 class BaseXapiIdentifiedGroupWithMbox(BaseXapiIdentifiedGroup, BaseXapiMboxIFI):

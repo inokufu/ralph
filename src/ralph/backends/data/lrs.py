@@ -1,8 +1,9 @@
 """LRS data backend for Ralph."""
 
 import logging
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from io import IOBase
-from typing import Iterable, Iterator, List, Optional, Union
+from typing import Annotated
 from urllib.parse import ParseResult, parse_qs, urljoin, urlparse
 
 from httpx import Client, HTTPError, HTTPStatusError, RequestError
@@ -14,7 +15,6 @@ from pydantic import (
     TypeAdapter,
 )
 from pydantic_settings import SettingsConfigDict
-from typing_extensions import Annotated
 
 from ralph.backends.data.base import (
     BaseDataBackend,
@@ -71,8 +71,8 @@ class LRSDataBackendSettings(BaseDataBackendSettings):
 class StatementResponse(BaseModel):
     """Pydantic model for `get` statements response."""
 
-    statements: Union[List[dict], dict]
-    more: Optional[str] = None
+    statements: Sequence[dict] | dict
+    more: str | None = None
 
 
 class LRSDataBackend(
@@ -88,7 +88,7 @@ class LRSDataBackend(
         BaseOperationType.DELETE,
     }
 
-    def __init__(self, settings: Optional[LRSDataBackendSettings] = None) -> None:
+    def __init__(self, settings: LRSDataBackendSettings | None = None) -> None:
         """Instantiate the LRS HTTP (basic auth) backend client.
 
         Args:
@@ -125,13 +125,13 @@ class LRSDataBackend(
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[LRSStatementsQuery] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: LRSStatementsQuery | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Get statements from LRS `target` endpoint.
 
         The `read` method defined in the LRS specification returns `statements` array
@@ -161,7 +161,7 @@ class LRSDataBackend(
     def _read_dicts(
         self,
         query: LRSStatementsQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> Iterator[dict]:
@@ -203,11 +203,11 @@ class LRSDataBackend(
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write `data` records to the `target` endpoint and return their count.
 
@@ -229,8 +229,8 @@ class LRSDataBackend(
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,  # noqa: ARG002
@@ -271,14 +271,14 @@ class LRSDataBackend(
 
         self.client.close()
 
-    def _fetch_statements(self, target, query_params: dict):
+    def _fetch_statements(self, target, query_params: Mapping):
         """Fetch statements from a LRS."""
         while True:
             response = self.client.get(target, params=query_params)
             response.raise_for_status()
             statements_response = StatementResponse(**response.json())
             statements = statements_response.statements
-            if isinstance(statements, dict):
+            if isinstance(statements, Mapping):
                 statements = [statements]
 
             for statement in statements:

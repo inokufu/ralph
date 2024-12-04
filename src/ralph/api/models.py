@@ -4,7 +4,6 @@ Allows to be exactly as lax as we want when it comes to exact object shape and
 validation.
 """
 
-from typing import Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -58,7 +57,7 @@ class LaxStatement(BaseModelWithLaxConfig):
     qualify an object as an XAPI statement.
     """
 
-    actor: Union[BaseXapiAgent, BaseXapiGroup]
-    id: Optional[UUID] = None
+    actor: BaseXapiAgent | BaseXapiGroup
+    id: UUID | None = None
     object: LaxObjectField
     verb: LaxVerbField

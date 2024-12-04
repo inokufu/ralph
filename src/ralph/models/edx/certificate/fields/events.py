@@ -1,10 +1,10 @@
 """Cohort event field definition."""
 
 import sys
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import AnyHttpUrl, StringConstraints
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
 

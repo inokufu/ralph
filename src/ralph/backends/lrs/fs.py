@@ -1,10 +1,11 @@
 """FileSystem LRS backend for Ralph."""
 
 import logging
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from io import IOBase
 from pathlib import Path
-from typing import Iterable, List, Literal, Optional, Union
+from typing import Literal
 from uuid import UUID
 
 from pydantic_settings import SettingsConfigDict
@@ -43,11 +44,11 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write data records to the target file and return their count.
 
@@ -60,7 +61,7 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         return super().write(data, target, chunk_size, ignore_errors, operation_type)
 
     def query_statements(
-        self, params: RalphStatementsQuery, target: Optional[str] = None
+        self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
         filters = []
@@ -100,8 +101,8 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         )
 
     def query_statements_by_ids(
-        self, ids: List[str], target: Optional[str] = None
-    ) -> List:
+        self, ids: Sequence[str], target: str | None = None
+    ) -> list:
         """Return the list of matching statement IDs from the database."""
         statement_ids = set(ids)
         statements = []
@@ -113,13 +114,13 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_agent(
-        filters: list, agent: Optional[AgentParameters], related: Optional[bool]
+        filters: Sequence, agent: AgentParameters | Mapping | None, related: bool | None
     ) -> None:
         """Add agent filters to `filters` if `agent` is set."""
         if not agent:
             return
 
-        if not isinstance(agent, dict):
+        if not isinstance(agent, Mapping):
             agent = agent.model_dump()
         FSLRSBackend._add_filter_by_mbox(filters, agent.get("mbox", None), related)
         FSLRSBackend._add_filter_by_sha1sum(
@@ -135,14 +136,14 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_authority(
-        filters: list,
-        authority: Optional[AgentParameters],
+        filters: Sequence,
+        authority: AgentParameters | Mapping | None,
     ) -> None:
         """Add authority filters to `filters` if `authority` is set."""
         if not authority:
             return
 
-        if not isinstance(authority, dict):
+        if not isinstance(authority, Mapping):
             authority = authority.model_dump()
         FSLRSBackend._add_filter_by_mbox(
             filters, authority.get("mbox", None), field="authority"
@@ -161,10 +162,10 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         )
 
     @staticmethod
-    def _add_filter_by_id(filters: list, statement_id: Optional[str]) -> None:
+    def _add_filter_by_id(filters: Sequence, statement_id: str | None) -> None:
         """Add the `match_statement_id` filter if `statement_id` is set."""
 
-        def match_statement_id(statement: dict) -> bool:
+        def match_statement_id(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `statement_id`."""
             return statement.get("id") == statement_id
 
@@ -172,7 +173,7 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
             filters.append(match_statement_id)
 
     @staticmethod
-    def _get_related_agents(statement: dict) -> Iterable[dict]:
+    def _get_related_agents(statement: Mapping) -> Iterable[Mapping]:
         yield statement.get("actor", {})
         yield statement.get("object", {})
         yield statement.get("authority", {})
@@ -182,18 +183,18 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_mbox(
-        filters: list,
-        mbox: Optional[str],
-        related: Optional[bool] = False,
+        filters: Sequence,
+        mbox: str | None,
+        related: bool | None = False,
         field: Literal["actor", "authority"] = "actor",
     ) -> None:
         """Add the `match_mbox` filter if `mbox` is set."""
 
-        def match_mbox(statement: dict) -> bool:
+        def match_mbox(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.mbox`."""
             return statement.get(field, {}).get("mbox") == mbox
 
-        def match_related_mbox(statement: dict) -> bool:
+        def match_related_mbox(statement: Mapping) -> bool:
             """Return `True` if the statement has any agent matching `mbox`."""
             for agent in FSLRSBackend._get_related_agents(statement):
                 if agent.get("mbox") == mbox:
@@ -209,18 +210,18 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_sha1sum(
-        filters: list,
-        sha1sum: Optional[str],
-        related: Optional[bool] = False,
+        filters: Sequence,
+        sha1sum: str | None,
+        related: bool | None = False,
         field: Literal["actor", "authority"] = "actor",
     ) -> None:
         """Add the `match_sha1sum` filter if `sha1sum` is set."""
 
-        def match_sha1sum(statement: dict) -> bool:
+        def match_sha1sum(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.sha1sum`."""
             return statement.get(field, {}).get("mbox_sha1sum") == sha1sum
 
-        def match_related_sha1sum(statement: dict) -> bool:
+        def match_related_sha1sum(statement: Mapping) -> bool:
             """Return `True` if the statement has any agent matching `sha1sum`."""
             for agent in FSLRSBackend._get_related_agents(statement):
                 if agent.get("mbox_sha1sum") == sha1sum:
@@ -236,18 +237,18 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_openid(
-        filters: list,
-        openid: Optional[str],
-        related: Optional[bool] = False,
+        filters: Sequence,
+        openid: str | None,
+        related: bool | None = False,
         field: Literal["actor", "authority"] = "actor",
     ) -> None:
         """Add the `match_openid` filter if `openid` is set."""
 
-        def match_openid(statement: dict) -> bool:
+        def match_openid(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.openid`."""
             return statement.get(field, {}).get("openid") == openid
 
-        def match_related_openid(statement: dict) -> bool:
+        def match_related_openid(statement: Mapping) -> bool:
             """Return `True` if the statement has any agent matching `openid`."""
             for agent in FSLRSBackend._get_related_agents(statement):
                 if agent.get("openid") == openid:
@@ -263,20 +264,20 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_account(
-        filters: list,
-        name: Optional[str],
-        home_page: Optional[str],
-        related: Optional[bool] = False,
+        filters: Sequence,
+        name: str | None,
+        home_page: str | None,
+        related: bool | None = False,
         field: Literal["actor", "authority"] = "actor",
     ) -> None:
         """Add the `match_account` filter if `name` or `home_page` is set."""
 
-        def match_account(statement: dict) -> bool:
+        def match_account(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.account`."""
             account = statement.get(field, {}).get("account", {})
             return account.get("name") == name and account.get("homePage") == home_page
 
-        def match_related_account(statement: dict) -> bool:
+        def match_related_account(statement: Mapping) -> bool:
             """Return `True` if the statement has any agent matching the account."""
             for agent in FSLRSBackend._get_related_agents(statement):
                 account = agent.get("account", {})
@@ -292,10 +293,10 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
             filters.append(match_related_account if related else match_account)
 
     @staticmethod
-    def _add_filter_by_verb(filters: list, verb_id: Optional[str]) -> None:
+    def _add_filter_by_verb(filters: Sequence, verb_id: str | None) -> None:
         """Add the `match_verb_id` filter if `verb_id` is set."""
 
-        def match_verb_id(statement: dict) -> bool:
+        def match_verb_id(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `verb.id`."""
             return statement.get("verb", {}).get("id") == verb_id
 
@@ -304,22 +305,22 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_activity(
-        filters: list, object_id: Optional[str], related: Optional[bool]
+        filters: Sequence, object_id: str | None, related: bool | None
     ) -> None:
         """Add the `match_object_id` filter if `object_id` is set."""
 
-        def match_object_id(statement: dict) -> bool:
+        def match_object_id(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `object.id`."""
             return statement.get("object", {}).get("id") == object_id
 
-        def match_related_object_id(statement: dict) -> bool:
+        def match_related_object_id(statement: Mapping) -> bool:
             """Return `True` if the statement has any object.id matching `object_id`."""
             statement_object = statement.get("object", {})
             if statement_object.get("id") == object_id:
                 return True
             activities = statement.get("context", {}).get("contextActivities", {})
             for activity in activities.values():
-                if isinstance(activity, dict):
+                if isinstance(activity, Mapping):
                     if activity.get("id") == object_id:
                         return True
                 else:
@@ -335,13 +336,13 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
             filters.append(match_related_object_id if related else match_object_id)
 
     def _add_filter_by_timestamp_since(
-        self, filters: list, timestamp: Optional[datetime]
+        self, filters: Sequence, timestamp: datetime | None
     ) -> None:
         """Add the `match_since` filter if `timestamp` is set."""
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
 
-        def match_since(statement: dict) -> bool:
+        def match_since(statement: Mapping) -> bool:
             """Return `True` if the statement was created after `timestamp`."""
             try:
                 statement_timestamp = datetime.fromisoformat(statement.get("timestamp"))
@@ -355,13 +356,13 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
             filters.append(match_since)
 
     def _add_filter_by_timestamp_until(
-        self, filters: list, timestamp: Optional[datetime]
+        self, filters: Sequence, timestamp: datetime | None
     ) -> None:
         """Add the `match_until` function if `timestamp` is set."""
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
 
-        def match_until(statement: dict) -> bool:
+        def match_until(statement: Mapping) -> bool:
             """Return `True` if the statement was created before `timestamp`."""
             try:
                 statement_timestamp = datetime.fromisoformat(statement.get("timestamp"))
@@ -375,11 +376,13 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
             filters.append(match_until)
 
     @staticmethod
-    def _add_filter_by_search_after(filters: list, search_after: Optional[str]) -> None:
+    def _add_filter_by_search_after(
+        filters: Sequence, search_after: str | None
+    ) -> None:
         """Add the `match_search_after` filter if `search_after` is set."""
         search_after_state = {"state": False}
 
-        def match_search_after(statement: dict) -> bool:
+        def match_search_after(statement: Mapping) -> bool:
             """Return `True` if the statement was created after `search_after`."""
             if search_after_state["state"]:
                 return True
@@ -392,12 +395,12 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
     @staticmethod
     def _add_filter_by_registration(
-        filters: list, registration: Optional[UUID]
+        filters: Sequence, registration: UUID | None
     ) -> None:
         """Add the `match_registration` filter if `registration` is set."""
         registration_str = str(registration)
 
-        def match_registration(statement: dict) -> bool:
+        def match_registration(statement: Mapping) -> bool:
             """Return `True` if the statement has the given `context.registration`."""
             return statement.get("context", {}).get("registration") == registration_str
 

@@ -1,8 +1,8 @@
 """CozyStack LRS backend for Ralph."""
 
 import logging
+from collections.abc import Iterator, Mapping, Sequence
 from enum import StrEnum
-from typing import Iterator, List, Optional
 
 from pydantic_settings import SettingsConfigDict
 
@@ -47,7 +47,9 @@ class CozyStackLRSBackend(
 
     @staticmethod
     def _add_agent_filters(
-        query_filters: dict, agent_params: AgentParameters, target_field: str
+        query_filters: Mapping,
+        agent_params: AgentParameters | Mapping,
+        target_field: str,
     ) -> None:
         """Add filters relative to agents to cozystack_query_filters.
 
@@ -59,7 +61,7 @@ class CozyStackLRSBackend(
         if not agent_params:
             return
 
-        if not isinstance(agent_params, dict):
+        if not isinstance(agent_params, Mapping):
             agent_params = agent_params.model_dump()
 
         prefix = f"source.{target_field}"
@@ -124,7 +126,7 @@ class CozyStackLRSBackend(
         )
 
     def query_statements(
-        self, params: RalphStatementsQuery, target: Optional[str] = None
+        self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the results of a statements query using xAPI parameters."""
         query = self.get_query(params)
@@ -146,7 +148,7 @@ class CozyStackLRSBackend(
         )
 
     def query_statements_by_ids(
-        self, ids: List[str], target: Optional[str] = None
+        self, ids: Sequence[str], target: str | None = None
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
         query = self.query_class(selector={"source.id": {"$in": ids}})

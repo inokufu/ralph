@@ -1,7 +1,5 @@
 """Base xAPI `Verb` definitions."""
 
-from typing import Optional
-
 from ..config import BaseModelWithConfig
 from .common import IRI, LanguageMap
 
@@ -15,4 +13,4 @@ class BaseXapiVerb(BaseModelWithConfig):
     """
 
     id: IRI
-    display: Optional[LanguageMap] = None
+    display: LanguageMap | None = None

@@ -1,7 +1,6 @@
 """Teams-related events model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -37,10 +36,7 @@ class EdxTeamActivityUpdated(BaseServerModel):
         event_source="server", event_type="edx.team.activity_updated"
     )
 
-    event: Union[
-        Json[TeamsEventField],
-        TeamsEventField,
-    ]
+    event: Json[TeamsEventField] | TeamsEventField
     event_type: Literal["edx.team.activity_updated"]
     name: Literal["edx.team.activity_updated"]
 
@@ -58,10 +54,7 @@ class EdxTeamChanged(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.team.changed")
 
-    event: Union[
-        Json[EdxTeamChangedEventField],
-        EdxTeamChangedEventField,
-    ]
+    event: Json[EdxTeamChangedEventField] | EdxTeamChangedEventField
     event_type: Literal["edx.team.changed"]
     name: Literal["edx.team.changed"]
 
@@ -78,10 +71,7 @@ class EdxTeamCreated(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.team.created")
 
-    event: Union[
-        Json[TeamsEventField],
-        TeamsEventField,
-    ]
+    event: Json[TeamsEventField] | TeamsEventField
     event_type: Literal["edx.team.created"]
     name: Literal["edx.team.created"]
 
@@ -98,10 +88,7 @@ class EdxTeamDeleted(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.team.deleted")
 
-    event: Union[
-        Json[TeamsEventField],
-        TeamsEventField,
-    ]
+    event: Json[TeamsEventField] | TeamsEventField
     event_type: Literal["edx.team.deleted"]
     name: Literal["edx.team.deleted"]
 
@@ -118,10 +105,7 @@ class EdxTeamLearnerAdded(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.team.learner_added")
 
-    event: Union[
-        Json[EdxTeamLearnerAddedEventField],
-        EdxTeamLearnerAddedEventField,
-    ]
+    event: Json[EdxTeamLearnerAddedEventField] | EdxTeamLearnerAddedEventField
     event_type: Literal["edx.team.learner_added"]
     name: Literal["edx.team.learner_added"]
 
@@ -141,10 +125,7 @@ class EdxTeamLearnerRemoved(BaseServerModel):
         event_source="server", event_type="edx.team.learner_removed"
     )
 
-    event: Union[
-        Json[EdxTeamLearnerRemovedEventField],
-        EdxTeamLearnerRemovedEventField,
-    ]
+    event: Json[EdxTeamLearnerRemovedEventField] | EdxTeamLearnerRemovedEventField
     event_type: Literal["edx.team.learner_removed"]
     name: Literal["edx.team.learner_removed"]
 
@@ -162,10 +143,7 @@ class EdxTeamPageViewed(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.team.page_viewed")
 
-    event: Union[
-        Json[EdxTeamPageViewedEventField],
-        EdxTeamPageViewedEventField,
-    ]
+    event: Json[EdxTeamPageViewedEventField] | EdxTeamPageViewedEventField
     event_type: Literal["edx.team.page_viewed"]
     name: Literal["edx.team.page_viewed"]
 
@@ -183,9 +161,6 @@ class EdxTeamSearched(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.team.searched")
 
-    event: Union[
-        Json[EdxTeamSearchedEventField],
-        EdxTeamSearchedEventField,
-    ]
+    event: Json[EdxTeamSearchedEventField] | EdxTeamSearchedEventField
     event_type: Literal["edx.team.searched"]
     name: Literal["edx.team.searched"]

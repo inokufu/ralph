@@ -1,7 +1,6 @@
 """Poll event model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -29,10 +28,7 @@ class XBlockPollSubmitted(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="xblock.poll.submitted")
 
-    event: Union[
-        Json[XBlockPollSubmittedEventField],
-        XBlockPollSubmittedEventField,
-    ]
+    event: Json[XBlockPollSubmittedEventField] | XBlockPollSubmittedEventField
     event_type: Literal["xblock.poll.submitted"]
     name: Literal["xblock.poll.submitted"]
 

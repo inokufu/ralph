@@ -1,7 +1,6 @@
 """`TinCan Vocabulary` verbs definitions."""
 
 import sys
-from typing import Dict, Optional
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
@@ -23,7 +22,7 @@ class ViewedVerb(BaseXapiVerb):
     id: Literal["http://id.tincanapi.com/verb/viewed"] = (
         "http://id.tincanapi.com/verb/viewed"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["viewed"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["viewed"]] | None = None
 
 
 class DownloadedVerb(BaseXapiVerb):
@@ -37,7 +36,7 @@ class DownloadedVerb(BaseXapiVerb):
     id: Literal["http://id.tincanapi.com/verb/downloaded"] = (
         "http://id.tincanapi.com/verb/downloaded"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["downloaded"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["downloaded"]] | None = None
 
 
 class UnregisteredVerb(BaseXapiVerb):
@@ -51,4 +50,4 @@ class UnregisteredVerb(BaseXapiVerb):
     id: Literal["http://id.tincanapi.com/verb/unregistered"] = (
         "http://id.tincanapi.com/verb/unregistered"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["unregistered"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["unregistered"]] | None = None

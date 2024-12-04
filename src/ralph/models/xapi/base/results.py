@@ -2,10 +2,9 @@
 
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Dict, Optional, Union
+from typing import Annotated, Any
 
 from pydantic import Field, StrictBool, model_validator
-from typing_extensions import Annotated
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -23,10 +22,10 @@ class BaseXapiResultScore(BaseModelWithConfig):
         max (Decimal): Consists of the highest possible score.
     """
 
-    scaled: Optional[Annotated[Decimal, Field(ge=-1, le=1)]] = None
-    raw: Optional[Decimal] = None
-    min: Optional[Decimal] = None
-    max: Optional[Decimal] = None
+    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = None
+    raw: Decimal | None = None
+    min: Decimal | None = None
+    max: Decimal | None = None
 
     @model_validator(mode="after")
     def check_raw_min_max_relation(self) -> Any:
@@ -55,9 +54,9 @@ class BaseXapiResult(BaseModelWithConfig):
         extensions (dict): Consists of a dictionary of other properties as needed.
     """
 
-    score: Optional[BaseXapiResultScore] = None
-    success: Optional[StrictBool] = None
-    completion: Optional[StrictBool] = None
-    response: Optional[NonEmptyStrictStr] = None
-    duration: Optional[timedelta] = None
-    extensions: Optional[Dict[IRI, Union[str, int, bool, list, dict, None]]] = None
+    score: BaseXapiResultScore | None = None
+    success: StrictBool | None = None
+    completion: StrictBool | None = None
+    response: NonEmptyStrictStr | None = None
+    duration: timedelta | None = None
+    extensions: dict[IRI, str | int | bool | list | dict | None] | None = None

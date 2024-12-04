@@ -1,7 +1,5 @@
 """Server event xAPI Converter."""
 
-from typing import Set
-
 from ralph.models.converter import ConversionItem
 from ralph.models.edx.server import Server
 from ralph.models.xapi.navigation.statements import PageViewed
@@ -18,7 +16,7 @@ class ServerEventToPageViewed(BaseXapiConverter):
     __src__ = Server
     __dest__ = PageViewed
 
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
         conversion_items = super()._get_conversion_items()
         return conversion_items.union(

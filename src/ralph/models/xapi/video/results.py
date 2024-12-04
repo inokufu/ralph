@@ -2,10 +2,9 @@
 
 import sys
 from datetime import timedelta
-from typing import Optional
+from typing import Annotated
 
 from pydantic import Field, NonNegativeFloat
-from typing_extensions import Annotated
 
 from ..base.results import BaseXapiResult
 from ..concepts.constants.video import (
@@ -36,7 +35,7 @@ class VideoResultExtensions(BaseExtensionModelWithConfig):
 
     time: Annotated[NonNegativeFloat, Field(alias=RESULT_EXTENSION_TIME)]
     playedSegments: Annotated[
-        Optional[str], Field(alias=CONTEXT_EXTENSION_PLAYED_SEGMENTS)
+        str | None, Field(alias=CONTEXT_EXTENSION_PLAYED_SEGMENTS)
     ] = None
 
 
@@ -48,7 +47,7 @@ class VideoPausedResultExtensions(VideoResultExtensions):
     """
 
     progress: Annotated[
-        Optional[NonNegativeFloat], Field(alias=RESULT_EXTENSION_PROGRESS)
+        NonNegativeFloat | None, Field(alias=RESULT_EXTENSION_PROGRESS)
     ] = None
 
 
@@ -137,8 +136,8 @@ class VideoCompletedResult(BaseXapiResult):
     """
 
     extensions: VideoCompletedResultExtensions
-    completion: Optional[Literal[True]] = None
-    duration: Optional[timedelta] = None
+    completion: Literal[True] | None = None
+    duration: timedelta | None = None
 
 
 class VideoTerminatedResult(BaseXapiResult):

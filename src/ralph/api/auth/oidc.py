@@ -2,7 +2,7 @@
 
 import logging
 from functools import lru_cache
-from typing import Dict, Optional
+from typing import Annotated
 
 import requests
 from fastapi import Depends, HTTPException, status
@@ -10,7 +10,6 @@ from fastapi.security import HTTPBearer, OpenIdConnect
 from jose import ExpiredSignatureError, JWTError, jwt
 from jose.exceptions import JWTClaimsError
 from pydantic import AnyUrl
-from typing_extensions import Annotated
 
 from ralph.api.auth.token import BaseIDToken
 from ralph.api.auth.user import AuthenticatedUser, UserScopes
@@ -45,12 +44,12 @@ class IDToken(BaseIDToken):
     """
 
     sub: str
-    aud: Optional[str] = None
+    aud: str | None = None
     exp: int
 
 
 @lru_cache()
-def discover_provider(base_url: AnyUrl) -> Dict:
+def discover_provider(base_url: AnyUrl) -> dict:
     """Discover the authentication server (or OpenId Provider) configuration."""
     try:
         response = requests.get(f"{base_url}{OPENID_CONFIGURATION_PATH}", timeout=5)
@@ -68,7 +67,7 @@ def discover_provider(base_url: AnyUrl) -> Dict:
 
 
 @lru_cache()
-def get_public_keys(jwks_uri: AnyUrl) -> Dict:
+def get_public_keys(jwks_uri: AnyUrl) -> dict:
     """Retrieve the public keys used by the provider server for signing."""
     try:
         response = requests.get(jwks_uri, timeout=5)
@@ -90,7 +89,7 @@ def get_public_keys(jwks_uri: AnyUrl) -> Dict:
 
 
 def get_oidc_user(
-    auth_header: Annotated[Optional[HTTPBearer], Depends(oauth2_scheme)],
+    auth_header: Annotated[HTTPBearer | None, Depends(oauth2_scheme)],
 ) -> AuthenticatedUser | None:
     """Decode and validate OpenId Connect ID token against issuer in config.
 

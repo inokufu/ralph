@@ -1,7 +1,5 @@
 """Video event fields definitions."""
 
-from typing import Optional
-
 from ...base import AbstractBaseEventField
 
 
@@ -18,7 +16,7 @@ class EdxDragAndDropV2FeedbackEventField(AbstractBaseEventField):
 
     content: str
     manually: bool
-    truncated: Optional[bool] = None
+    truncated: bool | None = None
 
 
 class EdxDragAndDropV2ItemDroppedEventField(AbstractBaseEventField):
@@ -44,12 +42,12 @@ class EdxDragAndDropV2ItemDroppedEventField(AbstractBaseEventField):
     """
 
     input: int
-    item: Optional[str] = None
+    item: str | None = None
     item_id: int
     is_correct: bool
     is_correct_location: bool
     location: str
-    location_id: Optional[int] = None
+    location_id: int | None = None
 
 
 class EdxDragAndDropV2ItemPickedUpEventField(AbstractBaseEventField):

@@ -1,7 +1,6 @@
 """Peer instruction events model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -53,10 +52,7 @@ class PeerInstructionOriginalSubmitted(BaseServerModel):
         event_source="server", event_type="ubc.peer_instruction.original_submitted"
     )
 
-    event: Union[
-        Json[PeerInstructionEventField],
-        PeerInstructionEventField,
-    ]
+    event: Json[PeerInstructionEventField] | PeerInstructionEventField
     event_type: Literal["ubc.peer_instruction.original_submitted"]
     name: Literal["ubc.peer_instruction.original_submitted"]
 
@@ -79,9 +75,6 @@ class PeerInstructionRevisedSubmitted(BaseServerModel):
         event_source="server", event_type="ubc.peer_instruction.revised_submitted"
     )
 
-    event: Union[
-        Json[PeerInstructionEventField],
-        PeerInstructionEventField,
-    ]
+    event: Json[PeerInstructionEventField] | PeerInstructionEventField
     event_type: Literal["ubc.peer_instruction.revised_submitted"]
     name: Literal["ubc.peer_instruction.revised_submitted"]
