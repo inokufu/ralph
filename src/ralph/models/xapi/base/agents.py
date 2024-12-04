@@ -2,7 +2,7 @@
 
 import sys
 from abc import ABC
-from typing import Optional, Union
+from typing import Union
 
 from ralph.conf import NonEmptyStrictStr
 from ralph.models.xapi.config import BaseModelWithConfig
@@ -44,7 +44,7 @@ class BaseXapiAgentCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Agent"] = "Agent"
-    name: Optional[NonEmptyStrictStr] = None
+    name: NonEmptyStrictStr | None = None
 
 
 class BaseXapiAgentWithMbox(BaseXapiAgentCommonProperties, BaseXapiMboxIFI):

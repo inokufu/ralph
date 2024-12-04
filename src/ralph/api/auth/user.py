@@ -1,6 +1,6 @@
 """Authenticated user for the Ralph API."""
 
-from typing import FrozenSet, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, RootModel
 
@@ -20,7 +20,7 @@ Scope = Literal[
 ]
 
 
-class UserScopes(RootModel[FrozenSet[Scope]]):
+class UserScopes(RootModel[frozenset[Scope]]):
     """Scopes available to users."""
 
     def is_authorized(self, requested_scope: Scope):
@@ -66,4 +66,4 @@ class AuthenticatedUser(BaseModel):
 
     agent: BaseXapiAgent
     scopes: UserScopes
-    target: Optional[str] = None
+    target: str | None = None

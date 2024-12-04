@@ -1,10 +1,9 @@
 """Browser event model definitions."""
 
 import sys
-from typing import Union
+from typing import Annotated
 
 from pydantic import AnyUrl, StringConstraints
-from typing_extensions import Annotated
 
 from .base import BaseEdxModel
 
@@ -30,6 +29,4 @@ class BaseBrowserModel(BaseEdxModel):
 
     event_source: Literal["browser"]
     page: AnyUrl
-    session: Union[
-        Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")], Literal[""]
-    ]
+    session: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | Literal[""]

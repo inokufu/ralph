@@ -1,10 +1,9 @@
 """LMS xAPI events object fields definitions."""
 
 import sys
-from typing import Optional
+from typing import Annotated
 
 from pydantic import Field
-from typing_extensions import Annotated
 
 from ..concepts.activity_types.acrossx_profile import (
     WebpageActivity,
@@ -35,7 +34,7 @@ class LMSPageObjectDefinitionExtensions(BaseExtensionModelWithConfig):
     """
 
     type: Annotated[
-        Optional[Literal["course", "course_list", "user_space"]],
+        Literal["course", "course_list", "user_space"] | None,
         Field(alias=ACTIVITY_EXTENSIONS_TYPE),
     ] = None
 
@@ -47,7 +46,7 @@ class LMSPageObjectDefinition(WebpageActivityDefinition):
         extensions (dict): see LMSPageObjectDefinitionExtensions.
     """
 
-    extensions: Optional[LMSPageObjectDefinitionExtensions] = None
+    extensions: LMSPageObjectDefinitionExtensions | None = None
 
 
 class LMSPageObject(WebpageActivity):
@@ -80,7 +79,7 @@ class LMSFileObjectDefinition(FileActivityDefinition):
         extensions (dict): see LMSFileObjectDefinitionExtensions.
     """
 
-    extensions: Optional[LMSFileObjectDefinitionExtensions] = None
+    extensions: LMSFileObjectDefinitionExtensions | None = None
 
 
 class LMSFileObject(FileActivity):

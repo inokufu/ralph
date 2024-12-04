@@ -1,6 +1,6 @@
 """Main module for Ralph's LRS API authentication."""
 
-from typing import Optional
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import SecurityScopes
@@ -12,10 +12,10 @@ from ralph.conf import settings
 
 
 def get_authenticated_user(
-    security_scopes: SecurityScopes = SecurityScopes([]),
-    basic_auth_user: Optional[AuthenticatedUser] = Depends(get_basic_auth_user),
-    oidc_auth_user: Optional[AuthenticatedUser] = Depends(get_oidc_user),
-    cozy_auth_user: Optional[AuthenticatedUser] = Depends(get_cozy_user),
+    security_scopes: SecurityScopes,
+    basic_auth_user: Annotated[AuthenticatedUser, Depends(get_basic_auth_user)],
+    oidc_auth_user: Annotated[AuthenticatedUser, Depends(get_oidc_user)],
+    cozy_auth_user: Annotated[AuthenticatedUser, Depends(get_cozy_user)],
 ) -> AuthenticatedUser:
     """Authenticate user with any allowed method, using credentials in the header."""
     if basic_auth_user:

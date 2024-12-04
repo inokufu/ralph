@@ -3,8 +3,9 @@
 import json
 import logging
 import os
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, Union
+from typing import Annotated, Literal
 from urllib.parse import ParseResult, urlencode
 from uuid import UUID, uuid4
 
@@ -24,7 +25,6 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import TypeAdapter, ValidationError
 from pydantic.types import Json
 from starlette.datastructures import Headers
-from typing_extensions import Annotated
 
 from ralph.api.auth import get_authenticated_user
 from ralph.api.auth.user import AuthenticatedUser
@@ -62,7 +62,7 @@ router = APIRouter(
 )
 
 
-BACKEND_CLIENT: Union[BaseLRSBackend, BaseAsyncLRSBackend] = get_backend_class(
+BACKEND_CLIENT: BaseLRSBackend | BaseAsyncLRSBackend = get_backend_class(
     backends=get_lrs_backends(), name=settings.RUNSERVER_BACKEND
 )()
 
@@ -78,26 +78,26 @@ POST_PUT_RESPONSES = {
 }
 
 
-def _enrich_statement_with_id(statement: dict) -> None:
+def _enrich_statement_with_id(statement: Mapping) -> None:
     # id: Statement UUID identifier.
     # https://github.com/adlnet/xAPI-Spec/blob/master/xAPI-Data.md#24-statement-properties
     statement["id"] = str(statement.get("id", uuid4()))
 
 
-def _enrich_statement_with_stored(statement: dict) -> None:
+def _enrich_statement_with_stored(statement: Mapping) -> None:
     # stored: The time at which a Statement is stored by the LRS.
     # https://github.com/adlnet/xAPI-Spec/blob/1.0.3/xAPI-Data.md#248-stored
     statement["stored"] = now()
 
 
-def _enrich_statement_with_timestamp(statement: dict) -> None:
+def _enrich_statement_with_timestamp(statement: Mapping) -> None:
     # timestamp: Time of the action. If not provided, it takes the same value as stored.
     # https://github.com/adlnet/xAPI-Spec/blob/master/xAPI-Data.md#247-timestamp
     statement["timestamp"] = statement.get("timestamp", statement["stored"])
 
 
 def _enrich_statement_with_authority(
-    statement: dict, current_user: AuthenticatedUser
+    statement: Mapping, current_user: AuthenticatedUser
 ) -> None:
     # authority: Information about whom or what has asserted the statement is true.
     # https://github.com/adlnet/xAPI-Spec/blob/master/xAPI-Data.md#249-authority
@@ -112,7 +112,7 @@ def _filter_headers_before_forwarding(headers: Headers):
     return {name: value for name, value in headers.items() if name != "content-length"}
 
 
-def _parse_agent_parameters(agent_obj: dict) -> AgentParameters:
+def _parse_agent_parameters(agent_obj: Mapping) -> AgentParameters:
     """Parse a dict and return an AgentParameters object to use in queries."""
     # Transform agent to `dict` as FastAPI cannot parse JSON (seen as string)
 
@@ -165,18 +165,18 @@ async def get(  # noqa: PLR0912, PLR0913
     # Query string parameters defined by the LRS specification
     ###
     statement_id: Annotated[
-        Optional[UUID],
+        UUID | None,
         Query(description="Id of Statement to fetch", alias="statementId"),
     ] = None,
     voided_statement_id: Annotated[
-        Optional[UUID],
+        UUID | None,
         Query(
             description="**Not implemented** Id of voided Statement to fetch",
             alias="voidedStatementId",
         ),
     ] = None,
     agent: Annotated[
-        Optional[Json],
+        Json | None,
         Query(
             description=(
                 "Filter, only return Statements for which the specified "
@@ -185,13 +185,13 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     verb: Annotated[
-        Optional[str],
+        str | None,
         Query(
             description="Filter, only return Statements matching the specified Verb id",
         ),
     ] = None,
     activity: Annotated[
-        Optional[str],
+        str | None,
         Query(
             description=(
                 "Filter, only return Statements for which the Object "
@@ -200,7 +200,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     registration: Annotated[
-        Optional[UUID],
+        UUID | None,
         Query(
             description=(
                 "**Not implemented** "
@@ -209,7 +209,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     related_activities: Annotated[
-        Optional[bool],
+        bool | None,
         Query(
             description=(
                 "**Not implemented** "
@@ -221,7 +221,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = False,
     related_agents: Annotated[
-        Optional[bool],
+        bool | None,
         Query(
             description=(
                 "**Not implemented** "
@@ -233,7 +233,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = False,
     since: Annotated[
-        Optional[datetime],
+        datetime | None,
         Query(
             description=(
                 "Only Statements stored since the "
@@ -242,7 +242,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     until: Annotated[
-        Optional[datetime],
+        datetime | None,
         Query(
             description=(
                 "Only Statements stored at or "
@@ -251,7 +251,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     limit: Annotated[
-        Optional[int],
+        int | None,
         Query(
             ge=0,
             description=(
@@ -261,7 +261,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = settings.RUNSERVER_MAX_SEARCH_HITS_COUNT,
     format: Annotated[  # noqa: ARG001
-        Optional[Literal["ids", "exact", "canonical"]],
+        Literal["ids", "exact", "canonical"] | None,
         Query(
             description=(
                 "**Not implemented** "
@@ -281,7 +281,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = "exact",
     attachments: Annotated[  # noqa: ARG001
-        Optional[bool],
+        bool | None,
         Query(
             description=(
                 "**Not implemented** "
@@ -293,13 +293,13 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = False,
     ascending: Annotated[  # noqa: ARG001
-        Optional[bool],
+        bool | None,
         Query(
             description='If "true", return results in ascending order of stored time'
         ),
     ] = False,
     mine: Annotated[
-        Optional[bool],
+        bool | None,
         Query(
             description=(
                 'If "true", return only the results for which the authority matches '
@@ -311,7 +311,7 @@ async def get(  # noqa: PLR0912, PLR0913
     # Private use query string parameters
     ###
     search_after: Annotated[  # noqa: ARG001
-        Optional[str],
+        str | None,
         Query(
             description=(
                 "Sorting data to allow pagination through large number of search "
@@ -321,7 +321,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     pit_id: Annotated[  # noqa: ARG001
-        Optional[str],
+        str | None,
         Query(
             description=(
                 "Point-in-time ID to ensure consistency of search requests through "
@@ -331,7 +331,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     _=Depends(strict_query_params),
-) -> Dict:
+) -> dict:
     """Read a single xAPI Statement or multiple xAPI Statements.
 
     LRS Specification:
@@ -572,12 +572,12 @@ async def post(
         AuthenticatedUser,
         Security(get_authenticated_user, scopes=["statements/write"]),
     ],
-    statements: Union[LaxStatement, List[LaxStatement]],
+    statements: LaxStatement | Sequence[LaxStatement],
     background_tasks: BackgroundTasks,
     request: Request,
     response: Response,
     _=Depends(strict_query_params),
-) -> Union[List, None]:
+) -> list | None:
     """Store a set of statements (or a single statement as a single member of a set).
 
     NB: at this time, using POST to make a GET request, is not supported.
@@ -586,7 +586,7 @@ async def post(
     """
     # As we accept both a single statement as a dict, and multiple statements as a list,
     # we need to normalize the data into a list in all cases before we can process it.
-    if not isinstance(statements, list):
+    if not isinstance(statements, Sequence):
         statements = [statements]
 
     # Enrich statements before forwarding

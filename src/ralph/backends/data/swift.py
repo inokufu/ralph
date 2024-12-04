@@ -1,9 +1,10 @@
 """Swift data backend for Ralph."""
 
 import logging
+from collections.abc import Iterable, Iterator, Mapping
 from functools import cached_property
 from io import IOBase
-from typing import Any, Iterable, Iterator, Optional, Tuple, Union
+from typing import Any
 from uuid import uuid4
 
 from pydantic import PositiveInt
@@ -52,16 +53,16 @@ class SwiftDataBackendSettings(BaseDataBackendSettings):
     }
 
     AUTH_URL: str = "https://auth.cloud.ovh.net/"
-    DEFAULT_CONTAINER: Optional[str] = None
+    DEFAULT_CONTAINER: str | None = None
     IDENTITY_API_VERSION: str = "3"
-    OBJECT_STORAGE_URL: Optional[str] = None
-    PASSWORD: Optional[str] = None
+    OBJECT_STORAGE_URL: str | None = None
+    PASSWORD: str | None = None
     PROJECT_DOMAIN_NAME: str = "Default"
     READ_CHUNK_SIZE: int = 4096
-    REGION_NAME: Optional[str] = None
-    TENANT_ID: Optional[str] = None
-    TENANT_NAME: Optional[str] = None
-    USERNAME: Optional[str] = None
+    REGION_NAME: str | None = None
+    TENANT_ID: str | None = None
+    TENANT_NAME: str | None = None
+    USERNAME: str | None = None
     USER_DOMAIN_NAME: str = "Default"
     WRITE_CHUNK_SIZE: int = 4096
 
@@ -82,7 +83,7 @@ class SwiftDataBackend(
         BaseOperationType.UPDATE,
     }
 
-    def __init__(self, settings: Optional[SwiftDataBackendSettings] = None):
+    def __init__(self, settings: SwiftDataBackendSettings | None = None):
         """Prepares the options for the SwiftService."""
         super().__init__(settings)
         self.default_container = self.settings.DEFAULT_CONTAINER
@@ -130,8 +131,8 @@ class SwiftDataBackend(
         return DataBackendStatus.OK
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List files for the target container.
 
         Args:
@@ -170,13 +171,13 @@ class SwiftDataBackend(
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[str] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: str | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read objects matching the `query` in the `target` container and yield them.
 
         Args:
@@ -213,7 +214,7 @@ class SwiftDataBackend(
     def _read_bytes(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> Iterator[bytes]:
@@ -241,7 +242,7 @@ class SwiftDataBackend(
     def _read_dicts(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
     ) -> Iterator[dict]:
@@ -262,8 +263,8 @@ class SwiftDataBackend(
         )
 
     def _get_object(
-        self, container: Optional[str], obj: Optional[str], chunk_size: int
-    ) -> Tuple[dict, Any]:
+        self, container: str | None, obj: str | None, chunk_size: int
+    ) -> tuple[dict, Any]:
         """Validate container and obj and return Swift object wrapping the exception."""
         if not container:
             msg = "The target container is not set"
@@ -288,11 +289,11 @@ class SwiftDataBackend(
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write `data` records to the `target` container and returns their count.
 
@@ -321,8 +322,8 @@ class SwiftDataBackend(
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -335,7 +336,7 @@ class SwiftDataBackend(
     def _write_bytes(
         self,
         data: Iterable[bytes],
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
         operation_type: BaseOperationType,
@@ -425,7 +426,7 @@ class SwiftDataBackend(
         }
 
     @staticmethod
-    def _count(statements: Iterable, counter: dict) -> Iterator:
+    def _count(statements: Iterable, counter: Mapping) -> Iterator:
         """Count the elements in the `statements` Iterable and yield element."""
         for statement in statements:
             yield statement

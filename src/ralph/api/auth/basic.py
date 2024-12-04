@@ -2,6 +2,7 @@
 
 import logging
 import os
+from collections.abc import Iterator, Sequence
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
@@ -41,7 +42,7 @@ class UserCredentials(AuthenticatedUser):
     username: str
 
 
-class ServerUsersCredentials(RootModel[List[UserCredentials]]):
+class ServerUsersCredentials(RootModel[Sequence[UserCredentials]]):
     """Custom root pydantic model.
 
     Describe expected list of all server users credentials as stored in

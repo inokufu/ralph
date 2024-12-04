@@ -1,8 +1,8 @@
 """S3 data backend for Ralph."""
 
 import logging
+from collections.abc import Iterable, Iterator, Mapping
 from io import IOBase
-from typing import Iterable, Iterator, Optional, Union
 from uuid import uuid4
 
 import boto3
@@ -55,12 +55,12 @@ class S3DataBackendSettings(BaseDataBackendSettings):
         **SettingsConfigDict(env_prefix="RALPH_BACKENDS__DATA__S3__"),
     }
 
-    ACCESS_KEY_ID: Optional[str] = None
-    SECRET_ACCESS_KEY: Optional[str] = None
-    SESSION_TOKEN: Optional[str] = None
-    ENDPOINT_URL: Optional[str] = None
-    DEFAULT_REGION: Optional[str] = None
-    DEFAULT_BUCKET_NAME: Optional[str] = None
+    ACCESS_KEY_ID: str | None = None
+    SECRET_ACCESS_KEY: str | None = None
+    SESSION_TOKEN: str | None = None
+    ENDPOINT_URL: str | None = None
+    DEFAULT_REGION: str | None = None
+    DEFAULT_BUCKET_NAME: str | None = None
     READ_CHUNK_SIZE: int = 4096
     WRITE_CHUNK_SIZE: int = 4096
 
@@ -78,7 +78,7 @@ class S3DataBackend(
         BaseOperationType.UPDATE,
     }
 
-    def __init__(self, settings: Optional[S3DataBackendSettings] = None):
+    def __init__(self, settings: S3DataBackendSettings | None = None):
         """Instantiate the AWS S3 client."""
         super().__init__(settings)
         self.default_bucket_name = self.settings.DEFAULT_BUCKET_NAME
@@ -112,8 +112,8 @@ class S3DataBackend(
         return DataBackendStatus.OK
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List objects for the target bucket.
 
         Args:
@@ -158,13 +158,13 @@ class S3DataBackend(
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[str] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: str | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read an object matching the `query` in the `target` bucket and yield it.
 
         Args:
@@ -197,7 +197,7 @@ class S3DataBackend(
     def _read_bytes(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> Iterator[bytes]:
@@ -225,7 +225,7 @@ class S3DataBackend(
     def _read_dicts(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
     ) -> Iterator[dict]:
@@ -251,7 +251,7 @@ class S3DataBackend(
             }
         )
 
-    def _get_object(self, bucket: Optional[str], key: str) -> dict:
+    def _get_object(self, bucket: str | None, key: str) -> dict:
         """Validate bucket (target) and key (query) and return the S3 object."""
         if not bucket:
             msg = "The target bucket is not set"
@@ -276,11 +276,11 @@ class S3DataBackend(
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write `data` records to the `target` bucket and return their count.
 
@@ -315,8 +315,8 @@ class S3DataBackend(
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -329,7 +329,7 @@ class S3DataBackend(
     def _write_bytes(
         self,
         data: Iterable[bytes],
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
         operation_type: BaseOperationType,
@@ -407,7 +407,7 @@ class S3DataBackend(
             raise BackendException(msg % error) from error
 
     @staticmethod
-    def _count(statements: Iterable, counter: dict) -> Iterator:
+    def _count(statements: Iterable, counter: Mapping) -> Iterator:
         """Count the elements in the `statements` Iterable and yield element."""
         for statement in statements:
             yield statement

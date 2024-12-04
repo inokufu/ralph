@@ -1,10 +1,9 @@
 """Video event fields definitions."""
 
 import sys
-from typing import Optional
+from typing import Annotated, Optional
 
 from pydantic import StringConstraints
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
 

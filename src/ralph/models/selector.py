@@ -1,12 +1,13 @@
 """Model selector definition."""
 
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import import_module
 from inspect import getmembers, isclass
 from itertools import chain
 from types import ModuleType
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -19,7 +20,7 @@ from ralph.utils import get_dict_value_from_path
 class LazyModelField:
     """Model field."""
 
-    path: Tuple[str]
+    path: tuple[str]
 
     def __init__(self, path: str) -> None:
         """Initialize Lazy Model Field."""
@@ -31,9 +32,9 @@ class Rule:
     """Rule used for selection."""
 
     field: LazyModelField
-    value: Union[LazyModelField, Any]
+    value: LazyModelField | Any
 
-    def check(self, event: Dict) -> bool:
+    def check(self, event: Mapping) -> bool:
         """Check if event matches the rule.
 
         Args:
@@ -46,7 +47,7 @@ class Rule:
         return event_value == expected_value
 
 
-def selector(**filters: Any) -> List[Rule]:
+def selector(**filters: Any) -> list[Rule]:
     """Return a list of rules that should match in order to select an event.
 
     Args:
@@ -72,7 +73,7 @@ class ModelSelector:
         self.decision_tree = self.get_decision_tree(self.model_rules)
 
     @staticmethod
-    def build_model_rules(module: ModuleType) -> Dict:
+    def build_model_rules(module: ModuleType) -> dict:
         """Build the model_rules dictionary.
 
         Using BaseModel classes defined in the module.
@@ -83,11 +84,11 @@ class ModelSelector:
                 model_rules[class_] = class_.__selector__
         return model_rules
 
-    def get_first_model(self, event: Dict) -> Any:
+    def get_first_model(self, event: Mapping) -> Any:
         """Return the first matching model for the event. See `self.get_models`."""
         return self.get_models(event)[0]
 
-    def get_models(self, event: dict, tree=None):
+    def get_models(self, event: Mapping, tree=None):
         """Recursively go through the decision tree to find the event matching models.
 
         Args:

@@ -3,7 +3,7 @@
 from datetime import datetime
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Dict, Literal, Optional, Union
+from typing import Annotated, Literal, Optional
 
 from pydantic import (
     AnyHttpUrl,
@@ -12,7 +12,6 @@ from pydantic import (
     Field,
     StringConstraints,
 )
-from typing_extensions import Annotated
 
 
 class BaseModelWithConfig(BaseModel):
@@ -41,7 +40,7 @@ class ContextModuleField(BaseModelWithConfig):
             ),
         ]
     ] = None
-    original_usage_version: Optional[str] = None
+    original_usage_version: str | None = None
 
 
 class BaseContextField(BaseModelWithConfig):
@@ -87,11 +86,11 @@ class BaseContextField(BaseModelWithConfig):
     """
 
     course_id: Annotated[str, Field(pattern=r"^$|^course-v1:.+\+.+\+.+$")]
-    course_user_tags: Optional[Dict[str, str]] = None
-    module: Optional[ContextModuleField] = None
+    course_user_tags: dict[str, str] | None = None
+    module: ContextModuleField | None = None
     org_id: str
     path: Path
-    user_id: Union[int, Literal[""], None] = None
+    user_id: int | Literal[""] | None = None
 
 
 class AbstractBaseEventField(BaseModelWithConfig):
@@ -156,13 +155,13 @@ class BaseEdxModel(BaseModelWithConfig):
                 In JSON the value is `null` instead of `None`.
     """
 
-    username: Union[
-        Annotated[str, StringConstraints(min_length=2, max_length=30)], Literal[""]
-    ]
-    ip: Union[IPv4Address, Literal[""]]
+    username: (
+        Annotated[str, StringConstraints(min_length=2, max_length=30)] | Literal[""]
+    )
+    ip: IPv4Address | Literal[""]
     agent: str
     host: str
-    referer: Union[AnyHttpUrl, Literal[""]]
+    referer: AnyHttpUrl | Literal[""]
     accept_language: str
     context: BaseContextField
     time: datetime

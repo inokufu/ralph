@@ -1,7 +1,7 @@
 """ClickHouse LRS backend for Ralph."""
 
 import logging
-from typing import Generator, Iterator, List, Optional
+from collections.abc import Generator, Iterator, Mapping, Sequence
 
 from pydantic_settings import SettingsConfigDict
 
@@ -45,7 +45,7 @@ class ClickHouseLRSBackend(
     """ClickHouse LRS backend implementation."""
 
     def query_statements(
-        self, params: RalphStatementsQuery, target: Optional[str] = None
+        self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
         ch_params = params.model_dump(exclude_none=True)
@@ -130,7 +130,7 @@ class ClickHouseLRSBackend(
         )
 
     def query_statements_by_ids(
-        self, ids: List[str], target: Optional[str] = None
+        self, ids: Sequence[str], target: str | None = None
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
 
@@ -160,16 +160,16 @@ class ClickHouseLRSBackend(
 
     @staticmethod
     def _add_agent_filters(
-        ch_params: dict,
-        where: list,
-        agent_params: AgentParameters,
+        ch_params: Mapping,
+        where: Sequence,
+        agent_params: AgentParameters | Mapping,
         target_field: str,
     ) -> None:
         """Add filters relative to agents to `where`."""
         if not agent_params:
             return
 
-        if not isinstance(agent_params, dict):
+        if not isinstance(agent_params, Mapping):
             agent_params = agent_params.model_dump()
 
         if agent_params.get("mbox"):

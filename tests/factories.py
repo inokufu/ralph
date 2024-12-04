@@ -1,7 +1,8 @@
 """Mock model generation for testing."""
 
+from collections.abc import Sequence
 from decimal import Decimal
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
 from polyfactory.factories.base import BaseFactory
 from polyfactory.factories.pydantic_factory import (
@@ -37,7 +38,7 @@ from ralph.models.xapi.virtual_classroom.contexts import (
 )
 
 
-def prune(d: Any, exemptions: Optional[list] = None):
+def prune(d: Any, exemptions: Sequence | None = None):
     """Remove all empty leaves from a dict, except fo those in `exemptions`."""
 
     if exemptions is None:
@@ -65,7 +66,7 @@ class ModelFactory(PolyfactoryModelFactory[T]):
     __is_base_factory__ = True
 
     @classmethod
-    def get_provider_map(cls) -> Dict[Any, Callable[[], Any]]:
+    def get_provider_map(cls) -> dict[Any, Callable[[], Any]]:
         provider_map = super().get_provider_map()
         return provider_map
 

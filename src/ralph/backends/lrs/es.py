@@ -1,7 +1,7 @@
 """Elasticsearch LRS backend for Ralph."""
 
 import logging
-from typing import Iterator, List, Optional
+from collections.abc import Iterator, Mapping, Sequence
 
 from pydantic_settings import SettingsConfigDict
 
@@ -37,7 +37,7 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
     """Elasticsearch LRS backend implementation."""
 
     def query_statements(
-        self, params: RalphStatementsQuery, target: Optional[str] = None
+        self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
         query = self.get_query(params=params)
@@ -57,7 +57,7 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
         )
 
     def query_statements_by_ids(
-        self, ids: List[str], target: Optional[str] = None
+        self, ids: Sequence[str], target: str | None = None
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
         query = self.query_class(query={"terms": {"_id": ids}})
@@ -112,13 +112,15 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
 
     @staticmethod
     def _add_agent_filters(
-        es_query_filters: list, agent_params: AgentParameters, target_field: str
+        es_query_filters: Sequence,
+        agent_params: AgentParameters | Mapping,
+        target_field: str,
     ) -> None:
         """Add filters relative to agents to `es_query_filters`."""
         if not agent_params:
             return
 
-        if not isinstance(agent_params, dict):
+        if not isinstance(agent_params, Mapping):
             agent_params = agent_params.model_dump()
 
         if agent_params.get("mbox"):

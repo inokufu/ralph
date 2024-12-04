@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -146,7 +146,7 @@ def test_converter_convert_dict_event_with_one_conversion_item(
     class DummyBaseModel(BaseModel):
         """Dummy base model with one field."""
 
-        converted: Optional[Any] = None
+        converted: Any | None = None
 
     class DummyBaseConversionSet(BaseConversionSet):
         """Dummy implementation of abstract BaseConversionSet."""

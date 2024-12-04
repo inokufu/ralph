@@ -1,7 +1,5 @@
 """Video event xAPI Converter."""
 
-from typing import Set
-
 from ralph.models.converter import ConversionItem
 from ralph.models.edx.video.statements import (
     UILoadVideo,
@@ -34,7 +32,7 @@ from .base import BaseXapiConverter
 class VideoBaseXapiConverter(BaseXapiConverter):
     """Base Video xAPI Converter."""
 
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
         conversion_items = super()._get_conversion_items()
         return conversion_items.union(
@@ -72,7 +70,7 @@ class UILoadVideoToVideoInitialized(VideoBaseXapiConverter):
     __src__ = UILoadVideo
     __dest__ = VideoInitialized
 
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
         conversion_items = super()._get_conversion_items()
         return conversion_items.union(
@@ -102,7 +100,7 @@ class UIPlayVideoToVideoPlayed(VideoBaseXapiConverter):
     __src__ = UIPlayVideo
     __dest__ = VideoPlayed
 
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
         conversion_items = super()._get_conversion_items()
         return conversion_items.union(
@@ -125,7 +123,7 @@ class UIPauseVideoToVideoPaused(VideoBaseXapiConverter):
     __src__ = UIPauseVideo
     __dest__ = VideoPaused
 
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
         conversion_items = super()._get_conversion_items()
         return conversion_items.union(
@@ -156,7 +154,7 @@ class UIStopVideoToVideoTerminated(VideoBaseXapiConverter):
     __src__ = UIStopVideo
     __dest__ = VideoTerminated
 
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
         conversion_items = super()._get_conversion_items()
         return conversion_items.union(
@@ -195,7 +193,7 @@ class UISeekVideoToVideoSeeked(VideoBaseXapiConverter):
     __src__ = UISeekVideo
     __dest__ = VideoSeeked
 
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
         conversion_items = super()._get_conversion_items()
         return conversion_items.union(

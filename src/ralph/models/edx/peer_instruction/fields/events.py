@@ -1,7 +1,8 @@
 """Peer instruction event field definition."""
 
+from typing import Annotated
+
 from pydantic import StringConstraints
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
 

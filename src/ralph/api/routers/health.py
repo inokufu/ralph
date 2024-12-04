@@ -1,7 +1,6 @@
 """API routes related to application health checking."""
 
 import logging
-from typing import Union
 
 from fastapi import APIRouter, Response, status
 from pydantic import BaseModel
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-BACKEND_CLIENT: Union[BaseLRSBackend, BaseAsyncLRSBackend] = get_backend_class(
+BACKEND_CLIENT: BaseLRSBackend | BaseAsyncLRSBackend = get_backend_class(
     backends=get_lrs_backends(), name=settings.RUNSERVER_BACKEND
 )()
 

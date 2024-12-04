@@ -1,7 +1,6 @@
 """`Video` verbs definitions."""
 
 import sys
-from typing import Dict, Optional
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
@@ -23,7 +22,7 @@ class PlayedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/video/verbs/played"] = (
         "https://w3id.org/xapi/video/verbs/played"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["played"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["played"]] | None = None
 
 
 class PausedVerb(BaseXapiVerb):
@@ -37,7 +36,7 @@ class PausedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/video/verbs/paused"] = (
         "https://w3id.org/xapi/video/verbs/paused"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["paused"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["paused"]] | None = None
 
 
 class SeekedVerb(BaseXapiVerb):
@@ -51,4 +50,4 @@ class SeekedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/video/verbs/seeked"] = (
         "https://w3id.org/xapi/video/verbs/seeked"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["seeked"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["seeked"]] | None = None
