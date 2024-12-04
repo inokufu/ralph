@@ -3,6 +3,7 @@
 import copy
 import json
 import logging
+from collections.abc import Mapping
 
 import pytest
 from pydantic import ValidationError, create_model
@@ -213,7 +214,7 @@ def test_models_validator_validate_typing_cleanup():
 def test_models_validator_get_first_valid_model_with_match(event, models, expected):
     """Test that the `get_first_valid_model` method returns the expected model."""
 
-    def dummy_get_models(event: dict):
+    def dummy_get_models(event: Mapping):
         return models
 
     validator = Validator(ModelSelector(module="os"))
@@ -233,7 +234,7 @@ def test_models_validator_get_first_valid_model_without_match(event, models, err
     matches the given event.
     """
 
-    def dummy_get_models(event: dict):
+    def dummy_get_models(event: Mapping):
         return models
 
     validator = Validator(ModelSelector(module="os"))

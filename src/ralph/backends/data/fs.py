@@ -2,10 +2,11 @@
 
 import logging
 import os
+from collections.abc import Iterable, Iterator, Mapping
 from datetime import datetime, timezone
 from io import BufferedReader, IOBase
 from pathlib import Path
-from typing import Iterable, Iterator, Optional, Tuple, TypeVar, Union
+from typing import TypeVar
 from uuid import uuid4
 
 from pydantic import PositiveInt, model_validator
@@ -77,7 +78,7 @@ class FSDataBackend(
     default_operation_type = BaseOperationType.CREATE
     unsupported_operation_types = {BaseOperationType.DELETE}
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Create the default target directory if it does not exist.
 
         Args:
@@ -110,8 +111,8 @@ class FSDataBackend(
         return DataBackendStatus.OK
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List files and directories in the target directory.
 
         Args:
@@ -162,13 +163,13 @@ class FSDataBackend(
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[str] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: str | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read files matching the query in the target folder and yield them.
 
         Args:
@@ -202,7 +203,7 @@ class FSDataBackend(
     def _read_bytes(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> Iterator[bytes]:
@@ -216,7 +217,7 @@ class FSDataBackend(
     def _read_dicts(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,  # noqa: ARG002
         ignore_errors: bool,
     ) -> Iterator[dict]:
@@ -243,8 +244,8 @@ class FSDataBackend(
         )
 
     def _iter_files_matching_query(
-        self, target: Optional[str], query: str
-    ) -> Iterator[Tuple[BufferedReader, Path]]:
+        self, target: str | None, query: str
+    ) -> Iterator[tuple[BufferedReader, Path]]:
         """Return file/path tuples for files matching the query in the target folder."""
         if not query:
             query = self.default_query_string
@@ -266,11 +267,11 @@ class FSDataBackend(
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write data records to the target file and return their count.
 
@@ -307,8 +308,8 @@ class FSDataBackend(
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -321,7 +322,7 @@ class FSDataBackend(
     def _write_bytes(
         self,
         data: Iterable[bytes],
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,  # noqa: ARG002
         ignore_errors: bool,  # noqa: ARG002
         operation_type: BaseOperationType,

@@ -1,8 +1,9 @@
 """xAPI statement forwarding background task."""
 
 import logging
+from collections.abc import Mapping, Sequence
 from functools import lru_cache
-from typing import List, Literal, Union
+from typing import Literal
 
 from httpx import AsyncClient, AsyncHTTPTransport, HTTPStatusError, RequestError
 from starlette.datastructures import Headers
@@ -13,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache
-def get_active_xapi_forwardings() -> List[XapiForwardingConfigurationSettings]:
+def get_active_xapi_forwardings() -> list[XapiForwardingConfigurationSettings]:
     """Return a list of active xAPI forwarding configuration settings."""
-    active_forwardings: List = []
+    active_forwardings: list = []
     if not settings.XAPI_FORWARDINGS:
         logger.info("No xAPI forwarding configured; forwarding is disabled.")
         return active_forwardings
@@ -34,9 +35,9 @@ def get_active_xapi_forwardings() -> List[XapiForwardingConfigurationSettings]:
 
 
 async def forward_xapi_statements(
-    statements: Union[dict, List[dict]],
+    statements: Mapping | Sequence[Mapping],
     method: Literal["post", "put"],
-    headers: Union[dict, Headers],
+    headers: Mapping | Headers,
 ) -> None:
     """Forward xAPI statements."""
     for forwarding in get_active_xapi_forwardings():

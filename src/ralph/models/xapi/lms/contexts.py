@@ -1,12 +1,12 @@
 """LMS xAPI events context fields definitions."""
 
 import sys
+from collections.abc import Sequence
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import Field, NonNegativeFloat, PositiveInt, condecimal, field_validator
-from typing_extensions import Annotated
 
 from ..base.contexts import BaseXapiContext, BaseXapiContextContextActivities
 from ..base.unnested_objects import BaseXapiActivity
@@ -46,18 +46,13 @@ class LMSContextContextActivities(BaseXapiContextContextActivities):
         category (dict or list): see LMSProfileActivity.
     """
 
-    category: Union[
-        LMSProfileActivity, List[Union[LMSProfileActivity, BaseXapiActivity]]
-    ]
+    category: LMSProfileActivity | list[LMSProfileActivity | BaseXapiActivity]
 
     @field_validator("category")
     @classmethod
     def check_presence_of_profile_activity_category(
-        cls,
-        value: Union[
-            LMSProfileActivity, List[Union[LMSProfileActivity, BaseXapiActivity]]
-        ],
-    ) -> Union[LMSProfileActivity, List[Union[LMSProfileActivity, BaseXapiActivity]]]:
+        cls, value: LMSProfileActivity | Sequence[LMSProfileActivity | BaseXapiActivity]
+    ) -> LMSProfileActivity | list[LMSProfileActivity | BaseXapiActivity]:
         """Check that the category list contains a `LMSProfileActivity`."""
         if isinstance(value, LMSProfileActivity):
             return value
@@ -96,12 +91,12 @@ class LMSRegistrationContextExtensions(BaseExtensionModelWithConfig):
     """
 
     starting_date: Annotated[
-        Optional[datetime], Field(alias=CONTEXT_EXTENSION_STARTING_DATE)
+        datetime | None, Field(alias=CONTEXT_EXTENSION_STARTING_DATE)
     ] = None
     ending_date: Annotated[
-        Optional[datetime], Field(alias=CONTEXT_EXTENSION_ENDING_DATE)
+        datetime | None, Field(alias=CONTEXT_EXTENSION_ENDING_DATE)
     ] = None
-    role: Annotated[Optional[str], Field(alias=CONTEXT_EXTENSION_ROLE)]
+    role: Annotated[str | None, Field(alias=CONTEXT_EXTENSION_ROLE)]
 
 
 class LMSRegistrationContext(LMSContext):
@@ -114,7 +109,7 @@ class LMSRegistrationContext(LMSContext):
         extensions (dict): see LMSRegistrationContextExtensions.
     """
 
-    extensions: Optional[LMSRegistrationContextExtensions] = None
+    extensions: LMSRegistrationContextExtensions | None = None
 
 
 class LMSCommonContextExtensions(BaseExtensionModelWithConfig):
@@ -129,9 +124,7 @@ class LMSCommonContextExtensions(BaseExtensionModelWithConfig):
         session_id (uuid): ID of the active session.
     """
 
-    session_id: Annotated[Optional[UUID], Field(alias=CONTEXT_EXTENSION_SESSION_ID)] = (
-        None
-    )
+    session_id: Annotated[UUID | None, Field(alias=CONTEXT_EXTENSION_SESSION_ID)] = None
 
 
 class LMSCommonContext(LMSContext):
@@ -141,7 +134,7 @@ class LMSCommonContext(LMSContext):
         extensions (dict): See LMSCommonContextExtensions.
     """
 
-    extensions: Optional[LMSCommonContextExtensions] = None
+    extensions: LMSCommonContextExtensions | None = None
 
 
 class LMSDownloadedVideoContextExtensions(LMSCommonContextExtensions):
@@ -153,12 +146,12 @@ class LMSDownloadedVideoContextExtensions(LMSCommonContextExtensions):
     """
 
     length: Annotated[
-        Optional[condecimal(ge=0, decimal_places=3)],
+        condecimal(ge=0, decimal_places=3) | None,
         Field(alias=CONTEXT_EXTENSION_LENGTH),
     ] = None
-    quality: Annotated[
-        Optional[PositiveInt], Field(alias=CONTEXT_EXTENSION_QUALITY)
-    ] = None
+    quality: Annotated[PositiveInt | None, Field(alias=CONTEXT_EXTENSION_QUALITY)] = (
+        None
+    )
 
 
 class LMSDownloadedVideoContext(LMSContext):
@@ -168,7 +161,7 @@ class LMSDownloadedVideoContext(LMSContext):
         extensions (dict): See LMSDownloadedVideoContextExtensions.
     """
 
-    extensions: Optional[LMSDownloadedVideoContextExtensions] = None
+    extensions: LMSDownloadedVideoContextExtensions | None = None
 
 
 class LMSDownloadedAudioContextExtensions(LMSCommonContextExtensions):
@@ -179,7 +172,7 @@ class LMSDownloadedAudioContextExtensions(LMSCommonContextExtensions):
     """
 
     length: Annotated[
-        Optional[NonNegativeFloat], Field(alias=CONTEXT_EXTENSION_LENGTH)
+        NonNegativeFloat | None, Field(alias=CONTEXT_EXTENSION_LENGTH)
     ] = None
 
 
@@ -190,4 +183,4 @@ class LMSDownloadedAudioContext(LMSContext):
         extensions (dict): See LMSDownloadedAudioContextExtensions.
     """
 
-    extensions: Optional[LMSDownloadedAudioContextExtensions] = None
+    extensions: LMSDownloadedAudioContextExtensions | None = None

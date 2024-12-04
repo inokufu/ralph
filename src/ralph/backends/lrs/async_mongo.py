@@ -1,7 +1,7 @@
 """Async MongoDB LRS backend for Ralph."""
 
 import logging
-from typing import AsyncIterator, List, Optional
+from collections.abc import AsyncIterator, Sequence
 
 from ralph.backends.data.async_mongo import AsyncMongoDataBackend
 from ralph.backends.lrs.base import (
@@ -21,7 +21,7 @@ class AsyncMongoLRSBackend(
     """Async MongoDB LRS backend implementation."""
 
     async def query_statements(
-        self, params: RalphStatementsQuery, target: Optional[str] = None
+        self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
         query = MongoLRSBackend.get_query(params)
@@ -47,7 +47,7 @@ class AsyncMongoLRSBackend(
         )
 
     async def query_statements_by_ids(
-        self, ids: List[str], target: Optional[str] = None
+        self, ids: Sequence[str], target: str | None = None
     ) -> AsyncIterator[dict]:
         """Yield statements with matching ids from the backend."""
         query = self.query_class(filter={"_source.id": {"$in": ids}})

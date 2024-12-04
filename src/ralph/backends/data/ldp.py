@@ -1,7 +1,8 @@
 """OVH's LDP data backend for Ralph."""
 
 import logging
-from typing import Iterator, Literal, Optional, Union
+from collections.abc import Iterator
+from typing import Literal
 
 import ovh
 import requests
@@ -41,10 +42,10 @@ class LDPDataBackendSettings(BaseDataBackendSettings):
         **SettingsConfigDict(env_prefix="RALPH_BACKENDS__DATA__LDP__"),
     }
 
-    APPLICATION_KEY: Optional[str] = None
-    APPLICATION_SECRET: Optional[str] = None
-    CONSUMER_KEY: Optional[str] = None
-    DEFAULT_STREAM_ID: Optional[str] = None
+    APPLICATION_KEY: str | None = None
+    APPLICATION_SECRET: str | None = None
+    CONSUMER_KEY: str | None = None
+    DEFAULT_STREAM_ID: str | None = None
     ENDPOINT: Literal[
         "ovh-eu",
         "ovh-us",
@@ -54,8 +55,8 @@ class LDPDataBackendSettings(BaseDataBackendSettings):
         "soyoustart-eu",
         "soyoustart-ca",
     ] = "ovh-eu"
-    REQUEST_TIMEOUT: Optional[int] = None
-    SERVICE_NAME: Optional[str] = None
+    REQUEST_TIMEOUT: int | None = None
+    SERVICE_NAME: str | None = None
     READ_CHUNK_SIZE: int = 4096
 
 
@@ -68,7 +69,7 @@ class LDPDataBackend(
 
     name = "ldp"
 
-    def __init__(self, settings: Optional[LDPDataBackendSettings] = None):
+    def __init__(self, settings: LDPDataBackendSettings | None = None):
         """Instantiate the OVH LDP client.
 
         Args:
@@ -106,8 +107,8 @@ class LDPDataBackend(
         return DataBackendStatus.OK
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List archives for a given target stream_id.
 
         Args:
@@ -155,13 +156,13 @@ class LDPDataBackend(
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[str] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: str | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = True,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read an archive matching the query in the target stream_id and yield it.
 
         Args:
@@ -189,7 +190,7 @@ class LDPDataBackend(
     def _read_dicts(
         self,
         query: str,  # noqa: ARG002
-        target: Optional[str],  # noqa: ARG002
+        target: str | None,  # noqa: ARG002
         chunk_size: int,  # noqa: ARG002
         ignore_errors: bool,  # noqa: ARG002
     ) -> Iterator[dict]:
@@ -204,7 +205,7 @@ class LDPDataBackend(
     def _read_bytes(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
     ) -> Iterator[bytes]:
@@ -257,7 +258,7 @@ class LDPDataBackend(
         self._client = None
         logger.info("No open connections to close; skipping")
 
-    def _get_archive_endpoint(self, stream_id: Optional[str] = None) -> str:
+    def _get_archive_endpoint(self, stream_id: str | None = None) -> str:
         """Return OVH's archive endpoint."""
         stream_id = stream_id if stream_id else self.stream_id
         if None in (self.service_name, stream_id):
@@ -282,7 +283,7 @@ class LDPDataBackend(
         logger.debug("Temporary URL: %s", download_url)
         return download_url
 
-    def _details(self, stream_id: str, name: str) -> Optional[dict]:
+    def _details(self, stream_id: str, name: str) -> dict | None:
         """Return `name` archive details.
 
         Expected JSON response looks like:

@@ -1,7 +1,7 @@
 """MongoDB LRS backend for Ralph."""
 
 import logging
-from typing import Iterator, List, Optional
+from collections.abc import Iterator, Mapping, Sequence
 
 from bson.objectid import ObjectId
 from pydantic_settings import SettingsConfigDict
@@ -38,7 +38,7 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
     """MongoDB LRS backend."""
 
     def query_statements(
-        self, params: RalphStatementsQuery, target: Optional[str] = None
+        self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the results of a statements query using xAPI parameters."""
         query = self.get_query(params)
@@ -61,7 +61,7 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
         )
 
     def query_statements_by_ids(
-        self, ids: List[str], target: Optional[str] = None
+        self, ids: Sequence[str], target: str | None = None
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
         query = self.query_class(filter={"_source.id": {"$in": ids}})
@@ -122,7 +122,9 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
 
     @staticmethod
     def _add_agent_filters(
-        mongo_query_filters: dict, agent_params: AgentParameters, target_field: str
+        mongo_query_filters: Mapping,
+        agent_params: AgentParameters | Mapping,
+        target_field: str,
     ) -> None:
         """Add filters relative to agents to mongo_query_filters.
 
@@ -134,7 +136,7 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
         if not agent_params:
             return
 
-        if not isinstance(agent_params, dict):
+        if not isinstance(agent_params, Mapping):
             agent_params = agent_params.model_dump()
 
         if agent_params.get("mbox"):

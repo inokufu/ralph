@@ -1,10 +1,9 @@
 """Textbook interaction event fields definitions."""
 
 import sys
-from typing import Optional, Union
+from typing import Annotated, Union
 
 from pydantic import Field, StringConstraints
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
 
@@ -271,7 +270,7 @@ class BookEventField(AbstractBaseEventField):
     ]
     name: Literal["textbook.pdf.page.loaded", "textbook.pdf.page.navigatednext"]
     new: int
-    old: Optional[int] = None
+    old: int | None = None
     type: Annotated[
         Literal["gotopage", "prevpage", "nextpage"],
         Field(alias="type"),

@@ -1,7 +1,6 @@
 """`ADL Vocabulary` verbs definitions."""
 
 import sys
-from typing import Dict, Optional
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
@@ -23,7 +22,7 @@ class AskedVerb(BaseXapiVerb):
     id: Literal["http://adlnet.gov/expapi/verbs/asked"] = (
         "http://adlnet.gov/expapi/verbs/asked"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["asked"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["asked"]] | None = None
 
 
 class AnsweredVerb(BaseXapiVerb):
@@ -37,7 +36,7 @@ class AnsweredVerb(BaseXapiVerb):
     id: Literal["http://adlnet.gov/expapi/verbs/answered"] = (
         "http://adlnet.gov/expapi/verbs/answered"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["answered"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["answered"]] | None = None
 
 
 class RegisteredVerb(BaseXapiVerb):
@@ -51,4 +50,4 @@ class RegisteredVerb(BaseXapiVerb):
     id: Literal["http://adlnet.gov/expapi/verbs/registered"] = (
         "http://adlnet.gov/expapi/verbs/registered"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["registered"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["registered"]] | None = None

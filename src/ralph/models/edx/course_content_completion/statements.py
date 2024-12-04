@@ -1,7 +1,6 @@
 """Course Content Completion event model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -35,10 +34,7 @@ class UIEdxDoneToggled(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="edx.done.toggled")
 
-    event: Union[
-        Json[EdxDoneToggledEventField],
-        EdxDoneToggledEventField,
-    ]
+    event: Json[EdxDoneToggledEventField] | EdxDoneToggledEventField
     event_type: Literal["edx.done.toggled"]
     name: Literal["edx.done.toggled"]
 
@@ -59,9 +55,6 @@ class EdxDoneToggled(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.done.toggled")
 
-    event: Union[
-        Json[EdxDoneToggledEventField],
-        EdxDoneToggledEventField,
-    ]
+    event: Json[EdxDoneToggledEventField] | EdxDoneToggledEventField
     event_type: Literal["edx.done.toggled"]
     name: Literal["edx.done.toggled"]

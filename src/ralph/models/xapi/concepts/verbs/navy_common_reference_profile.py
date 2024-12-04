@@ -1,7 +1,6 @@
 """`Navy Common Reference Profile` verbs definitions."""
 
 import sys
-from typing import Dict, Optional
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
@@ -23,7 +22,7 @@ class AccessedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/netc/verbs/accessed"] = (
         "https://w3id.org/xapi/netc/verbs/accessed"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["accessed"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["accessed"]] | None = None
 
 
 class UploadedVerb(BaseXapiVerb):
@@ -37,4 +36,4 @@ class UploadedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/netc/verbs/uploaded"] = (
         "https://w3id.org/xapi/netc/verbs/uploaded"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["uploaded"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["uploaded"]] | None = None

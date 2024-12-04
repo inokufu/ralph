@@ -1,8 +1,9 @@
 """Asynchronous MongoDB data backend for Ralph."""
 
 import logging
+from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
 from io import IOBase
-from typing import AsyncIterator, Iterable, Optional, TypeVar, Union
+from typing import TypeVar
 
 from bson.errors import BSONError
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
@@ -39,7 +40,7 @@ class AsyncMongoDataBackend(
     name = "async_mongo"
     unsupported_operation_types = {BaseOperationType.APPEND}
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the asynchronous MongoDB client.
 
         Args:
@@ -79,8 +80,8 @@ class AsyncMongoDataBackend(
         return DataBackendStatus.OK
 
     async def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[AsyncIterator[str], AsyncIterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> AsyncIterator[str] | AsyncIterator[dict]:
         """List collections in the target database.
 
         Args:
@@ -121,14 +122,14 @@ class AsyncMongoDataBackend(
 
     async def read(  # noqa: PLR0913
         self,
-        query: Optional[MongoQuery] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: MongoQuery | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        prefetch: Optional[PositiveInt] = None,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[AsyncIterator[bytes], AsyncIterator[dict]]:
+        prefetch: PositiveInt | None = None,
+        max_statements: PositiveInt | None = None,
+    ) -> AsyncIterator[bytes] | AsyncIterator[dict]:
         """Read documents matching the `query` from `target` collection and yield them.
 
         Args:
@@ -171,7 +172,7 @@ class AsyncMongoDataBackend(
     async def _read_dicts(
         self,
         query: MongoQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> AsyncIterator[dict]:
@@ -189,12 +190,12 @@ class AsyncMongoDataBackend(
 
     async def write(  # noqa: PLR0913
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
-        concurrency: Optional[PositiveInt] = None,
+        operation_type: BaseOperationType | None = None,
+        concurrency: PositiveInt | None = None,
     ) -> int:
         """Write data documents to the target collection and return their count.
 
@@ -227,8 +228,8 @@ class AsyncMongoDataBackend(
 
     async def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -268,9 +269,7 @@ class AsyncMongoDataBackend(
             logger.error(msg, error)
             raise BackendException(msg % error) from error
 
-    def _get_target_collection(
-        self, target: Union[str, None]
-    ) -> AsyncIOMotorCollection:
+    def _get_target_collection(self, target: str | None) -> AsyncIOMotorCollection:
         """Return the target collection."""
         try:
             return self.database[target] if target else self.collection
@@ -280,7 +279,7 @@ class AsyncMongoDataBackend(
             raise BackendParameterException(msg % (target, error)) from error
 
     async def _bulk_import(
-        self, batch: list, ignore_errors: bool, collection: AsyncIOMotorCollection
+        self, batch: Sequence, ignore_errors: bool, collection: AsyncIOMotorCollection
     ):
         """Insert a batch of documents into the selected database collection."""
         try:
@@ -297,7 +296,7 @@ class AsyncMongoDataBackend(
         return inserted_count
 
     async def _bulk_delete(
-        self, batch: list, ignore_errors: bool, collection: AsyncIOMotorCollection
+        self, batch: Sequence, ignore_errors: bool, collection: AsyncIOMotorCollection
     ):
         """Delete a batch of documents from the selected database collection."""
         try:
@@ -316,7 +315,7 @@ class AsyncMongoDataBackend(
         return deleted_count
 
     async def _bulk_update(
-        self, batch: list, ignore_errors: bool, collection: AsyncIOMotorCollection
+        self, batch: Sequence, ignore_errors: bool, collection: AsyncIOMotorCollection
     ):
         """Update a batch of documents into the selected database collection."""
         try:

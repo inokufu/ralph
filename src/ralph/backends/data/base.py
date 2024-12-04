@@ -3,24 +3,12 @@
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Queue, create_task
+from collections.abc import AsyncIterator, Iterable, Iterator, Mapping
 from enum import Enum, IntEnum, unique
 from inspect import isclass
 from io import IOBase
 from itertools import chain
-from typing import (
-    Any,
-    AsyncIterator,
-    Generic,
-    Iterable,
-    Iterator,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import Any, Generic, Type, TypeVar, Union, get_args, get_origin
 
 from pydantic import BaseModel, PositiveInt, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -114,15 +102,15 @@ class Writable(Configurable, ABC):
     """Data backend interface for backends supporting the write operation."""
 
     default_operation_type = BaseOperationType.INDEX
-    unsupported_operation_types: Set[BaseOperationType] = set()
+    unsupported_operation_types: set[BaseOperationType] = set()
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write `data` records to the `target` container and return their count.
 
@@ -171,7 +159,7 @@ class Writable(Configurable, ABC):
     def _write_bytes(
         self,
         data: Iterable[bytes],
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -185,8 +173,8 @@ class Writable(Configurable, ABC):
     @abstractmethod
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -204,8 +192,8 @@ class Listable(ABC):
 
     @abstractmethod
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List containers in the data backend. E.g., collections, files, indexes.
 
         Args:
@@ -225,11 +213,11 @@ class Listable(ABC):
 
 
 Settings = TypeVar("Settings", bound=BaseDataBackendSettings)
-Query = TypeVar("Query", bound=Union[BaseQuery, str])
+Query = TypeVar("Query", bound=BaseQuery | str)
 
 
 def validate_backend_query(
-    query: Optional[Query],
+    query: Query | None,
     query_class: Type[Query],
 ) -> Query:
     """Validate and transform the backend query."""
@@ -270,7 +258,7 @@ class BaseDataBackend(Generic[Settings, Query], ABC):
         set_backend_settings_class(cls)
         set_backend_query_class(cls)
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the data backend.
 
         Args:
@@ -294,13 +282,13 @@ class BaseDataBackend(Generic[Settings, Query], ABC):
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[Query] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: Query | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read records matching the `query` in the `target` container and yield them.
 
         Args:
@@ -345,7 +333,7 @@ class BaseDataBackend(Generic[Settings, Query], ABC):
                 return
 
     def _read_bytes(
-        self, query: Query, target: Optional[str], chunk_size: int, ignore_errors: bool
+        self, query: Query, target: str | None, chunk_size: int, ignore_errors: bool
     ) -> Iterator[bytes]:
         """Method called by `self.read` yielding bytes. See `self.read`."""
         locale = self.settings.LOCALE_ENCODING
@@ -354,7 +342,7 @@ class BaseDataBackend(Generic[Settings, Query], ABC):
 
     @abstractmethod
     def _read_dicts(
-        self, query: Query, target: Optional[str], chunk_size: int, ignore_errors: bool
+        self, query: Query, target: str | None, chunk_size: int, ignore_errors: bool
     ) -> Iterator[dict]:
         """Method called by `self.read` yielding dictionaries. See `self.read`."""
         statements = self._read_bytes(query, target, chunk_size, ignore_errors)
@@ -373,16 +361,16 @@ class AsyncWritable(Configurable, ABC):
     """Async data backend interface for backends supporting the write operation."""
 
     default_operation_type = BaseOperationType.INDEX
-    unsupported_operation_types: Set[BaseOperationType] = set()
+    unsupported_operation_types: set[BaseOperationType] = set()
 
     async def write(  # noqa: PLR0913
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
-        concurrency: Optional[PositiveInt] = None,
+        operation_type: BaseOperationType | None = None,
+        concurrency: PositiveInt | None = None,
     ) -> int:
         """Write `data` records to the `target` container and return their count.
 
@@ -451,7 +439,7 @@ class AsyncWritable(Configurable, ABC):
     async def _write_bytes(
         self,
         data: Iterable[bytes],
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -465,8 +453,8 @@ class AsyncWritable(Configurable, ABC):
     @abstractmethod
     async def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -484,8 +472,8 @@ class AsyncListable(ABC):
 
     @abstractmethod
     async def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[AsyncIterator[str], AsyncIterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> AsyncIterator[str] | AsyncIterator[dict]:
         """List containers in the data backend. E.g., collections, files, indexes.
 
         Args:
@@ -516,7 +504,7 @@ class BaseAsyncDataBackend(Generic[Settings, Query], ABC):
         set_backend_settings_class(cls)
         set_backend_query_class(cls)
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the data backend.
 
         Args:
@@ -540,14 +528,14 @@ class BaseAsyncDataBackend(Generic[Settings, Query], ABC):
 
     async def read(  # noqa: PLR0913
         self,
-        query: Optional[Query] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: Query | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        prefetch: Optional[PositiveInt] = None,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[AsyncIterator[bytes], AsyncIterator[dict]]:
+        prefetch: PositiveInt | None = None,
+        max_statements: PositiveInt | None = None,
+    ) -> AsyncIterator[bytes] | AsyncIterator[dict]:
         """Read records matching the `query` in the `target` container and yield them.
 
         Args:
@@ -626,7 +614,7 @@ class BaseAsyncDataBackend(Generic[Settings, Query], ABC):
                 return
 
     async def _read_bytes(
-        self, query: Query, target: Optional[str], chunk_size: int, ignore_errors: bool
+        self, query: Query, target: str | None, chunk_size: int, ignore_errors: bool
     ) -> AsyncIterator[bytes]:
         """Method called by `self.read` yielding bytes. See `self.read`."""
         statements = self._read_dicts(query, target, chunk_size, ignore_errors)
@@ -637,7 +625,7 @@ class BaseAsyncDataBackend(Generic[Settings, Query], ABC):
 
     @abstractmethod
     async def _read_dicts(
-        self, query: Query, target: Optional[str], chunk_size: int, ignore_errors: bool
+        self, query: Query, target: str | None, chunk_size: int, ignore_errors: bool
     ) -> AsyncIterator[dict]:
         """Method called by `self.read` yielding dictionaries. See `self.read`."""
         statements = self._read_bytes(query, target, chunk_size, ignore_errors)
@@ -654,7 +642,7 @@ class BaseAsyncDataBackend(Generic[Settings, Query], ABC):
         """
 
     async def _queue_records(
-        self, queue: Queue, records: Union[AsyncIterator[bytes], AsyncIterator[dict]]
+        self, queue: Queue, records: AsyncIterator[bytes] | AsyncIterator[dict]
     ):
         """Iterate over the `records` and put them into the `queue`."""
         try:
@@ -669,9 +657,9 @@ class BaseAsyncDataBackend(Generic[Settings, Query], ABC):
 
 
 def get_backend_generic_argument(
-    backend_class: Type[Union[BaseDataBackend, BaseAsyncDataBackend]],
+    backend_class: Type[BaseDataBackend | BaseAsyncDataBackend],
     position: DataBackendArgument,
-) -> Optional[Type]:
+) -> Type | None:
     """Return the generic argument of `backend_class` at specified `position`."""
     for base in get_original_bases(backend_class):
         origin = get_origin(base)
@@ -703,7 +691,7 @@ def get_backend_generic_argument(
 
 
 def set_backend_settings_class(
-    backend_class: Type[Union[BaseDataBackend, BaseAsyncDataBackend]],
+    backend_class: Type[BaseDataBackend | BaseAsyncDataBackend],
 ) -> None:
     """Set `settings_class` attribute with `Config.env_prefix` for `backend_class`."""
     settings_class = get_backend_generic_argument(
@@ -714,7 +702,7 @@ def set_backend_settings_class(
 
 
 def set_backend_query_class(
-    backend_class: Type[Union[BaseDataBackend, BaseAsyncDataBackend]],
+    backend_class: Type[BaseDataBackend | BaseAsyncDataBackend],
 ) -> None:
     """Set `query_class` attribute for `backend_class`."""
     query_class = get_backend_generic_argument(backend_class, DataBackendArgument.QUERY)

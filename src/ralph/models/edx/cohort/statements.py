@@ -1,7 +1,6 @@
 """Cohort events model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -28,10 +27,7 @@ class EdxCohortCreated(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.cohort.created")
 
-    event: Union[
-        Json[CohortBaseEventField],
-        CohortBaseEventField,
-    ]
+    event: Json[CohortBaseEventField] | CohortBaseEventField
     event_type: Literal["edx.cohort.created"]
     name: Literal["edx.cohort.created"]
 
@@ -48,10 +44,7 @@ class EdxCohortUserAdded(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.cohort.user_added")
 
-    event: Union[
-        Json[CohortUserBaseEventField],
-        CohortUserBaseEventField,
-    ]
+    event: Json[CohortUserBaseEventField] | CohortUserBaseEventField
     event_type: Literal["edx.cohort.user_added"]
     name: Literal["edx.cohort.user_added"]
 
@@ -70,9 +63,6 @@ class EdxCohortUserRemoved(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.cohort.user_removed")
 
-    event: Union[
-        Json[CohortUserBaseEventField],
-        CohortUserBaseEventField,
-    ]
+    event: Json[CohortUserBaseEventField] | CohortUserBaseEventField
     event_type: Literal["edx.cohort.user_removed"]
     name: Literal["edx.cohort.user_removed"]

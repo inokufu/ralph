@@ -1,7 +1,6 @@
 """`Virtual classroom` verbs definitions."""
 
 import sys
-from typing import Dict, Optional
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
@@ -24,7 +23,7 @@ class MutedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/muted"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/muted"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["muted"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["muted"]] | None = None
 
 
 class UnmutedVerb(BaseXapiVerb):
@@ -39,7 +38,7 @@ class UnmutedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/unmuted"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/unmuted"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["unmuted"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["unmuted"]] | None = None
 
 
 class StartedCameraVerb(BaseXapiVerb):
@@ -54,9 +53,7 @@ class StartedCameraVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/started-camera"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/started-camera"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["started camera"]]] = (
-        None
-    )
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["started camera"]] | None = None
 
 
 class StoppedCameraVerb(BaseXapiVerb):
@@ -71,9 +68,7 @@ class StoppedCameraVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/stopped-camera"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/stopped-camera"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["stopped camera"]]] = (
-        None
-    )
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["stopped camera"]] | None = None
 
 
 class SharedScreenVerb(BaseXapiVerb):
@@ -88,9 +83,7 @@ class SharedScreenVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/shared-screen"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/shared-screen"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["shared screen"]]] = (
-        None
-    )
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["shared screen"]] | None = None
 
 
 class UnsharedScreenVerb(BaseXapiVerb):
@@ -105,9 +98,7 @@ class UnsharedScreenVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/unshared-screen"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/unshared-screen"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["unshared screen"]]] = (
-        None
-    )
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["unshared screen"]] | None = None
 
 
 class RaisedHandVerb(BaseXapiVerb):
@@ -122,7 +113,7 @@ class RaisedHandVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/raised-hand"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/raised-hand"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["raised hand"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["raised hand"]] | None = None
 
 
 class LoweredHandVerb(BaseXapiVerb):
@@ -137,4 +128,4 @@ class LoweredHandVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/virtual-classroom/verbs/lowered-hand"] = (
         "https://w3id.org/xapi/virtual-classroom/verbs/lowered-hand"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["lowered hand"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["lowered hand"]] | None = None

@@ -1,7 +1,6 @@
 """Notes events model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -38,10 +37,7 @@ class UIEdxCourseStudentNotesAdded(BaseBrowserModel):
         event_source="browser", event_type="edx.course.student_notes.added"
     )
 
-    event: Union[
-        Json[NotesEventField],
-        NotesEventField,
-    ]
+    event: Json[NotesEventField] | NotesEventField
     event_type: Literal["edx.course.student_notes.added"]
     name: Literal["edx.course.student_notes.added"]
 
@@ -61,10 +57,7 @@ class UIEdxCourseStudentNotesDeleted(BaseBrowserModel):
         event_source="browser", event_type="edx.course.student_notes.deleted"
     )
 
-    event: Union[
-        Json[NotesEventField],
-        NotesEventField,
-    ]
+    event: Json[NotesEventField] | NotesEventField
     event_type: Literal["edx.course.student_notes.deleted"]
     name: Literal["edx.course.student_notes.deleted"]
 
@@ -85,10 +78,10 @@ class UIEdxCourseStudentNotesEdited(BaseBrowserModel):
         event_source="browser", event_type="edx.course.student_notes.edited"
     )
 
-    event: Union[
-        Json[UIEdxCourseStudentNotesEditedEventField],
-        UIEdxCourseStudentNotesEditedEventField,
-    ]
+    event: (
+        Json[UIEdxCourseStudentNotesEditedEventField]
+        | UIEdxCourseStudentNotesEditedEventField
+    )
     event_type: Literal["edx.course.student_notes.edited"]
     name: Literal["edx.course.student_notes.edited"]
 
@@ -111,10 +104,10 @@ class UIEdxCourseStudentNotesNotesPageViewed(BaseBrowserModel):
         event_source="browser", event_type="edx.course.student_notes.notes_page_viewed"
     )
 
-    event: Union[
-        Json[UIEdxCourseStudentNotesNotesPageViewedEventField],
-        UIEdxCourseStudentNotesNotesPageViewedEventField,
-    ]
+    event: (
+        Json[UIEdxCourseStudentNotesNotesPageViewedEventField]
+        | UIEdxCourseStudentNotesNotesPageViewedEventField
+    )
     event_type: Literal["edx.course.student_notes.notes_page_viewed"]
     name: Literal["edx.course.student_notes.notes_page_viewed"]
 
@@ -135,10 +128,10 @@ class UIEdxCourseStudentNotesSearched(BaseBrowserModel):
         event_source="browser", event_type="edx.course.student_notes.searched"
     )
 
-    event: Union[
-        Json[UIEdxCourseStudentNotesSearchedEventField],
-        UIEdxCourseStudentNotesSearchedEventField,
-    ]
+    event: (
+        Json[UIEdxCourseStudentNotesSearchedEventField]
+        | UIEdxCourseStudentNotesSearchedEventField
+    )
     event_type: Literal["edx.course.student_notes.searched"]
     name: Literal["edx.course.student_notes.searched"]
 
@@ -161,10 +154,10 @@ class UIEdxCourseStudentNotesUsedUnitLink(BaseBrowserModel):
         event_source="browser", event_type="edx.course.student_notes.used_unit_link"
     )
 
-    event: Union[
-        Json[UIEdxCourseStudentNotesUsedUnitLinkEventField],
-        UIEdxCourseStudentNotesUsedUnitLinkEventField,
-    ]
+    event: (
+        Json[UIEdxCourseStudentNotesUsedUnitLinkEventField]
+        | UIEdxCourseStudentNotesUsedUnitLinkEventField
+    )
     event_type: Literal["edx.course.student_notes.used_unit_link"]
     name: Literal["edx.course.student_notes.used_unit_link"]
 
@@ -187,9 +180,9 @@ class UIEdxCourseStudentNotesViewed(BaseBrowserModel):
         event_source="browser", event_type="edx.course.student_notes.viewed"
     )
 
-    event: Union[
-        Json[UIEdxCourseStudentNotesViewedEventField],
-        UIEdxCourseStudentNotesViewedEventField,
-    ]
+    event: (
+        Json[UIEdxCourseStudentNotesViewedEventField]
+        | UIEdxCourseStudentNotesViewedEventField
+    )
     event_type: Literal["edx.course.student_notes.viewed"]
     name: Literal["edx.course.student_notes.viewed"]

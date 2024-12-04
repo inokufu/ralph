@@ -2,7 +2,8 @@
 
 import json
 import logging
-from typing import Any, Generator, Optional, TextIO
+from collections.abc import Generator, Mapping
+from typing import Any, TextIO
 
 from pydantic import ValidationError
 
@@ -46,14 +47,14 @@ class Validator:
                     raise BadFormatException(message) from err
         logger.info("Total events: %d, Invalid events: %d", total, total - success)
 
-    def get_first_valid_model(self, event: dict) -> Any:
+    def get_first_valid_model(self, event: Mapping) -> Any:
         """Return the first successfully instantiated model for the event.
 
         Raises:
             UnknownEventException: When the event does not match any model.
             ValidationError: When the last validated event is invalid.
         """
-        error: Optional[BaseException] = None
+        error: BaseException | None = None
         for model in self.model_selector.get_models(event):
             try:
                 return model(**event)
@@ -78,7 +79,7 @@ class Validator:
 
     @staticmethod
     def _log_error(
-        message: object, event_str: str, error: Optional[BaseException] = None
+        message: object, event_str: str, error: BaseException | None = None
     ) -> None:
         logger.error(message)
         logger.debug("Raised error: %s, for event : %s", error, event_str)

@@ -2,7 +2,8 @@
 
 import asyncio
 import logging
-from typing import Any, Dict, Generic, TypeVar, Union
+from collections.abc import Mapping
+from typing import Any, Generic, TypeVar, Union
 
 import pytest
 
@@ -184,7 +185,7 @@ def test_backends_data_base_get_backend_generic_argument():
     assert get_backend_generic_argument(DummyAnyBackend, 1) is None
 
     # Given a backend that does not follow type hints, the function should return None.
-    class DummyBadBackend(BaseDataBackend[Dict[dict, int], Any]):  # type: ignore
+    class DummyBadBackend(BaseDataBackend[Mapping[dict, int], Any]):  # type: ignore
         """Dummy bad backend."""
 
     assert get_backend_generic_argument(DummyBadBackend, 0) is None

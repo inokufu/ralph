@@ -2,19 +2,13 @@
 
 import json
 import logging
+from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
 from datetime import datetime
 from io import IOBase
 from typing import (
     Any,
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
     NamedTuple,
-    Optional,
     TypeVar,
-    Union,
 )
 from uuid import UUID, uuid4
 
@@ -87,8 +81,8 @@ class ClickHouseDataBackendSettings(BaseDataBackendSettings):
     PORT: int = 8123
     DATABASE: str = "xapi"
     EVENT_TABLE_NAME: str = "xapi_events_all"
-    USERNAME: Optional[str] = None
-    PASSWORD: Optional[str] = None
+    USERNAME: str | None = None
+    PASSWORD: str | None = None
     CLIENT_OPTIONS: ClickHouseClientOptions = ClickHouseClientOptions()
 
 
@@ -105,12 +99,12 @@ class ClickHouseQuery(BaseQuery):
             rather than a sequence of rows.
     """
 
-    select: Union[str, List[str]] = "event"
-    where: Optional[Union[str, List[str]]] = None
-    parameters: Optional[Dict] = None
-    limit: Optional[int] = None
-    sort: Optional[str] = None
-    column_oriented: Optional[bool] = False
+    select: str | Sequence[str] = "event"
+    where: str | Sequence[str] | None = None
+    parameters: Mapping | None = None
+    limit: int | None = None
+    sort: str | None = None
+    column_oriented: bool | None = False
 
 
 Settings = TypeVar("Settings", bound=ClickHouseDataBackendSettings)
@@ -131,7 +125,7 @@ class ClickHouseDataBackend(
         BaseOperationType.UPDATE,
     }
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the ClickHouse configuration.
 
         Args:
@@ -177,8 +171,8 @@ class ClickHouseDataBackend(
         return DataBackendStatus.OK
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List tables for a given database.
 
         Args:
@@ -213,13 +207,13 @@ class ClickHouseDataBackend(
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[ClickHouseQuery] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: ClickHouseQuery | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read documents matching the query in the target table and yield them.
 
         Args:
@@ -250,7 +244,7 @@ class ClickHouseDataBackend(
     def _read_dicts(
         self,
         query: ClickHouseQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
     ) -> Iterator[dict]:
@@ -298,11 +292,11 @@ class ClickHouseDataBackend(
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write `data` documents to the `target` table and return their count.
 
@@ -332,8 +326,8 @@ class ClickHouseDataBackend(
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,  # noqa: ARG002
@@ -369,7 +363,7 @@ class ClickHouseDataBackend(
 
     def _to_insert_tuples(
         self,
-        data: Iterable[dict],
+        data: Iterable[Mapping],
         ignore_errors: bool = False,
     ) -> Generator[InsertTuple, None, None]:
         """Convert `data` dictionaries to insert tuples."""
@@ -397,9 +391,9 @@ class ClickHouseDataBackend(
 
     def _bulk_import(
         self,
-        batch: List[InsertTuple],
+        batch: Sequence[InsertTuple],
         ignore_errors: bool = False,
-        event_table_name: Optional[str] = None,
+        event_table_name: str | None = None,
     ):
         """Insert a batch of documents into the selected database table."""
         try:
@@ -432,7 +426,7 @@ class ClickHouseDataBackend(
         return inserted_count
 
     @staticmethod
-    def _parse_event_json(document: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_event_json(document: Mapping[str, Any]) -> dict[str, Any]:
         """Return the `document` with a JSON parsed `event` field."""
         if "event" in document:
             document["event"] = json.loads(document["event"])

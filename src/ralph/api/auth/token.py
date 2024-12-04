@@ -1,7 +1,5 @@
 """Base IDToken class for the Ralph API."""
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -21,7 +19,7 @@ class BaseIDToken(BaseModel):
 
     iss: str
     iat: int
-    scope: Optional[str] = None
-    target: Optional[str] = None
+    scope: str | None = None
+    target: str | None = None
 
     model_config = ConfigDict(extra="ignore")

@@ -1,8 +1,8 @@
 """Async LRS data backend for Ralph."""
 
 import logging
+from collections.abc import AsyncIterator, Iterable, Mapping
 from io import IOBase
-from typing import AsyncIterator, Iterable, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urljoin, urlparse
 
 from httpx import AsyncClient, HTTPError, HTTPStatusError, RequestError
@@ -36,7 +36,7 @@ class AsyncLRSDataBackend(
         BaseOperationType.DELETE,
     }
 
-    def __init__(self, settings: Optional[LRSDataBackendSettings] = None) -> None:
+    def __init__(self, settings: LRSDataBackendSettings | None = None) -> None:
         """Instantiate the LRS HTTP (basic auth) backend client.
 
         Args:
@@ -73,14 +73,14 @@ class AsyncLRSDataBackend(
 
     async def read(  # noqa: PLR0913
         self,
-        query: Optional[Union[str, LRSStatementsQuery]] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: str | LRSStatementsQuery | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        prefetch: Optional[PositiveInt] = None,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[AsyncIterator[bytes], AsyncIterator[dict]]:
+        prefetch: PositiveInt | None = None,
+        max_statements: PositiveInt | None = None,
+    ) -> AsyncIterator[bytes] | AsyncIterator[dict]:
         """Get statements from LRS `target` endpoint.
 
         The `read` method defined in the LRS specification returns `statements` array
@@ -120,7 +120,7 @@ class AsyncLRSDataBackend(
     async def _read_dicts(
         self,
         query: LRSStatementsQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> AsyncIterator[dict]:
@@ -162,12 +162,12 @@ class AsyncLRSDataBackend(
 
     async def write(  # noqa: PLR0913
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
-        concurrency: Optional[int] = None,
+        operation_type: BaseOperationType | None = None,
+        concurrency: int | None = None,
     ) -> int:
         """Write `data` records to the `target` endpoint and return their count.
 
@@ -193,8 +193,8 @@ class AsyncLRSDataBackend(
 
     async def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,  # noqa: ARG002
@@ -235,14 +235,14 @@ class AsyncLRSDataBackend(
 
         await self.client.aclose()
 
-    async def _fetch_statements(self, target, query_params: dict):
+    async def _fetch_statements(self, target, query_params: Mapping):
         """Fetch statements from a LRS."""
         while True:
             response = await self.client.get(target, params=query_params)
             response.raise_for_status()
             statements_response = StatementResponse(**response.json())
             statements = statements_response.statements
-            if isinstance(statements, dict):
+            if isinstance(statements, Mapping):
                 statements = [statements]
 
             for statement in statements:

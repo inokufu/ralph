@@ -3,21 +3,14 @@
 import json
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Generator, Iterator, Mapping
 from dataclasses import dataclass
 from importlib import import_module
 from inspect import getmembers, isclass
 from types import ModuleType
 from typing import (
     Any,
-    Callable,
-    Dict,
-    Generator,
-    Iterator,
-    Optional,
-    Set,
     TextIO,
-    Tuple,
-    Union,
 )
 
 from pydantic import BaseModel, ValidationError
@@ -40,15 +33,15 @@ logger = logging.getLogger(__name__)
 class ConversionItem:
     """Conversion set item."""
 
-    dest: Tuple[str]
-    src: Union[Tuple[str], str, None]
-    transformers: Tuple[Callable[[Any], Any]]
+    dest: tuple[str]
+    src: tuple[str] | str | None
+    transformers: tuple[Callable[[Any], Any]]
     raw_input: bool
 
     def __init__(
         self,
         dest: str,
-        src: Optional[str] = None,
+        src: str | None = None,
         transformers=lambda _: _,
         raw_input: bool = False,
     ) -> None:
@@ -72,7 +65,7 @@ class ConversionItem:
         object.__setattr__(self, "transformers", transformers)
         object.__setattr__(self, "raw_input", raw_input)
 
-    def get_value(self, data: Union[Dict, str]) -> Union[Dict, str]:
+    def get_value(self, data: Mapping | str) -> dict | str:
         """Return fetched source value after having applied all transformers to it.
 
         Args:
@@ -106,7 +99,7 @@ class BaseConversionSet(ABC):
         self._conversion_items = self._get_conversion_items()
 
     @abstractmethod
-    def _get_conversion_items(self) -> Set[ConversionItem]:
+    def _get_conversion_items(self) -> set[ConversionItem]:
         """Return a set of ConversionItems used for conversion."""
 
     def __iter__(self) -> Iterator[ConversionItem]:  # noqa: D105
@@ -114,7 +107,7 @@ class BaseConversionSet(ABC):
 
 
 def convert_dict_event(
-    event: dict, event_str: str, conversion_set: BaseConversionSet
+    event: Mapping, event_str: str, conversion_set: BaseConversionSet
 ) -> Any:
     """Convert the event dictionary with a conversion_set.
 
@@ -241,7 +234,7 @@ class Converter:
             ConversionException: When a field transformation fails.
             ValidationError: When the final converted event is invalid.
         """
-        error: Optional[BaseException] = None
+        error: BaseException | None = None
         event = json.loads(event_str)
         for model in self.model_selector.get_models(event):
             conversion_set = self.src_conversion_set.get(model, None)
@@ -259,7 +252,7 @@ class Converter:
 
     @staticmethod
     def _log_error(
-        message: object, event_str: str, error: Optional[BaseException] = None
+        message: object, event_str: str, error: BaseException | None = None
     ) -> None:
         logger.error(message)
         logger.debug("Raised error: %s, for event : %s", error, event_str)

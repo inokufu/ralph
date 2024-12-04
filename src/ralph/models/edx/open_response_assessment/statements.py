@@ -1,7 +1,6 @@
 """Open Response Assessment events model definitions."""
 
 import sys
-from typing import Union
 
 from pydantic import Json
 
@@ -241,6 +240,6 @@ class ORAUploadFile(BaseBrowserModel):
         event_source="browser", event_type="openassessment.upload_file"
     )
 
-    event: Union[Json[ORAUploadFileEventField], ORAUploadFileEventField]
+    event: Json[ORAUploadFileEventField] | ORAUploadFileEventField
     event_type: Literal["openassessment.upload_file"]
     name: Literal["openassessment.upload_file"]

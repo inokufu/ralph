@@ -2,10 +2,9 @@
 
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Annotated
 
 from pydantic import Field
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField, BaseModelWithConfig
 
@@ -42,13 +41,13 @@ class CorrectMap(BaseModelWithConfig):
         queuestate (json): see QueueStateField.
     """
 
-    answervariable: Optional[str] = None
+    answervariable: str | None = None
     correctness: Literal["correct", "incorrect"]
-    hint: Optional[str] = None
-    hintmode: Optional[Literal["on_request", "always"]] = None
+    hint: str | None = None
+    hintmode: Literal["on_request", "always"] | None = None
     msg: str
-    npoints: Optional[int] = None
-    queuestate: Optional[QueueState] = None
+    npoints: int | None = None
+    queuestate: QueueState | None = None
 
 
 class State(BaseModelWithConfig):
@@ -62,11 +61,11 @@ class State(BaseModelWithConfig):
         student_answers (dict): Consists of the answer(s) given by the user.
     """
 
-    correct_map: Dict[
+    correct_map: dict[
         Annotated[str, Field(pattern=r"^[a-f0-9]{32}_[0-9]_[0-9]$")],
         CorrectMap,
     ]
-    done: Optional[bool] = None
+    done: bool | None = None
     input_state: dict
     seed: int
     student_answers: dict
@@ -87,7 +86,7 @@ class SubmissionAnswerField(BaseModelWithConfig):
             this user.
     """
 
-    answer: Union[str, List[str]]
+    answer: str | list[str]
     correct: bool
     input_type: str
     question: str
@@ -136,10 +135,10 @@ class EdxProblemHintFeedbackDisplayedEventField(AbstractBaseEventField):
             `student_answer` response. Consists either of `single` or `compound` value.
     """
 
-    choice_all: Optional[List[str]] = None
+    choice_all: list[str] | None = None
     correctness: bool
     hint_label: str
-    hints: List[dict]
+    hints: list[dict]
     module_id: str
     problem_part_id: str
     question_type: Literal[
@@ -149,7 +148,7 @@ class EdxProblemHintFeedbackDisplayedEventField(AbstractBaseEventField):
         "numericalresponse",
         "optionresponse",
     ]
-    student_answer: List[str]
+    student_answer: list[str]
     trigger_type: Literal["single", "compound"]
 
 
@@ -170,12 +169,12 @@ class ProblemCheckEventField(AbstractBaseEventField):
         success (str): Consists of either the `correct` or `incorrect` value.
     """
 
-    answers: Dict[
+    answers: dict[
         Annotated[str, Field(pattern=r"^[a-f0-9]{32}_[0-9]_[0-9]$")],
-        Union[str, List[str]],
+        str | list[str],
     ]
     attempts: int
-    correct_map: Dict[
+    correct_map: dict[
         Annotated[str, Field(pattern=r"^[a-f0-9]{32}_[0-9]_[0-9]$")],
         CorrectMap,
     ]
@@ -189,7 +188,7 @@ class ProblemCheckEventField(AbstractBaseEventField):
         ),
     ]
     state: State
-    submission: Dict[
+    submission: dict[
         Annotated[str, Field(pattern=r"^[a-f0-9]{32}_[0-9]_[0-9]$")],
         SubmissionAnswerField,
     ]
@@ -207,9 +206,9 @@ class ProblemCheckFailEventField(AbstractBaseEventField):
         state (dict): Consists of the current problem state.
     """
 
-    answers: Dict[
+    answers: dict[
         Annotated[str, Field(pattern=r"^[a-f0-9]{32}_[0-9]_[0-9]$")],
-        Union[str, List[str]],
+        str | list[str],
     ]
     failure: Literal["closed", "unreset"]
     problem_id: Annotated[
@@ -281,7 +280,7 @@ class UIProblemResetEventField(AbstractBaseEventField):
             strings if multiple choices are allowed.
     """
 
-    answers: Union[str, List[str]]
+    answers: str | list[str]
 
 
 class UIProblemShowEventField(AbstractBaseEventField):
@@ -346,7 +345,7 @@ class SaveProblemFailEventField(AbstractBaseEventField):
         state (json): see StateField.
     """
 
-    answers: Dict[str, Union[int, str, list, dict]]
+    answers: dict[str, int | str | list | dict]
     failure: Literal["closed", "done"]
     problem_id: Annotated[
         str,
@@ -368,7 +367,7 @@ class SaveProblemSuccessEventField(AbstractBaseEventField):
         state (json): see StateField.
     """
 
-    answers: Dict[str, Union[int, str, list, dict]]
+    answers: dict[str, int | str | list | dict]
     problem_id: Annotated[
         str,
         Field(

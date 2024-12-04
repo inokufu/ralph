@@ -5,7 +5,7 @@
 
 import sys
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Union
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -32,14 +32,14 @@ class BaseXapiSubStatement(BaseModelWithConfig):
         objectType (dict): Consists of the value `SubStatement`.
     """
 
-    actor: Union[BaseXapiAgent, BaseXapiGroup]
+    actor: BaseXapiAgent | BaseXapiGroup
     verb: BaseXapiVerb
     object: BaseXapiUnnestedObject
     objectType: Literal["SubStatement"]
-    result: Optional[BaseXapiResult] = None
-    context: Optional[BaseXapiContext] = None
-    timestamp: Optional[datetime] = None
-    attachments: Optional[List[BaseXapiAttachment]] = None
+    result: BaseXapiResult | None = None
+    context: BaseXapiContext | None = None
+    timestamp: datetime | None = None
+    attachments: list[BaseXapiAttachment] | None = None
 
 
 BaseXapiObject = Union[

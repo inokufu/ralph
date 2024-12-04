@@ -1,7 +1,6 @@
 """`Scorm Profile` verbs definitions."""
 
 import sys
-from typing import Dict, Optional
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
@@ -23,7 +22,7 @@ class CompletedVerb(BaseXapiVerb):
     id: Literal["http://adlnet.gov/expapi/verbs/completed"] = (
         "http://adlnet.gov/expapi/verbs/completed"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["completed"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["completed"]] | None = None
 
 
 class InitializedVerb(BaseXapiVerb):
@@ -37,7 +36,7 @@ class InitializedVerb(BaseXapiVerb):
     id: Literal["http://adlnet.gov/expapi/verbs/initialized"] = (
         "http://adlnet.gov/expapi/verbs/initialized"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["initialized"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["initialized"]] | None = None
 
 
 class InteractedVerb(BaseXapiVerb):
@@ -51,7 +50,7 @@ class InteractedVerb(BaseXapiVerb):
     id: Literal["http://adlnet.gov/expapi/verbs/interacted"] = (
         "http://adlnet.gov/expapi/verbs/interacted"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["interacted"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["interacted"]] | None = None
 
 
 class TerminatedVerb(BaseXapiVerb):
@@ -65,4 +64,4 @@ class TerminatedVerb(BaseXapiVerb):
     id: Literal["http://adlnet.gov/expapi/verbs/terminated"] = (
         "http://adlnet.gov/expapi/verbs/terminated"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["terminated"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["terminated"]] | None = None

@@ -1,6 +1,6 @@
 """Common for xAPI base definitions."""
 
-from typing import Dict, Type, Union
+from typing import Type, Union
 
 from langcodes import tag_is_valid
 from pydantic import RootModel, model_validator, validate_email
@@ -9,7 +9,7 @@ from rfc3987 import parse
 from ralph.conf import NonEmptyStrictStr
 
 
-class ResourceIdentifier(RootModel[Union[str]]):
+class ResourceIdentifier(RootModel[str]):
     """Pydantic custom data type for Resource Identifiers."""
 
     def __hash__(self):  # noqa: D105
@@ -59,7 +59,7 @@ class LanguageTag(RootModel[Union[str, "LanguageTag"]]):
         return str(tag)
 
 
-LanguageMap = Dict[LanguageTag, NonEmptyStrictStr]
+LanguageMap = dict[LanguageTag, NonEmptyStrictStr]
 
 
 class MailtoEmail(RootModel[str]):
