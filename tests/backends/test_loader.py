@@ -1,12 +1,7 @@
 """Tests for Ralph's backend utilities."""
 
 import logging
-import sys
-
-if sys.version_info < (3, 10):
-    from importlib_metadata import EntryPoint, EntryPoints, entry_points
-else:
-    from importlib.metadata import EntryPoint, EntryPoints, entry_points
+from importlib.metadata import EntryPoint, EntryPoints, entry_points
 
 from ralph.backends.data.async_es import AsyncESDataBackend
 from ralph.backends.data.async_lrs import AsyncLRSDataBackend

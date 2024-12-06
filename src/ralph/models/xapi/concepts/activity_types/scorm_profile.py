@@ -1,14 +1,8 @@
 """`Scorm Profile` activity types definitions."""
 
-import sys
+from typing import Literal
 
 from ...base.unnested_objects import BaseXapiActivity, BaseXapiActivityDefinition
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
 
 # CMI Interaction
 

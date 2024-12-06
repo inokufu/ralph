@@ -1,9 +1,8 @@
 """LMS xAPI events context fields definitions."""
 
-import sys
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import Field, NonNegativeFloat, PositiveInt, condecimal, field_validator
@@ -22,11 +21,6 @@ from ..concepts.constants.video import (
     CONTEXT_EXTENSION_QUALITY,
 )
 from ..config import BaseExtensionModelWithConfig
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class LMSProfileActivity(ProfileActivity):

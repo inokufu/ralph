@@ -1,14 +1,9 @@
 """`Navy Common Reference Profile` verbs definitions."""
 
-import sys
+from typing import Literal
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class AccessedVerb(BaseXapiVerb):
