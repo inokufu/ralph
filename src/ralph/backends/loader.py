@@ -1,13 +1,8 @@
 """Ralph backend loader."""
 
 import logging
-import sys
 from functools import lru_cache
-
-if sys.version_info < (3, 10):
-    from importlib_metadata import EntryPoints, entry_points
-else:
-    from importlib.metadata import EntryPoints, entry_points
+from importlib.metadata import EntryPoints, entry_points
 
 from ralph.backends.data.base import (
     AsyncListable,

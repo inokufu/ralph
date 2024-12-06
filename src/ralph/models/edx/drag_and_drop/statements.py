@@ -1,6 +1,6 @@
 """Drag and drop event model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json
 
@@ -12,11 +12,6 @@ from ralph.models.edx.drag_and_drop.fields.events import (
 from ralph.models.selector import selector
 
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxDragAndDropV2FeedbackClosed(BaseServerModel):

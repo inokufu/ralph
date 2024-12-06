@@ -1,16 +1,10 @@
 """Notes event field definition."""
 
-import sys
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import StringConstraints
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class NotesEventField(AbstractBaseEventField):

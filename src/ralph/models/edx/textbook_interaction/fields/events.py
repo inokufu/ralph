@@ -1,16 +1,10 @@
 """Textbook interaction event fields definitions."""
 
-import sys
-from typing import Annotated, Union
+from typing import Annotated, Literal, Union
 
 from pydantic import Field, StringConstraints
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class TextbookInteractionBaseEventField(AbstractBaseEventField):

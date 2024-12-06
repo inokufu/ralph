@@ -1,14 +1,8 @@
 """Enrollment models event field definition."""
 
-import sys
-from typing import Union
+from typing import Literal, Union
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EnrollmentEventField(AbstractBaseEventField):

@@ -1,15 +1,10 @@
 """Video event fields definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import PositiveInt
 
 from ...base import AbstractBaseEventField, BaseModelWithConfig
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxLibraryContentBlockContentComponent(BaseModelWithConfig):

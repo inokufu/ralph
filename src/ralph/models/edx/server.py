@@ -1,18 +1,13 @@
 """Server event model definitions."""
 
-import sys
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Json
 
 from ralph.models.selector import LazyModelField, selector
 
 from .base import AbstractBaseEventField, BaseEdxModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class BaseServerModel(BaseEdxModel):

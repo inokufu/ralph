@@ -1,6 +1,6 @@
 """Content library interaction event model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json
 
@@ -11,11 +11,6 @@ from ralph.models.edx.content_library_interaction.fields.events import (
 from ralph.models.selector import selector
 
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxLibraryContentBlockContentAssigned(BaseServerModel):

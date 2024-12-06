@@ -1,8 +1,7 @@
 """Base xAPI `Agent` definitions."""
 
-import sys
 from abc import ABC
-from typing import Union
+from typing import Literal, Union
 
 from ralph.conf import NonEmptyStrictStr
 from ralph.models.xapi.config import BaseModelWithConfig
@@ -14,11 +13,6 @@ from .ifi import (
     BaseXapiMboxSha1SumIFI,
     BaseXapiOpenIdIFI,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class BaseXapiAgentAccount(BaseModelWithConfig):

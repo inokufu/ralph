@@ -1,6 +1,6 @@
 """Cohort events model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json
 
@@ -8,11 +8,6 @@ from ralph.models.selector import selector
 
 from ..server import BaseServerModel
 from .fields.events import CohortBaseEventField, CohortUserBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxCohortCreated(BaseServerModel):

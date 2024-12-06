@@ -1,8 +1,9 @@
 """Base xAPI `Group` definitions."""
 
-import sys
 from abc import ABC
-from typing import Union
+from typing import Literal, Union
+
+from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -12,13 +13,6 @@ from .ifi import (
     BaseXapiMboxSha1SumIFI,
     BaseXapiOpenIdIFI,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
-from ralph.conf import NonEmptyStrictStr
 
 
 class BaseXapiGroupCommonProperties(BaseModelWithConfig, ABC):

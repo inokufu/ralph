@@ -1,6 +1,6 @@
 """Poll event model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json
 
@@ -8,11 +8,6 @@ from ralph.models.edx.poll.fields.events import XBlockPollSubmittedEventField
 from ralph.models.selector import selector
 
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class XBlockPollSubmitted(BaseServerModel):

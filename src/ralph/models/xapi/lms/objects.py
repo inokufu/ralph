@@ -1,7 +1,6 @@
 """LMS xAPI events object fields definitions."""
 
-import sys
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -15,12 +14,6 @@ from ..concepts.activity_types.activity_streams_vocabulary import (
 )
 from ..concepts.constants.acrossx_profile import ACTIVITY_EXTENSIONS_TYPE
 from ..config import BaseExtensionModelWithConfig
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
 
 # Page
 

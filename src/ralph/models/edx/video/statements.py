@@ -1,6 +1,6 @@
 """Video event model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json
 
@@ -17,11 +17,6 @@ from ralph.models.edx.video.fields.events import (
 from ralph.models.selector import selector
 
 from ..browser import BaseBrowserModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class UILoadVideo(BaseBrowserModel):
