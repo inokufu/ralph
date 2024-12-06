@@ -1,16 +1,10 @@
 """Video event fields definitions."""
 
-import sys
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import StringConstraints
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxBookmarkBaseEventField(AbstractBaseEventField):

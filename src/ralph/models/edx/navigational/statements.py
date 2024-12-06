@@ -1,6 +1,6 @@
 """Navigational event model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json, field_validator
 
@@ -8,11 +8,6 @@ from ralph.models.selector import selector
 
 from ..browser import BaseBrowserModel
 from .fields.events import NavigationalEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class UIPageClose(BaseBrowserModel):

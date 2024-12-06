@@ -1,6 +1,6 @@
 """Open Response Assessment events model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json
 
@@ -19,11 +19,6 @@ from .fields.events import (
     ORASubmitFeedbackOnAssessmentsEventField,
     ORAUploadFileEventField,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class ORAGetPeerSubmission(BaseServerModel):

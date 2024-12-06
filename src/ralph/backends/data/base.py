@@ -8,11 +8,21 @@ from enum import Enum, IntEnum, unique
 from inspect import isclass
 from io import IOBase
 from itertools import chain
-from typing import Any, Generic, Type, TypeVar, Union, get_args, get_origin
+from typing import (
+    Any,
+    Generic,
+    Self,
+    Type,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+)
+
+from types import get_original_bases
 
 from pydantic import BaseModel, PositiveInt, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Self, get_original_bases
 
 from ralph.conf import BASE_SETTINGS_CONFIG, core_settings
 from ralph.exceptions import BackendParameterException

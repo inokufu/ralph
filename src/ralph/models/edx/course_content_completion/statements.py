@@ -1,6 +1,6 @@
 """Course Content Completion event model definitions."""
 
-import sys
+from typing import Literal
 
 from pydantic import Json
 
@@ -11,11 +11,6 @@ from ralph.models.selector import selector
 
 from ..browser import BaseBrowserModel
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class UIEdxDoneToggled(BaseBrowserModel):

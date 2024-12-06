@@ -4,13 +4,12 @@ import logging
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from io import IOBase
 from pathlib import Path
-from typing import Literal, TypeVar
+from typing import Literal, Self, TypeVar
 
 from elasticsearch import ApiError, Elasticsearch, TransportError
 from elasticsearch.helpers import BulkIndexError, streaming_bulk
 from pydantic import BaseModel, PositiveInt, ValidationError
 from pydantic_settings import SettingsConfigDict
-from typing_extensions import Self
 
 from ralph.backends.data.base import (
     BaseDataBackend,

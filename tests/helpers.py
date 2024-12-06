@@ -54,7 +54,7 @@ def assert_statement_get_responses_are_equivalent(
     assert len(response_1["statements"]) == len(response_2["statements"])
 
     for statement_1, statement_2 in zip(
-        response_1["statements"], response_2["statements"]
+        response_1["statements"], response_2["statements"], strict=False
     ):
         assert statements_are_equivalent(
             statement_1, statement_2
