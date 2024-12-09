@@ -598,7 +598,7 @@ def test_cli_runserver_command_usage():
         "  --help                          Show this message and exit.\n"
     )
     assert result.exit_code == 0
-    assert expected_output in result.output
+    assert expected_output == result.output
 
     result = runner.invoke(cli, ["runserver"])
     assert result.exit_code > 0
