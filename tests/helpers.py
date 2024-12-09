@@ -8,6 +8,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from uuid import UUID
 
+from ralph.api.auth.basic import get_basic_auth_user
 from ralph.conf import AuthBackend
 from ralph.utils import statements_are_equivalent
 
@@ -209,6 +210,15 @@ def mock_statement(
         "object": object,
         "timestamp": timestamp,
     }
+
+
+def configure_env_for_mock_basic_auth(monkeypatch):
+    """Configure environment variables to simulate OIDC use."""
+    monkeypatch.setenv("RUNSERVER_AUTH_BACKENDS", AuthBackend.BASIC.value)
+    monkeypatch.setattr(
+        "ralph.api.auth.settings.RUNSERVER_AUTH_BACKENDS", [AuthBackend.BASIC]
+    )
+    get_basic_auth_user.cache_clear()
 
 
 def configure_env_for_mock_oidc_auth(

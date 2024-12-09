@@ -3,18 +3,22 @@
 from datetime import datetime, timedelta
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from ralph.api import app
+
+from ..helpers import configure_env_for_mock_basic_auth
 
 
 @pytest.mark.anyio
 async def test_x_experience_api_version_header(
-    insert_statements_and_monkeypatch_backend, basic_auth_credentials
+    monkeypatch, insert_statements_and_monkeypatch_backend, basic_auth_credentials
 ):
     """
     Test X-Experience-API-Version header is checked in request and included in response.
     """
+    configure_env_for_mock_basic_auth(monkeypatch)
+
     statements = [
         {
             "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
@@ -29,7 +33,7 @@ async def test_x_experience_api_version_header(
     insert_statements_and_monkeypatch_backend(statements)
 
     async with AsyncClient(
-        app=app,
+        transport=ASGITransport(app=app),
         base_url="http://testserver",
         headers={"Authorization": f"Basic {basic_auth_credentials}"},
     ) as client:
