@@ -22,6 +22,7 @@ from tests.fixtures.backends import (
     get_mongo_test_backend,
 )
 from tests.helpers import (
+    configure_env_for_mock_cozy_auth,
     configure_env_for_mock_oidc_auth,
     mock_statement,
 )
@@ -134,6 +135,7 @@ async def test_api_auth_cozy_get_whoami_valid(
     client, backend, monkeypatch, cozy_auth_token
 ):
     """Test a valid CozyStack authentication."""
+    configure_env_for_mock_cozy_auth(monkeypatch)
     monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend())
 
     headers = {"X-Auth-Token": f"Bearer {cozy_auth_token}"}
@@ -171,6 +173,7 @@ async def test_api_auth_cozy_get_whoami_valid(
 )
 async def test_api_auth_cozy_get_whoami_invalid_header(client, backend, monkeypatch):
     """Test CozyStack authentication with invalid request header."""
+    configure_env_for_mock_cozy_auth(monkeypatch)
     monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend())
 
     headers = {"X-Auth-Token": "Bearer abcd"}
