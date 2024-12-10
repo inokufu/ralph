@@ -1,0 +1,29 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build docker image 
+      run: make build
+
+    - name: Bootstrap project
+      run: make bootstrap
+
+    - name: Lint with black and ruff
+      run: make lint
+
+    - name: Run project
+      run: make run
+
+    - name: Test with pytest
+      run: make test
