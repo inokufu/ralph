@@ -119,7 +119,6 @@ bootstrap: ## bootstrap the project for development
 bootstrap: \
   .env \
   build \
-  dev \
   .ralph/auth.json \
   es-index
 .PHONY: bootstrap
@@ -132,9 +131,6 @@ build: .env
 	  $(COMPOSE) build app
 .PHONY: build
 
-dev: ## perform editable install from mounted project sources
-	DOCKER_USER=0 docker compose run --rm app pip install -e ".[dev]"
-.PHONY: dev
 
 docker-hub:  ## Publish locally built image
 docker-hub: build
