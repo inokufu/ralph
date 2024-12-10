@@ -9,7 +9,7 @@ import pytest
 from ralph.exceptions import BackendException
 
 from tests.fixtures.backends import get_cozystack_test_backend
-from tests.helpers import mock_activity, mock_agent
+from tests.helpers import configure_env_for_mock_cozy_auth, mock_activity, mock_agent
 
 
 @pytest.mark.anyio
@@ -408,6 +408,7 @@ async def test_api_statements_get_with_database_query_failure(
     """Test the get statements API route, given a query raising a BackendException,
     should return an error response with HTTP code 500.
     """
+    configure_env_for_mock_cozy_auth(monkeypatch)
 
     def mock_query_statements(*_, **__):
         """Mocks the BACKEND_CLIENT.query_statements method."""
@@ -432,6 +433,7 @@ async def test_api_statements_get_invalid_query_parameters(
     client, monkeypatch, id_param, cozystack_custom, cozy_auth_token
 ):
     """Test error response for invalid query parameters"""
+    configure_env_for_mock_cozy_auth(monkeypatch)
 
     id_1 = "be67b160-d958-4f51-b8b8-1892002dbac6"
     id_2 = "66c81e98-1763-4730-8cfc-f5ab34f1bad5"
