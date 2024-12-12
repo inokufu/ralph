@@ -254,7 +254,7 @@ init_typed = true
 warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
-addopts = "-v --cov-report term-missing --cov-config=.coveragerc --cov=ralph"
+addopts = "-v --cov-report term-missing --cov=ralph --cov-report xml"
 python_files = [
     "test_*.py",
     "tests.py",
