@@ -1,8 +1,8 @@
 """CozyStack client for Ralph."""
 
 import os
-from typing import Any
 from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
