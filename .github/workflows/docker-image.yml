@@ -22,8 +22,8 @@ jobs:
     - name: Lint with black and ruff
       run: make lint
 
-    - name: Run project
-      run: make run
-
-    - name: Test with pytest
+    - name: Run and test with pytest
       run: make test
+
+    - name: Check diff coverage
+      run: make diff-cover
