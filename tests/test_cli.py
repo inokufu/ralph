@@ -1038,7 +1038,7 @@ def test_cli_runserver_command_environment_file_generation(monkeypatch):
     def mock_uvicorn_run(_, env_file=None, **kwargs):
         """Mock uvicorn.run asserting environment file content."""
         expected_env_lines = [
-            f"RALPH_RUNSERVER_BACKEND={settings.RUNSERVER_BACKEND}\n",
+            "RALPH_RUNSERVER_BACKEND=es\n",
             "RALPH_BACKENDS__LRS__ES__DEFAULT_INDEX=foo\n",
             "RALPH_BACKENDS__LRS__ES__CLIENT_OPTIONS__verify_certs=True\n",
         ]

@@ -5,7 +5,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
-from typing import Any, Iterator, List, Optional
+from typing import Annotated, Any, Iterator, List, Optional
 
 import bcrypt
 from cachetools import TTLCache, cached
@@ -15,7 +15,7 @@ from pydantic import RootModel, model_validator
 from starlette.authentication import AuthenticationError
 
 from ralph.api.auth.user import AuthenticatedUser
-from ralph.conf import settings
+from ralph.conf import AuthBackend, settings
 
 # Unused password used to avoid timing attacks, by comparing passwords supplied
 # with invalid credentials to something innocuous with the same method as if
@@ -112,8 +112,8 @@ def get_stored_credentials(auth_file: os.PathLike) -> ServerUsersCredentials:
     ),
 )
 def get_basic_auth_user(
-    credentials: Optional[HTTPBasicCredentials] = Depends(security),
-) -> AuthenticatedUser:
+    credentials: Annotated[Optional[HTTPBasicCredentials], Depends(security)],
+) -> AuthenticatedUser | None:
     """Check valid auth parameters.
 
     Get the basic auth parameters from the Authorization header, and checks them
@@ -125,6 +125,9 @@ def get_basic_auth_user(
     Raises:
         HTTPException
     """
+    if AuthBackend.BASIC not in settings.RUNSERVER_AUTH_BACKENDS:
+        return None
+
     if not credentials:
         logger.debug("No credentials were found for Basic auth")
         return None

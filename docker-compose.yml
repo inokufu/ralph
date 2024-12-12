@@ -84,3 +84,47 @@ services:
         test: curl -s http://127.0.0.1:35357 || exit 1
         interval: 1s
         retries: 60
+
+  # -- cozystack backend for testing
+  cozy-stack:
+    image: cozy/cozy-stack:latest
+    environment:
+      COZY_HOST: 0.0.0.0
+      COZY_ADMIN_HOST: 0.0.0.0
+      COZY_ADMIN_PASSPHRASE: "password"
+      COUCHDB_HOST: cozy-stack-couchdb
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password 
+      COZY_COUCHDB_URL: http://admin:password@cozy-stack-couchdb:5984 
+      COZY_FS_URL: file:///var/lib/cozy 
+    volumes:
+      - ./cozy-config:/etc/cozy/
+    ports:
+      - 8080:8080
+      - 6060:6060
+    networks: 
+      default:
+        aliases:
+          - cozy.ralph-cozy-stack-1
+      cozy-stack:
+    depends_on:
+      - cozy-stack-couchdb
+    command: /etc/cozy/startup.sh
+
+  cozy-stack-couchdb:
+    image: couchdb:latest
+    environment: 
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password 
+    ports:
+      - 5984:5984
+    networks: 
+      - cozy-stack
+    healthcheck:
+      test: curl --fail http://127.0.0.1:5984/_utils/#verifyinstall || exit 1
+      interval: 1s
+      retries: 60
+
+networks:
+  cozy-stack:
+    driver: bridge
