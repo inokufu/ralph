@@ -418,6 +418,49 @@ def test_backends_data_cozystack_write_with_update_operation(
     ]
 
 
+def test_backends_data_cozystack_write_with_failure(cozystack_custom, cozy_auth_target):
+    """
+    Test the `CozyStackDataBackend.write` method, given an `UPDATE` or `DELETE`
+    `operation_type`, should expect _rev field in data.
+    """
+    cozystack_custom()
+    backend = CozyStackDataBackend()
+
+    data = [{"id": idx, "value": str(idx)} for idx in range(10)]
+
+    assert len(list(backend.read(target=cozy_auth_target))) == 0
+    assert backend.write(data, target=cozy_auth_target) == 10
+
+    results = list(backend.read(target=cozy_auth_target))
+    assert len(results) == 10
+
+    data = [{"id": item["_id"], "value": 0} for item in results[:3]]
+
+    with pytest.raises(
+        BackendException,
+        match=(
+            "Failed to insert data: Missing `_rev` field"
+            " in item for update or delete operation"
+        ),
+    ):
+        backend.write(
+            data, target=cozy_auth_target, operation_type=BaseOperationType.UPDATE
+        )
+
+    data = [{"id": item["_id"]} for item in results[:3]]
+
+    with pytest.raises(
+        BackendException,
+        match=(
+            "Failed to insert data: Missing `_rev` field"
+            " in item for update or delete operation"
+        ),
+    ):
+        backend.write(
+            data, target=cozy_auth_target, operation_type=BaseOperationType.DELETE
+        )
+
+
 def test_backends_data_cozystack_write_with_append_operation(cozystack_custom, caplog):
     """Test the `CozyStackDataBackend.write` method, given an `APPEND` `operation_type`,
     should raise a `BackendParameterException`.

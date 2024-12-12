@@ -3,13 +3,14 @@
 import pytest
 import responses
 from fastapi import HTTPException
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 
 from ralph.api.auth.cozy import (
     decode_auth_token,
     model_validate_cozy_id_token,
     validate_auth_against_cozystack,
 )
+from ralph.models.cozy import CozyAuthData
 from ralph.models.xapi.base.agents import BaseXapiAgentWithOpenId
 
 from tests.fixtures.auth import mock_oidc_user
@@ -43,6 +44,17 @@ TEST_DECODED_TOKEN = {
 }
 
 TEST_COZY_ID_TOKEN = model_validate_cozy_id_token(TEST_DECODED_TOKEN)
+
+
+@pytest.mark.anyio
+async def test_cozy_auth_data():
+    with pytest.raises(ValidationError, match="Input should be a valid URL"):
+        CozyAuthData(instance_url="abcd", token=TEST_AUTH_TOKEN)
+
+    with pytest.raises(ValidationError, match="token must contain 'Bearer'"):
+        CozyAuthData(instance_url="http://cozy.fr", token="abcd")
+
+    CozyAuthData(instance_url="http://cozy.fr", token=TEST_AUTH_TOKEN)
 
 
 @pytest.mark.anyio
