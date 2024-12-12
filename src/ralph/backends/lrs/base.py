@@ -106,10 +106,10 @@ class AgentParameters(BaseModel):
 class RalphStatementsQuery(LRSStatementsQuery):
     """Represents a dictionary of possible LRS query parameters."""
 
-    agent: AgentParameters | None = AgentParameters.model_construct()
+    agent: AgentParameters | None = None
     search_after: str | None = None
     pit_id: str | None = None
-    authority: AgentParameters | None = AgentParameters.model_construct()
+    authority: AgentParameters | None = None
     ignore_order: bool | None = None
 
 
