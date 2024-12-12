@@ -10,6 +10,8 @@ COMPOSE              = DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_RUN          = $(COMPOSE) run --rm
 COMPOSE_TEST_RUN     = $(COMPOSE_RUN)
 COMPOSE_TEST_RUN_APP = $(COMPOSE_TEST_RUN) app
+COMPOSE_EXEC         = $(COMPOSE) exec
+COMPOSE_EXEC_APP     = $(COMPOSE) exec app
 
 
 # -- Documentation
@@ -275,6 +277,9 @@ test: ## run back-end tests
 test: run
 	bin/pytest
 .PHONY: test
+
+diff-cover: coverage.xml 
+	@$(COMPOSE_EXEC_APP) diff-cover coverage.xml --fail-under 100 
 
 # -- Misc
 help:

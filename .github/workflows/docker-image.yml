@@ -12,6 +12,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Build docker image 
       run: make build
@@ -22,8 +24,8 @@ jobs:
     - name: Lint with black and ruff
       run: make lint
 
-    - name: Run project
-      run: make run
-
-    - name: Test with pytest
+    - name: Run and test with pytest
       run: make test
+
+    - name: Check diff coverage
+      run: make diff-cover
