@@ -48,7 +48,7 @@ class CozyStackLRSBackend(
     @staticmethod
     def _add_agent_filters(
         query_filters: Mapping,
-        agent_params: AgentParameters | Mapping,
+        agent_params: AgentParameters,
         target_field: str,
     ) -> None:
         """Add filters relative to agents to cozystack_query_filters.
@@ -60,9 +60,6 @@ class CozyStackLRSBackend(
         """
         if not agent_params:
             return
-
-        if not isinstance(agent_params, Mapping):
-            agent_params = agent_params.model_dump()
 
         prefix = f"source.{target_field}"
 
