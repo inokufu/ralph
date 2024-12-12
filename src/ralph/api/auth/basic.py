@@ -6,7 +6,7 @@ from collections.abc import Iterator, Sequence
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
-from typing import Annotated, Any, Iterator, List, Optional
+from typing import Annotated, Any, Optional
 
 import bcrypt
 from cachetools import TTLCache, cached

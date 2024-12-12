@@ -8,6 +8,7 @@ from enum import Enum, IntEnum, unique
 from inspect import isclass
 from io import IOBase
 from itertools import chain
+from types import get_original_bases
 from typing import (
     Any,
     Generic,
@@ -18,8 +19,6 @@ from typing import (
     get_args,
     get_origin,
 )
-
-from types import get_original_bases
 
 from pydantic import BaseModel, PositiveInt, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
