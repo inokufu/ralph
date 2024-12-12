@@ -1,13 +1,13 @@
 """CozyStack client for Ralph."""
 
 import os
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List
 
 import httpx
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from ralph.backends.cozystack.exceptions import check_cozystack_error
+from ralph.backends.cozystack import exceptions
 from ralph.backends.data.base import BaseOperationType
 from ralph.models.cozy import CozyAuthData
 
@@ -15,7 +15,7 @@ from ralph.models.cozy import CozyAuthData
 class CozyStackHttpClient:
     """Wrapper of httpx.Client to request CozyStack."""
 
-    def __init__(self, target: Optional[str]):
+    def __init__(self, target: str):
         """Instantiate the CozyStack client."""
         try:
             self.cozy_auth_data = CozyAuthData.model_validate_json(target)
@@ -51,6 +51,32 @@ class CozyStackClient:
         """Instanciate the CozyStack client."""
         self.doctype = doctype
 
+    @staticmethod
+    def check_error(response: httpx.Response):
+        """Check if response contains error and raise the proper exception."""
+        try:
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            if response.status_code == status.HTTP_400_BAD_REQUEST:
+                if response.json() == {"error": "code=400, message=Expired token"}:
+                    raise exceptions.ExpiredTokenError() from exc
+
+                raise exceptions.InvalidRequestError() from exc
+
+            elif response.status_code == status.HTTP_403_FORBIDDEN:
+                raise exceptions.ForbiddenError() from exc
+
+            elif response.status_code == status.HTTP_404_NOT_FOUND:
+                if response.json().get("reason", "") == "Database does not exist.":
+                    raise exceptions.DatabaseDoesNotExistError() from exc
+
+                raise exceptions.NotFoundError() from exc
+
+            elif response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+                raise exceptions.ExecutionError() from exc
+
+            raise exceptions.CozyStackError() from exc
+
     def create_index(self, target: str, fields: List[str]) -> Dict:
         """Create an index for some documents.
 
@@ -65,7 +91,7 @@ class CozyStackClient:
 
         with CozyStackHttpClient(target=target) as client:
             response = client.post(url, json={"index": {"fields": fields}})
-            check_cozystack_error(response)
+            self.check_error(response)
             return response.json()
 
     def delete_database(self, target: str) -> Dict:
@@ -85,7 +111,7 @@ class CozyStackClient:
 
         with CozyStackHttpClient(target=target) as client:
             response = client.delete(url)
-            check_cozystack_error(response)
+            self.check_error(response)
             return response.json()
 
     def list_all_doctypes(self, target: str) -> List[str]:
@@ -103,7 +129,7 @@ class CozyStackClient:
         """
         with CozyStackHttpClient(target=target) as client:
             response = client.get("/_all_doctypes")
-            check_cozystack_error(response)
+            self.check_error(response)
             return response.json()
 
     def find(self, target: str, query: Dict) -> Dict:
@@ -124,7 +150,7 @@ class CozyStackClient:
 
         with CozyStackHttpClient(target=target) as client:
             response = client.post(url, json=query)
-            check_cozystack_error(response)
+            self.check_error(response)
             return response.json()
 
     @classmethod
@@ -188,6 +214,6 @@ class CozyStackClient:
 
         with CozyStackHttpClient(target=target) as client:
             response = client.post(url, json={"docs": prepared_data})
-            check_cozystack_error(response)
+            self.check_error(response)
 
         return len([item for item in response.json() if "error" not in item])

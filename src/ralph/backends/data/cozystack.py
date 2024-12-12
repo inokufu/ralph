@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable, Iterator, List, Optional, TypeVar, Union
 
+from fastapi import HTTPException, status
 from pydantic import NonNegativeInt, StringConstraints
 from pydantic_settings import SettingsConfigDict
 from typing_extensions import Annotated
@@ -145,6 +146,12 @@ class CozyStackDataBackend(
         if ignore_errors:
             logger.warning("The `ignore_errors` argument is ignored")
 
+        if target is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="CozyStack backend must be used with Cozy authentication system",
+            )
+
         try:
             response = self.client.find(target, query.model_dump(exclude_none=True))
             documents = response["docs"]
@@ -157,7 +164,6 @@ class CozyStackDataBackend(
         except CozyStackError as exc:
             msg = "Failed to execute CozyStack query: %s"
             logger.error(msg, exc)
-            logger.info(query)
             raise BackendException(msg % exc) from exc
 
     def _write_dicts(

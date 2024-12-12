@@ -201,4 +201,6 @@ async def test_api_auth_oidc_post_statements_to_cozystack_backend(client, monkey
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "Can't validate Cozy authentication data"}
+    assert response.json() == {
+        "detail": "CozyStack backend must be used with Cozy authentication system"
+    }

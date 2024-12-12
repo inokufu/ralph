@@ -91,7 +91,7 @@ def get_public_keys(jwks_uri: AnyUrl) -> Dict:
 
 def get_oidc_user(
     auth_header: Annotated[Optional[HTTPBearer], Depends(oauth2_scheme)],
-) -> AuthenticatedUser:
+) -> AuthenticatedUser | None:
     """Decode and validate OpenId Connect ID token against issuer in config.
 
     Args:

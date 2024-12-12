@@ -13,7 +13,6 @@ class BaseIDToken(BaseModel):
 
     Attributes:
         iss (str): Issuer Identifier for the Issuer of the response.
-        aud (str): Audience(s) that this ID Token is intended for.
         iat (int): Time at which the JWT was issued.
         scope (str): Scope(s) for resource authorization.
         target (str): Target for storing the statements.

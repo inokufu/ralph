@@ -1,7 +1,7 @@
 """Cozy authentication tool for the Ralph API."""
 
 import logging
-import os
+import re
 from typing import Dict, List, Optional
 
 import httpx
@@ -13,6 +13,7 @@ from typing_extensions import Annotated
 
 from ralph.api.auth.token import BaseIDToken
 from ralph.api.auth.user import AuthenticatedUser
+from ralph.backends.cozystack.client import CozyStackHttpClient
 from ralph.conf import AuthBackend, settings
 from ralph.models.cozy import CozyAuthData
 
@@ -62,7 +63,15 @@ def decode_auth_token(x_auth_token: str) -> Dict:
         if not isinstance(x_auth_token, str):
             raise ValueError("X-Auth-Token must be a string")
 
-        _, encoded_token = x_auth_token.split(" ")
+        x_auth_token_splits = x_auth_token.split(" ")
+
+        if (
+            len(x_auth_token_splits) != 2  # noqa: PLR2004
+            or x_auth_token_splits[0] != "Bearer"
+        ):
+            raise ValueError("X-Auth-Token must be a Bearer token")
+
+        _, encoded_token = x_auth_token_splits
 
         return jwt.decode(
             encoded_token,
@@ -110,29 +119,29 @@ def validate_auth_against_cozystack(
     """
     instance_url = id_token.iss
 
-    if not instance_url.startswith("http://"):
+    if not re.search("^http(?:s)?://", instance_url):
         instance_url = "http://" + instance_url
+
+    cozy_auth_data = CozyAuthData(instance_url=instance_url, token=x_auth_token)
 
     # request cozy-stack to check auth is valid
     try:
-        response = httpx.get(
-            os.path.join(instance_url, "data", "_all_doctypes"),
-            headers={"Accept": "application/json", "Authorization": x_auth_token},
-        )
+        with CozyStackHttpClient(target=cozy_auth_data.model_dump_json()) as client:
+            response = client.get("/_all_doctypes")
+            response.raise_for_status()
 
-        response.raise_for_status()
     except httpx.HTTPError as exc:
         logger.error(
             f"Unable to authenticate user against cozy-stack ({instance_url}): %s", exc
         )
         raise unauthorized_http_exception from exc
 
-    return CozyAuthData(instance_url=instance_url, token=x_auth_token)
+    return cozy_auth_data
 
 
 def get_cozy_user(
     x_auth_token: Annotated[str | None, Header()] = None
-) -> AuthenticatedUser:
+) -> AuthenticatedUser | None:
     """Decode and validate Cozy ID token against Cozy-Stack server.
 
     Attributes:

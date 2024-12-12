@@ -283,7 +283,9 @@ def test_backends_lrs_cozystack_query_statements_by_ids_with_search_query_failur
     with pytest.raises(BackendException, match=msg):
         with caplog.at_level(logging.ERROR):
             list(
-                backend.query_statements_by_ids(RalphStatementsQuery.model_construct())
+                backend.query_statements_by_ids(
+                    RalphStatementsQuery.model_construct(), target=cozy_auth_target
+                )
             )
 
     assert (

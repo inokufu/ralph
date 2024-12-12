@@ -11,7 +11,6 @@ from ralph.backends.cozystack import (
     DatabaseDoesNotExistError,
     ExpiredTokenError,
     ForbiddenError,
-    QueryFailedError,
 )
 from ralph.backends.data.base import BaseOperationType
 from ralph.backends.data.cozystack import (
@@ -130,13 +129,12 @@ def test_backends_data_cozystack_list(cozystack_custom, cozy_auth_target):
     "exception_class",
     [
         ExpiredTokenError,
-        QueryFailedError,
         ForbiddenError,
         DatabaseDoesNotExistError,
     ],
 )
 def test_backends_data_cozystack_read_with_failure(
-    caplog, monkeypatch, exception_class
+    caplog, monkeypatch, exception_class, cozy_auth_target
 ):
     """
     Test the `CozyStackDataBackend.read` method, given a request failure,
@@ -152,7 +150,7 @@ def test_backends_data_cozystack_read_with_failure(
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(BackendException):
-            next(backend.read())
+            next(backend.read(target=cozy_auth_target))
 
     assert (
         "ralph.backends.data.cozystack",

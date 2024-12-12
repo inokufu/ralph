@@ -64,14 +64,9 @@ class CozyStackLRSBackend(
 
         prefix = f"source.{target_field}"
 
-        if agent_params.get("mbox"):
-            query_filters[f"{prefix}.mbox"] = agent_params["mbox"]
-
-        if agent_params.get("mbox_sha1sum"):
-            query_filters[f"{prefix}.mbox_sha1sum"] = agent_params["mbox_sha1sum"]
-
-        if agent_params.get("openid"):
-            query_filters[f"{prefix}.openid"] = agent_params["openid"]
+        for agent_field in ["mbox", "mbox_sha1sum", "openid"]:
+            if agent_params.get(agent_field):
+                query_filters[f"{prefix}.{agent_field}"] = agent_params[agent_field]
 
         if agent_params.get("account__name"):
             query_filters[f"{prefix}.account.name"] = agent_params.get("account__name")

@@ -8,6 +8,4 @@ from ralph.backends.cozystack.exceptions import (  # noqa: F401
     ForbiddenError,
     InvalidRequestError,
     NotFoundError,
-    QueryFailedError,
-    check_cozystack_error,
 )

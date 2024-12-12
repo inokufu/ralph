@@ -2,10 +2,6 @@
 
 import logging
 
-import httpx
-from fastapi import status
-from httpx import Response
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,12 +28,6 @@ class ExpiredTokenError(InvalidRequestError):
     """Raised when authentication token has expired and must be renew."""
 
     message = "Authentication token has expired"
-
-
-class QueryFailedError(InvalidRequestError):
-    """Raised when query could not be executed."""
-
-    message = "Query has failed"
 
 
 # --- 403 errors --- #
@@ -71,32 +61,3 @@ class ExecutionError(CozyStackError):
     """Internal server error exception."""
 
     message = "Internal server error"
-
-
-def check_cozystack_error(response: Response):
-    """Check if response contains error and raise the proper exception."""
-    try:
-        response.raise_for_status()
-    except httpx.HTTPError as exc:
-        if response.status_code == status.HTTP_400_BAD_REQUEST:
-            if response.json() == {"error": "code=400, message=Expired token"}:
-                raise ExpiredTokenError() from exc
-
-            elif response.json() == {"detail": "xAPI statements query failed"}:
-                raise QueryFailedError() from exc
-
-            raise InvalidRequestError() from exc
-
-        elif response.status_code == status.HTTP_403_FORBIDDEN:
-            raise ForbiddenError() from exc
-
-        elif response.status_code == status.HTTP_404_NOT_FOUND:
-            if response.json().get("reason", "") == "Database does not exist.":
-                raise DatabaseDoesNotExistError() from exc
-
-            raise NotFoundError() from exc
-
-        elif response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
-            raise ExecutionError() from exc
-
-        raise CozyStackError() from exc
