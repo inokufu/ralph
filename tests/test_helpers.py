@@ -155,6 +155,8 @@ def test_helpers_mock_statement_value_input():
         "object": {"id": "https://example.com/object-id/1/"},
         "timestamp": "2022-03-15T14:07:51Z",
         "verb": {"id": "https://example.com/verb-id/1/"},
+        "authority": {"mbox": "mailto:user@testmail.com", "objectType": "Agent"},
+        "version": "1.0.0",
     }
 
     statement = mock_statement(
@@ -162,6 +164,7 @@ def test_helpers_mock_statement_value_input():
         actor=reference_statement["actor"],
         verb=reference_statement["verb"],
         object=reference_statement["object"],
+        authority=reference_statement["authority"],
         timestamp=reference_statement["timestamp"],
     )
 

@@ -9,7 +9,12 @@ import pytest
 from ralph.exceptions import BackendException
 
 from tests.fixtures.backends import get_cozystack_test_backend
-from tests.helpers import configure_env_for_mock_cozy_auth, mock_activity, mock_agent
+from tests.helpers import (
+    configure_env_for_mock_cozy_auth,
+    mock_activity,
+    mock_agent,
+    mock_statement,
+)
 
 
 @pytest.mark.anyio
@@ -17,16 +22,11 @@ async def test_api_statements_get(
     client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
 ):
     """Test the get statements API route without any filters set up."""
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=i)).isoformat(),
+        )
+        for i in range(3)
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
@@ -39,7 +39,7 @@ async def test_api_statements_get(
         )
 
         assert response.status_code == 200
-        assert response.json() == {"statements": [statements[1], statements[0]]}
+        assert response.json() == {"statements": statements}
 
 
 @pytest.mark.anyio
@@ -49,16 +49,11 @@ async def test_api_statements_get_ascending(
     """Test the get statements API route, given an "ascending" query parameter, should
     return statements in ascending order by their timestamp.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=i)).isoformat(),
+        )
+        for i in range(3)
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
@@ -69,7 +64,7 @@ async def test_api_statements_get_ascending(
     )
 
     assert response.status_code == 200
-    assert response.json() == {"statements": [statements[0], statements[1]]}
+    assert response.json() == {"statements": list(reversed(statements))}
 
 
 @pytest.mark.anyio
@@ -79,22 +74,17 @@ async def test_api_statements_get_by_statement_id(
     """Test the get statements API route, given a "statementId" query parameter, should
     return a list of statements matching the given statementId.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=i)).isoformat(),
+        )
+        for i in range(3)
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
 
     response = await client.get(
-        f"/xAPI/statements/?statementId={statements[1]['id']}",
+        f"/xAPI/statements/?statementId={statements[1]["id"]}",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
     )
 
@@ -109,19 +99,17 @@ async def test_api_statements_get_by_verb(
     """Test the get statements API route, given a "verb" query parameter, should
     return a list of statements filtered by the given verb id.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": datetime.now().isoformat(),
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/experienced"},
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/played"},
-        },
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            verb={"id": "http://adlnet.gov/expapi/verbs/experienced"},
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            verb={"id": "http://adlnet.gov/expapi/verbs/played"},
+        ),
     ]
+
     init_cozystack_db_and_monkeypatch_backend(statements)
 
     response = await client.get(
@@ -140,27 +128,12 @@ async def test_api_statements_get_by_activity(
     """Test the get statements API route, given an "activity" query parameter, should
     return a list of statements filtered by the given activity id.
     """
-
-    activity_0 = mock_activity(0)
-    activity_1 = mock_activity(1)
-
-    statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": datetime.now().isoformat(),
-            "object": activity_0,
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "object": activity_1,
-        },
-    ]
+    statements = [mock_statement(object=mock_activity(i)) for i in range(3)]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
 
     response = await client.get(
-        f"/xAPI/statements/?activity={activity_1['id']}",
+        f"/xAPI/statements/?activity={statements[1]["object"]["id"]}",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
     )
 
@@ -175,16 +148,9 @@ async def test_api_statements_get_since_timestamp(
     """Test the get statements API route, given a "since" query parameter, should
     return a list of statements filtered by the given timestamp.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(timestamp=(datetime.now() - timedelta(hours=1)).isoformat()),
+        mock_statement(timestamp=(datetime.now()).isoformat()),
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
@@ -207,16 +173,9 @@ async def test_api_statements_get_until_timestamp(
     """Test the get statements API route, given an "until" query parameter,
     should return a list of statements filtered by the given timestamp.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(timestamp=(datetime.now() - timedelta(hours=1)).isoformat()),
+        mock_statement(timestamp=(datetime.now()).isoformat()),
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
@@ -244,26 +203,8 @@ async def test_api_statements_get_with_pagination(
     )
 
     statements = [
-        {
-            "id": "5d345b99-517c-4b54-848e-45010904b177",
-            "timestamp": (datetime.now() - timedelta(hours=4)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=3)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac5",
-            "timestamp": (datetime.now() - timedelta(hours=2)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac4",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(timestamp=(datetime.now() - timedelta(hours=5 - i)).isoformat())
+        for i in range(5)
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
@@ -319,30 +260,14 @@ async def test_api_statements_get_with_pagination_and_query(
     )
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "verb": {
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=3 - i)).isoformat(),
+            verb={
                 "id": "https://w3id.org/xapi/video/verbs/played",
                 "display": {"en-US": "played"},
             },
-            "timestamp": (datetime.now() - timedelta(hours=2)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac1",
-            "verb": {
-                "id": "https://w3id.org/xapi/video/verbs/played",
-                "display": {"en-US": "played"},
-            },
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "verb": {
-                "id": "https://w3id.org/xapi/video/verbs/played",
-                "display": {"en-US": "played"},
-            },
-            "timestamp": datetime.now().isoformat(),
-        },
+        )
+        for i in range(3)
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)
@@ -380,14 +305,14 @@ async def test_api_statements_get_with_no_matching_statement(
     should return an empty list.
     """
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            id_="be67b160-d958-4f51-b8b8-1892002dbac6",
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+        ),
+        mock_statement(
+            id_="72c81e98-1763-4730-8cfc-f5ab34f1bad2",
+            timestamp=(datetime.now()).isoformat(),
+        ),
     ]
 
     init_cozystack_db_and_monkeypatch_backend(statements)

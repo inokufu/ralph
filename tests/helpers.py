@@ -132,11 +132,12 @@ def mock_agent(
     raise ValueError("No valid ifi was provided to mock_agent")
 
 
-def mock_statement(
+def mock_statement(  # noqa: PLR0913
     id_: UUID | int | None = None,
     actor: Mapping | int | None = None,
     verb: Mapping | int | None = None,
     object: Mapping | int | None = None,
+    authority: Mapping | int | None = None,
     timestamp: str | int | None = None,
 ):
     """Generate fake statements with random or provided parameters.
@@ -185,6 +186,12 @@ def mock_statement(
     elif isinstance(object, int):
         object = {"id": f"http://example.adlnet.gov/xapi/example/activity_{object}"}
 
+    # Authority
+    if authority is None:
+        authority = mock_agent()
+    elif isinstance(authority, int):
+        authority = mock_agent(id_=authority)
+
     # Timestamp
     if timestamp is None:
         timestamp = datetime.strftime(
@@ -201,6 +208,8 @@ def mock_statement(
             "actor": actor,
             "verb": verb,
             "object": object,
+            "authority": authority,
+            "version": "1.0.0",
         }
 
     return {
@@ -208,7 +217,9 @@ def mock_statement(
         "actor": actor,
         "verb": verb,
         "object": object,
+        "authority": authority,
         "timestamp": timestamp,
+        "version": "1.0.0",
     }
 
 
