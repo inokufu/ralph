@@ -29,7 +29,7 @@ from starlette.datastructures import Headers
 from ralph.api.auth import get_authenticated_user
 from ralph.api.auth.user import AuthenticatedUser
 from ralph.api.forwarding import forward_xapi_statements, get_active_xapi_forwardings
-from ralph.api.models import ErrorDetail, LaxStatement
+from ralph.api.models import ErrorDetail
 from ralph.backends.loader import get_lrs_backends
 from ralph.backends.lrs.base import (
     AgentParameters,
@@ -47,6 +47,7 @@ from ralph.models.xapi.base.agents import (
     BaseXapiAgentWithOpenId,
 )
 from ralph.models.xapi.base.common import IRI
+from ralph.models.xapi.base.statements import BaseXapiStatement
 from ralph.utils import (
     await_if_coroutine,
     get_backend_class,
@@ -478,7 +479,7 @@ async def put(
         AuthenticatedUser,
         Security(get_authenticated_user, scopes=["statements/write"]),
     ],
-    statement: LaxStatement,
+    statement: BaseXapiStatement,
     background_tasks: BackgroundTasks,
     request: Request,
     statement_id: UUID = Query(alias="statementId"),
@@ -572,7 +573,7 @@ async def post(
         AuthenticatedUser,
         Security(get_authenticated_user, scopes=["statements/write"]),
     ],
-    statements: LaxStatement | Sequence[LaxStatement],
+    statements: BaseXapiStatement | Sequence[BaseXapiStatement],
     background_tasks: BackgroundTasks,
     request: Request,
     response: Response,
