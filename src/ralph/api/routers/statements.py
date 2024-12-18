@@ -5,6 +5,7 @@ import logging
 import os
 from collections.abc import Mapping, Sequence
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import ParseResult, urlencode
 from uuid import UUID, uuid4
@@ -164,9 +165,14 @@ def strict_query_params(request: Request) -> None:
             )
 
 
-@router.get("", response_model=GetResponse, response_model_exclude_none=True)
+@router.get(
+    "",
+    response_model=GetResponse,
+    response_model_exclude_none=True,
+    include_in_schema=False,
+)
 @router.get("/", response_model=GetResponse, response_model_exclude_none=True)
-@router.head("")
+@router.head("", include_in_schema=False)
 @router.head("/")
 async def get(  # noqa: PLR0912, PLR0913
     request: Request,
@@ -186,6 +192,7 @@ async def get(  # noqa: PLR0912, PLR0913
         Query(
             description="**Not implemented** Id of voided Statement to fetch",
             alias="voidedStatementId",
+            include_in_schema=False,
         ),
     ] = None,
     agent: Annotated[
@@ -219,6 +226,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "**Not implemented** "
                 "Filter, only return Statements matching the specified registration id"
             ),
+            include_in_schema=False,
         ),
     ] = None,
     related_activities: Annotated[
@@ -231,6 +239,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "in a contained SubStatement match the Activity parameter, "
                 "instead of that parameter's normal behaviour"
             ),
+            include_in_schema=False,
         ),
     ] = False,
     related_agents: Annotated[
@@ -243,6 +252,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "properties in a contained SubStatement match the Agent parameter, "
                 "instead of that parameter's normal behaviour."
             ),
+            include_in_schema=False,
         ),
     ] = False,
     since: Annotated[
@@ -291,6 +301,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "language filtering process  defined below, and return the original "
                 'Agent and Group Objects as in "exact" mode.'
             ),
+            include_in_schema=False,
         ),
     ] = "exact",
     attachments: Annotated[  # noqa: ARG001
@@ -303,6 +314,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "the prescribed response with Content-Type application/json and "
                 "does not send attachment data."
             ),
+            include_in_schema=False,
         ),
     ] = False,
     ascending: Annotated[  # noqa: ARG001
@@ -485,7 +497,12 @@ async def get(  # noqa: PLR0912, PLR0913
 
 
 @router.put("/", responses=POST_PUT_RESPONSES, status_code=status.HTTP_204_NO_CONTENT)
-@router.put("", responses=POST_PUT_RESPONSES, status_code=status.HTTP_204_NO_CONTENT)
+@router.put(
+    "",
+    responses=POST_PUT_RESPONSES,
+    status_code=status.HTTP_204_NO_CONTENT,
+    include_in_schema=False,
+)
 async def put(
     current_user: Annotated[
         AuthenticatedUser,
@@ -579,7 +596,7 @@ async def put(
 
 
 @router.post("/", responses=POST_PUT_RESPONSES)
-@router.post("", responses=POST_PUT_RESPONSES)
+@router.post("", responses=POST_PUT_RESPONSES, include_in_schema=False)
 async def post(
     current_user: Annotated[
         AuthenticatedUser,
