@@ -15,7 +15,7 @@ from tests.fixtures.backends import get_es_test_backend
 
 from ..fixtures.auth import AUDIENCE, ISSUER_URI, mock_basic_auth_user, mock_oidc_user
 from ..fixtures.statements import insert_es_statements
-from ..helpers import mock_activity, mock_agent
+from ..helpers import mock_activity, mock_agent, mock_statement
 
 
 @pytest.mark.anyio
@@ -66,19 +66,16 @@ async def test_api_statements_get_mine(
     get_basic_auth_user.cache_clear()
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-            "actor": agent_1,
-            "authority": agent_1,
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "actor": agent_1,
-            "authority": agent_2,
-        },
+        mock_statement(
+            actor=agent_1,
+            authority=agent_1,
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+        ),
+        mock_statement(
+            actor=agent_1, authority=agent_2, timestamp=datetime.now().isoformat()
+        ),
     ]
+
     insert_statements_and_monkeypatch_backend(statements)
 
     # No restriction on "mine" (implicit) : Return all statements
@@ -128,7 +125,7 @@ async def test_api_statements_get_mine(
 
     # Fetch "mine" by id with a single forbidden statement : Return 404 not found
     response = await client.get(
-        f"/xAPI/statements/?statementId={statements[1]['id']}&mine=True",
+        f"/xAPI/statements/?statementId={statements[1]["id"]}&mine=True",
         headers={"Authorization": f"Basic {credentials_1_bis}"},
     )
     assert response.status_code == 404
@@ -147,17 +144,13 @@ async def test_api_statements_get(
     client, insert_statements_and_monkeypatch_backend, basic_auth_credentials
 ):
     """Test the get statements API route without any filters set up."""
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=3 - i)).isoformat(),
+        )
+        for i in range(3)
     ]
+
     insert_statements_and_monkeypatch_backend(statements)
 
     # Confirm that calling this with and without the trailing slash both work
@@ -167,7 +160,7 @@ async def test_api_statements_get(
         )
 
         assert response.status_code == 200
-        assert response.json() == {"statements": [statements[1], statements[0]]}
+        assert response.json() == {"statements": list(reversed(statements))}
 
 
 @pytest.mark.anyio
@@ -190,28 +183,25 @@ async def test_api_statements_get_from_target(
 
     # Insert statements into the default target
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+        ),
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
     # Insert statements into the custom target
     custom_target = "custom_target"
+
     statements_custom = [
-        {
-            "id": "1267b160-d958-4f51-b8b8-1892002dba12",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "23c81e98-1763-4730-8cfc-f5ab34f1ba23",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+        ),
     ]
     insert_statements_and_monkeypatch_backend(statements_custom, custom_target)
 
@@ -234,16 +224,13 @@ async def test_api_statements_get_ascending(
     """Test the get statements API route, given an "ascending" query parameter, should
     return statements in ascending order by their timestamp.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+        ),
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
@@ -265,19 +252,17 @@ async def test_api_statements_get_by_statement_id(
     """
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+        ),
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
     response = await client.get(
-        f"/xAPI/statements/?statementId={statements[1]['id']}",
+        f"/xAPI/statements/?statementId={statements[1]["id"]}",
         headers={"Authorization": f"Basic {basic_auth_credentials}"},
     )
 
@@ -315,18 +300,8 @@ async def test_api_statements_get_by_agent(
         agent_2 = mock_agent(ifi, 2)
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": datetime.now().isoformat(),
-            "actor": agent_1,
-            "authority": agent_1,
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "actor": agent_2,
-            "authority": agent_1,
-        },
+        mock_statement(actor=agent_1, authority=agent_1),
+        mock_statement(actor=agent_2, authority=agent_1),
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
@@ -348,17 +323,16 @@ async def test_api_statements_get_by_verb(
     """
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": datetime.now().isoformat(),
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/experienced"},
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/played"},
-        },
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            verb={"id": "http://adlnet.gov/expapi/verbs/experienced"},
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            verb={"id": "http://adlnet.gov/expapi/verbs/played"},
+        ),
     ]
+
     insert_statements_and_monkeypatch_backend(statements)
 
     response = await client.get(
@@ -382,21 +356,19 @@ async def test_api_statements_get_by_activity(
     activity_1 = mock_activity(1)
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": datetime.now().isoformat(),
-            "object": activity_0,
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "object": activity_1,
-        },
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            object=activity_0,
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            object=activity_1,
+        ),
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
     response = await client.get(
-        f"/xAPI/statements/?activity={activity_1['id']}",
+        f"/xAPI/statements/?activity={activity_1["id"]}",
         headers={"Authorization": f"Basic {basic_auth_credentials}"},
     )
 
@@ -411,16 +383,9 @@ async def test_api_statements_get_since_timestamp(
     """Test the get statements API route, given a "since" query parameter, should
     return a list of statements filtered by the given timestamp.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(timestamp=(datetime.now() - timedelta(hours=1)).isoformat()),
+        mock_statement(timestamp=(datetime.now()).isoformat()),
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
@@ -441,16 +406,9 @@ async def test_api_statements_get_until_timestamp(
     """Test the get statements API route, given an "until" query parameter,
     should return a list of statements filtered by the given timestamp.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(timestamp=(datetime.now() - timedelta(hours=1)).isoformat()),
+        mock_statement(timestamp=(datetime.now()).isoformat()),
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
@@ -481,26 +439,8 @@ async def test_api_statements_get_with_pagination(
     )
 
     statements = [
-        {
-            "id": "5d345b99-517c-4b54-848e-45010904b177",
-            "timestamp": (datetime.now() - timedelta(hours=4)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=3)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac5",
-            "timestamp": (datetime.now() - timedelta(hours=2)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac4",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(timestamp=(datetime.now() - timedelta(hours=5 - i)).isoformat())
+        for i in range(5)
     ]
     insert_statements_and_monkeypatch_backend(statements)
 
@@ -556,31 +496,16 @@ async def test_api_statements_get_with_pagination_and_query(
     )
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "verb": {
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=3 - i)).isoformat(),
+            verb={
                 "id": "https://w3id.org/xapi/video/verbs/played",
                 "display": {"en-US": "played"},
             },
-            "timestamp": (datetime.now() - timedelta(hours=2)).isoformat(),
-        },
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac1",
-            "verb": {
-                "id": "https://w3id.org/xapi/video/verbs/played",
-                "display": {"en-US": "played"},
-            },
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "verb": {
-                "id": "https://w3id.org/xapi/video/verbs/played",
-                "display": {"en-US": "played"},
-            },
-            "timestamp": datetime.now().isoformat(),
-        },
+        )
+        for i in range(3)
     ]
+
     insert_statements_and_monkeypatch_backend(statements)
 
     # First response gets the first two results, with a "more" entry as
@@ -613,17 +538,17 @@ async def test_api_statements_get_with_no_matching_statement(
     """Test the get statements API route, given a query yielding no matching statement,
     should return an empty list.
     """
-
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(
+            id_="be67b160-d958-4f51-b8b8-1892002dbac6",
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+        ),
+        mock_statement(
+            id_="72c81e98-1763-4730-8cfc-f5ab34f1bad2",
+            timestamp=(datetime.now()).isoformat(),
+        ),
     ]
+
     insert_statements_and_monkeypatch_backend(statements)
 
     response = await client.get(
@@ -784,7 +709,7 @@ async def test_api_statements_get_scopes(  # noqa: PLR0913
 
         sub = "123_oidc"
         iss = "https://iss.example.com"
-        agent = {"openid": f"{iss}/{sub}"}
+        agent = {"openid": f"{iss}/{sub}", "objectType": "Agent"}
         oidc_token = mock_oidc_user(sub=sub, scopes=scopes)
         headers = {"Authorization": f"Bearer {oidc_token}"}
 
@@ -799,18 +724,16 @@ async def test_api_statements_get_scopes(  # noqa: PLR0913
 
     # Mock statements
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-            "actor": agent,
-            "authority": agent,
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "actor": agent,
-            "authority": agent,
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+            actor=agent,
+            authority=agent,
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            actor=agent,
+            authority=agent,
+        ),
     ]
 
     # NB: scopes are not linked to statements and backends, we therefore test with ES
@@ -872,18 +795,16 @@ async def test_api_statements_get_scopes_with_authority(  # noqa: PLR0913
     get_basic_auth_user.cache_clear()
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-            "actor": agent,
-            "authority": agent,
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-            "actor": agent,
-            "authority": agent_2,
-        },
+        mock_statement(
+            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
+            actor=agent,
+            authority=agent,
+        ),
+        mock_statement(
+            timestamp=datetime.now().isoformat(),
+            actor=agent,
+            authority=agent_2,
+        ),
     ]
 
     # NB: scopes are not linked to statements and backends, we therefore test with ES

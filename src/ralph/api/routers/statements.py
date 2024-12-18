@@ -48,6 +48,7 @@ from ralph.models.xapi.base.agents import (
 )
 from ralph.models.xapi.base.common import IRI
 from ralph.models.xapi.base.statements import BaseXapiStatement
+from ralph.models.xapi.config import BaseModelWithConfig
 from ralph.utils import (
     await_if_coroutine,
     get_backend_class,
@@ -66,6 +67,17 @@ router = APIRouter(
 BACKEND_CLIENT: BaseLRSBackend | BaseAsyncLRSBackend = get_backend_class(
     backends=get_lrs_backends(), name=settings.RUNSERVER_BACKEND
 )()
+
+
+class GetStatementsResponse(BaseModelWithConfig):
+    """Get statements route response model."""
+
+    statements: list[BaseXapiStatement]
+    more: Path | None = None
+
+
+GetResponse = GetStatementsResponse | BaseXapiStatement
+
 
 POST_PUT_RESPONSES = {
     400: {
@@ -152,8 +164,8 @@ def strict_query_params(request: Request) -> None:
             )
 
 
-@router.get("")
-@router.get("/")
+@router.get("", response_model=GetResponse, response_model_exclude_none=True)
+@router.get("/", response_model=GetResponse, response_model_exclude_none=True)
 @router.head("")
 @router.head("/")
 async def get(  # noqa: PLR0912, PLR0913

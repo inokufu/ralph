@@ -7,7 +7,7 @@ from httpx import ASGITransport, AsyncClient
 
 from ralph.api import app
 
-from ..helpers import configure_env_for_mock_basic_auth
+from ..helpers import configure_env_for_mock_basic_auth, mock_statement
 
 
 @pytest.mark.anyio
@@ -20,14 +20,8 @@ async def test_x_experience_api_version_header(
     configure_env_for_mock_basic_auth(monkeypatch)
 
     statements = [
-        {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
-            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
-        },
-        {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            "timestamp": datetime.now().isoformat(),
-        },
+        mock_statement(timestamp=(datetime.now() - timedelta(hours=1)).isoformat()),
+        mock_statement(timestamp=(datetime.now()).isoformat()),
     ]
 
     insert_statements_and_monkeypatch_backend(statements)
