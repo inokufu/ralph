@@ -1,6 +1,6 @@
 """Base xAPI `Statement` definitions."""
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Annotated, Any
 from uuid import UUID
@@ -54,20 +54,27 @@ class BaseXapiStatement(BaseModelWithConfig):
         Check that the `context` field contains `platform` and `revision` fields
         only if the `object.objectType` property is equal to `Activity`.
         """
-        for field, value in list(values.items()):
+        if isinstance(values, Sequence):
+            return values
+
+        for field, value in values.items():
             if value in [None, "", {}]:
                 raise ValueError(f"{field}: invalid empty value")
+
             if isinstance(value, Mapping) and field != "extensions":
                 cls.check_absence_of_empty_and_invalid_values(value)
 
         context = dict(values.get("context", {}))
+
         if context:
             platform = context.get("platform", {})
             revision = context.get("revision", {})
             object_type = dict(values["object"]).get("objectType", "Activity")
+
             if (platform or revision) and object_type != "Activity":
                 raise ValueError(
                     "revision and platform properties can only be used if the "
                     "Statement's Object is an Activity"
                 )
+
         return values
