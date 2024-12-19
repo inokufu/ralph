@@ -3,6 +3,8 @@
 from abc import ABC
 from typing import Literal
 
+from pydantic import Field
+
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
@@ -26,7 +28,7 @@ class BaseXapiGroupCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Group"]
-    name: NonEmptyStrictStr | None = None
+    name: NonEmptyStrictStr | None = Field(None, examples=["Team Example"])
 
 
 class BaseXapiAnonymousGroup(BaseXapiGroupCommonProperties):

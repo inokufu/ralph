@@ -3,6 +3,8 @@
 from abc import ABC
 from typing import Literal
 
+from pydantic import Field
+
 from ralph.conf import NonEmptyStrictStr
 from ralph.models.xapi.config import BaseModelWithConfig
 
@@ -23,8 +25,8 @@ class BaseXapiAgentAccount(BaseModelWithConfig):
         name (str): Consists of the unique id or name of the Actor's account.
     """
 
-    homePage: IRI
-    name: NonEmptyStrictStr
+    homePage: IRI = Field(examples=["http://www.example.com"])
+    name: NonEmptyStrictStr = Field(examples=["John Doe"])
 
 
 class BaseXapiAgentCommonProperties(BaseModelWithConfig, ABC):
@@ -38,7 +40,7 @@ class BaseXapiAgentCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Agent"] = "Agent"
-    name: NonEmptyStrictStr | None = None
+    name: NonEmptyStrictStr | None = Field(None, examples=["John Doe"])
 
 
 class BaseXapiAgentWithMbox(BaseXapiAgentCommonProperties, BaseXapiMboxIFI):

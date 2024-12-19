@@ -1,6 +1,6 @@
 """Base xAPI `Attachments` definitions."""
 
-from pydantic import AnyUrl
+from pydantic import AnyUrl, Field
 
 from ..config import BaseModelWithConfig
 from .common import IRI, LanguageMap
@@ -19,10 +19,14 @@ class BaseXapiAttachment(BaseModelWithConfig):
         fileUrl (URL): Consists of the URL from which the Attachment can be retrieved.
     """
 
-    usageType: IRI
-    display: LanguageMap
-    description: LanguageMap | None = None
-    contentType: str
-    length: int
-    sha2: str
-    fileUrl: AnyUrl | None = None
+    usageType: IRI = Field(examples=["http://adlnet.gov/expapi/attachments/signature"])
+    display: LanguageMap = Field(examples=[{"en-US": "Signature"}])
+    description: LanguageMap | None = Field(
+        None, examples=[{"en-US": "A test signature"}]
+    )
+    contentType: str = Field(examples=["application/octet-stream"])
+    length: int = Field(examples=[4235])
+    sha2: str = Field(
+        examples=["672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634"]
+    )
+    fileUrl: AnyUrl | None = Field(None, examples=["http://example.com/myfile"])
