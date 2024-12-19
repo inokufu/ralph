@@ -74,7 +74,7 @@ class GetStatementsResponse(BaseModelWithConfig):
     """Get statements route response model."""
 
     statements: list[BaseXapiStatement]
-    more: Path | None = None
+    more: Path | None = Field(None, examples=["/xAPI/statements/?pit_id=pit_id"])
 
 
 GetResponse = GetStatementsResponse | BaseXapiStatement

@@ -1,5 +1,7 @@
 """Base xAPI `Verb` definitions."""
 
+from pydantic import Field
+
 from ..config import BaseModelWithConfig
 from .common import IRI, LanguageMap
 
@@ -12,5 +14,7 @@ class BaseXapiVerb(BaseModelWithConfig):
         display (LanguageMap): Consists of a human-readable representation of the verb.
     """
 
-    id: IRI
-    display: LanguageMap | None = None
+    id: IRI = Field(examples=["http://adlnet.gov/expapi/verbs/attended"])
+    display: LanguageMap | None = Field(
+        None, examples=[{"en-GB": "attended", "en-US": "attended"}]
+    )

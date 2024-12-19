@@ -2,6 +2,8 @@
 
 from uuid import UUID
 
+from pydantic import Field
+
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
@@ -49,8 +51,14 @@ class BaseXapiContext(BaseModelWithConfig):
     instructor: BaseXapiAgent | None = None
     team: BaseXapiGroup | None = None
     contextActivities: BaseXapiContextContextActivities | None = None
-    revision: NonEmptyStrictStr | None = None
-    platform: NonEmptyStrictStr | None = None
-    language: LanguageTag | None = None
+    revision: NonEmptyStrictStr | None = Field(
+        None, examples=["revision_of_the_learning_activity"]
+    )
+    platform: NonEmptyStrictStr | None = Field(
+        None, examples=["platform_of_the_learning_activity"]
+    )
+    language: LanguageTag | None = Field(None, examples=["en-US"])
     statement: BaseXapiStatementRef | None = None
-    extensions: dict[IRI, str | int | bool | list | dict | None] | None = None
+    extensions: dict[IRI, str | int | bool | list | dict | None] | None = Field(
+        None, examples=[{"http://example.com/extensions/example-ext": 0}]
+    )

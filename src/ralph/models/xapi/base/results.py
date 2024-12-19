@@ -22,10 +22,10 @@ class BaseXapiResultScore(BaseModelWithConfig):
         max (Decimal): Consists of the highest possible score.
     """
 
-    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = None
-    raw: Decimal | None = None
-    min: Decimal | None = None
-    max: Decimal | None = None
+    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = Field(None, examples=[0])
+    raw: Decimal | None = Field(None, examples=[10])
+    min: Decimal | None = Field(None, examples=[0])
+    max: Decimal | None = Field(None, examples=[20])
 
     @model_validator(mode="after")
     def check_raw_min_max_relation(self) -> Any:
@@ -57,6 +57,8 @@ class BaseXapiResult(BaseModelWithConfig):
     score: BaseXapiResultScore | None = None
     success: StrictBool | None = None
     completion: StrictBool | None = None
-    response: NonEmptyStrictStr | None = None
-    duration: timedelta | None = None
-    extensions: dict[IRI, str | int | bool | list | dict | None] | None = None
+    response: NonEmptyStrictStr | None = Field(None, examples=["Wow, nice work!"])
+    duration: timedelta | None = Field(None, examples=["PT1234S"])
+    extensions: dict[IRI, str | int | bool | list | dict | None] | None = Field(
+        None, examples=[{"http://example.com/extensions/example-ext": 0}]
+    )
