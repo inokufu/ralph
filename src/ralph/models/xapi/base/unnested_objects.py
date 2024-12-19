@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import AnyUrl, StringConstraints, field_validator
+from pydantic import AnyUrl, Field, StringConstraints, field_validator
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -23,11 +23,27 @@ class BaseXapiActivityDefinition(BaseModelWithConfig):
         extensions (dict): Consists of a dictionary of other properties as needed.
     """
 
-    name: LanguageMap | None = None
-    description: LanguageMap | None = None
-    type: IRI | None = None
-    moreInfo: AnyUrl | None = None
-    extensions: dict[IRI, str | int | bool | list | dict | None] | None = None
+    name: LanguageMap | None = Field(None, examples=[{"en-US": "Example course"}])
+    description: LanguageMap | None = Field(
+        None, examples=[{"en-US": "A fictitious example course."}]
+    )
+    type: IRI | None = Field(
+        None, examples=["http://www.example.co.uk/types/exampleactivitytype"]
+    )
+    moreInfo: AnyUrl | None = Field(
+        None, examples=["http://activitytype.example.com/345256"]
+    )
+    extensions: dict[IRI, str | int | bool | list | dict | None] | None = Field(
+        None,
+        examples=[
+            {
+                "http://example.com/activitydefinitionextensions/room": {
+                    "name": "Example Room",
+                    "id": "http://example.com/rooms/342",
+                }
+            }
+        ],
+    )
 
 
 class BaseXapiInteractionComponent(BaseModelWithConfig):
@@ -94,7 +110,7 @@ class BaseXapiActivity(BaseModelWithConfig):
             BaseXapiActivityInteractionDefinition.
     """
 
-    id: IRI
+    id: IRI = Field(examples=["http://example.adlnet.gov/xapi/example/activity"])
     objectType: Literal["Activity"] | None = None
     definition: (
         BaseXapiActivityDefinition | BaseXapiActivityInteractionDefinition | None

@@ -22,7 +22,7 @@ from fastapi import (
     status,
 )
 from fastapi.dependencies.models import Dependant
-from pydantic import TypeAdapter
+from pydantic import Field, TypeAdapter
 from pydantic.types import Json
 from starlette.datastructures import Headers
 
@@ -73,7 +73,7 @@ class GetStatementsResponse(BaseModelWithConfig):
     """Get statements route response model."""
 
     statements: list[BaseXapiStatement]
-    more: Path | None = None
+    more: Path | None = Field(None, examples=["/xAPI/statements/?pit_id=pit_id"])
 
 
 GetResponse = GetStatementsResponse | BaseXapiStatement

@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -18,8 +18,8 @@ class BaseXapiAccount(BaseModelWithConfig):
         name (str): Consists of the unique id or name of the Actor's account.
     """
 
-    homePage: IRI
-    name: NonEmptyStrictStr
+    homePage: IRI = Field(examples=["http://www.example.com"])
+    name: NonEmptyStrictStr = Field(examples=["John Doe"])
 
 
 class BaseXapiMboxIFI(BaseModelWithConfig):
@@ -29,7 +29,7 @@ class BaseXapiMboxIFI(BaseModelWithConfig):
         mbox (MailtoEmail): Consists of the Agent's email address.
     """
 
-    mbox: MailtoEmail
+    mbox: MailtoEmail = Field(examples=["mailto:test@example.com"])
 
 
 class BaseXapiMboxSha1SumIFI(BaseModelWithConfig):
@@ -39,7 +39,9 @@ class BaseXapiMboxSha1SumIFI(BaseModelWithConfig):
         mbox_sha1sum (str): Consists of the SHA1 hash of the Agent's email address.
     """
 
-    mbox_sha1sum: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{40}$")]
+    mbox_sha1sum: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{40}$")] = Field(
+        examples=["ebd31e95054c018b10727ccffd2ef2ec3a016ee9"]
+    )
 
 
 class BaseXapiOpenIdIFI(BaseModelWithConfig):
@@ -49,7 +51,7 @@ class BaseXapiOpenIdIFI(BaseModelWithConfig):
         openid (URI): Consists of an openID that uniquely identifies the Agent.
     """
 
-    openid: URI
+    openid: URI = Field(examples=["http://johndoe.openid.example.org"])
 
 
 class BaseXapiAccountIFI(BaseModelWithConfig):
