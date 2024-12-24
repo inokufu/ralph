@@ -13,19 +13,20 @@ from .common import IRI
 
 
 class BaseXapiResultScore(BaseModelWithConfig):
-    """Pydantic model for result `score` property.
+    """Pydantic model for result `score` property."""
 
-    Attributes:
-        scaled (Decimal): Consists of the normalized score related to the experience.
-        raw (Decimal): Consists of the non-normalized score achieved by the Actor.
-        min (Decimal): Consists of the lowest possible score.
-        max (Decimal): Consists of the highest possible score.
-    """
-
-    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = Field(None, examples=[0])
-    raw: Decimal | None = Field(None, examples=[10])
-    min: Decimal | None = Field(None, examples=[0])
-    max: Decimal | None = Field(None, examples=[20])
+    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = Field(
+        None,
+        description="Normalized score related to the experience",
+        examples=[0],
+    )
+    raw: Decimal | None = Field(
+        None, description="Non-normalized score achieved by the Actor", examples=[10]
+    )
+    min: Decimal | None = Field(None, description="Lowest possible score", examples=[0])
+    max: Decimal | None = Field(
+        None, description="Highest possible score", examples=[20]
+    )
 
     @model_validator(mode="after")
     def check_raw_min_max_relation(self) -> Any:
@@ -42,23 +43,29 @@ class BaseXapiResultScore(BaseModelWithConfig):
 
 
 class BaseXapiResult(BaseModelWithConfig):
-    """Pydantic model for `result` property.
+    """Pydantic model for `result` property."""
 
-    Attributes:
-        score (dict): See BaseXapiResultScore.
-        success (bool): Indicates whether the attempt on the Activity was successful.
-        completion (bool): Indicates whether the Activity was completed.
-        response (str): Consists of the response for the given Activity.
-        duration (timedelta): Consists of the duration over which the Statement
-            occurred.
-        extensions (dict): Consists of a dictionary of other properties as needed.
-    """
-
-    score: BaseXapiResultScore | None = None
-    success: StrictBool | None = None
-    completion: StrictBool | None = None
-    response: NonEmptyStrictStr | None = Field(None, examples=["Wow, nice work!"])
-    duration: timedelta | None = Field(None, examples=["PT1234S"])
+    score: BaseXapiResultScore | None = Field(
+        None, description="See BaseXapiResultScore"
+    )
+    success: StrictBool | None = Field(
+        None, description="Indicates whether the attempt on the Activity was successful"
+    )
+    completion: StrictBool | None = Field(
+        None, description="Indicates whether the Activity was completed"
+    )
+    response: NonEmptyStrictStr | None = Field(
+        None,
+        description="Response for the given Activity",
+        examples=["Wow, nice work!"],
+    )
+    duration: timedelta | None = Field(
+        None,
+        description="Duration over which the Statement occurred",
+        examples=["PT1234S"],
+    )
     extensions: dict[IRI, str | int | bool | list | dict | None] | None = Field(
-        None, examples=[{"http://example.com/extensions/example-ext": 0}]
+        None,
+        description="Dictionary of other properties as needed",
+        examples=[{"http://example.com/extensions/example-ext": 0}],
     )

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Annotated, Any
 from uuid import UUID
 
-from pydantic import StringConstraints, model_validator
+from pydantic import Field, StringConstraints, model_validator
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -18,33 +18,39 @@ from .verbs import BaseXapiVerb
 
 
 class BaseXapiStatement(BaseModelWithConfig):
-    """Pydantic model for base xAPI statements.
+    """Pydantic model for base xAPI statements."""
 
-    Attributes:
-        id (UUID): Consists of a generated UUID string from the source event string.
-        actor (dict): Consists of a definition of who performed the action.
-        verb (dict): Consists of the action between an Actor and an Activity.
-        object (dict): Consists of a definition of the thing that was acted on.
-        result (dict): Consists of the outcome related to the Statement.
-        context (dict): Consists of contextual information for the Statement.
-        timestamp (datetime): Consists of the timestamp of when the event occurred.
-        stored (datetime): Consists of the timestamp of when the event was recorded.
-        authority (dict): Consists of the Actor asserting this Statement is true.
-        version (str): Consists of the associated xAPI version of the Statement.
-        attachments (list): Consists of a list of attachments.
-    """
-
-    id: UUID | None = None
-    actor: BaseXapiAgent | BaseXapiGroup
-    verb: BaseXapiVerb
-    object: BaseXapiObject
-    result: BaseXapiResult | None = None
-    context: BaseXapiContext | None = None
-    timestamp: datetime | None = None
-    stored: datetime | None = None
-    authority: BaseXapiAgent | BaseXapiGroup | None = None
-    version: Annotated[str, StringConstraints(pattern=r"^1\.0\.[0-9]+$")] = "1.0.0"
-    attachments: list[BaseXapiAttachment] | None = None
+    id: UUID | None = Field(
+        None, description="Generated UUID string from the source event string"
+    )
+    actor: BaseXapiAgent | BaseXapiGroup = Field(
+        description="Definition of who performed the action"
+    )
+    verb: BaseXapiVerb = Field(description="Action between an Actor and an Activity")
+    object: BaseXapiObject = Field(
+        description="Definition of the thing that was acted on"
+    )
+    result: BaseXapiResult | None = Field(
+        None, description="Outcome related to the Statement"
+    )
+    context: BaseXapiContext | None = Field(
+        None, description="Contextual information for the Statement"
+    )
+    timestamp: datetime | None = Field(
+        None, description="Timestamp of when the event occurred"
+    )
+    stored: datetime | None = Field(
+        None, description="Timestamp of when the event was recorded"
+    )
+    authority: BaseXapiAgent | BaseXapiGroup | None = Field(
+        None, description="Actor asserting this Statement is true"
+    )
+    version: Annotated[str, StringConstraints(pattern=r"^1\.0\.[0-9]+$")] = Field(
+        "1.0.0", description="Associated xAPI version of the Statement"
+    )
+    attachments: list[BaseXapiAttachment] | None = Field(
+        None, description="List of attachments"
+    )
 
     @model_validator(mode="before")
     @classmethod

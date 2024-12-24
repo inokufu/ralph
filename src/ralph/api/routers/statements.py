@@ -23,7 +23,7 @@ from fastapi import (
 )
 from fastapi.dependencies.models import Dependant
 from fastapi.exceptions import RequestValidationError
-from pydantic import TypeAdapter, ValidationError
+from pydantic import Field, TypeAdapter, ValidationError
 from pydantic.types import Json
 from starlette.datastructures import Headers
 
@@ -607,7 +607,7 @@ async def post(
     request: Request,
     response: Response,
     _=Depends(strict_query_params),
-) -> list | None:
+) -> list[UUID] | None:
     """Store a set of statements (or a single statement as a single member of a set).
 
     NB: at this time, using POST to make a GET request, is not supported.
