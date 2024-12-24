@@ -607,7 +607,7 @@ async def post(
     request: Request,
     response: Response,
     _=Depends(strict_query_params),
-) -> list | None:
+) -> list[UUID] | None:
     """Store a set of statements (or a single statement as a single member of a set).
 
     NB: at this time, using POST to make a GET request, is not supported.
