@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Annotated, Any, Callable, Union
 
 from polyfactory.factories.base import BaseFactory
 from polyfactory.factories.pydantic_factory import (
@@ -11,8 +11,13 @@ from polyfactory.factories.pydantic_factory import (
 from polyfactory.factories.pydantic_factory import (
     T,
 )
+from polyfactory.field_meta import FieldMeta
 from polyfactory.fields import Ignore
+from polyfactory.utils.predicates import get_type_origin, is_union
+from polyfactory.utils.types import NoneType
 from pydantic import BaseModel
+from pydantic.json_schema import SkipJsonSchema
+from typing_extensions import get_args, get_origin
 
 from ralph.models.edx.navigational.fields.events import NavigationalEventField
 from ralph.models.edx.navigational.statements import UISeqNext, UISeqPrev
@@ -76,6 +81,34 @@ class ModelFactory(PolyfactoryModelFactory[T]):
         created_factory.get_provider_map = cls.get_provider_map
         created_factory._get_or_create_factory = cls._get_or_create_factory
         return created_factory
+
+    @staticmethod
+    def _check_skip_json_schema_none(arg) -> bool:
+        """Return True if arg is `typing.Annotated[NoneType, SkipJsonSchema()]`."""
+        return (
+            get_origin(arg) is Annotated
+            and get_type_origin(arg) is NoneType
+            and isinstance(get_args(arg)[-1], SkipJsonSchema)
+        )
+
+    @classmethod
+    def get_model_fields(cls) -> list[FieldMeta]:
+        """Retrieve a list of fields from the factory's model.
+
+        Overridden so that polyfactory considers that annotation
+        `MyType | SkipJsonSchema[None]` is equivalent to `MyType | None`.
+        """
+        for field_info in cls.__model__.model_fields.values():
+            annotation = field_info.annotation
+
+            if is_union(annotation):
+                args = tuple(
+                    NoneType if cls._check_skip_json_schema_none(arg) else arg
+                    for arg in get_args(annotation)
+                )
+                field_info.annotation = Union[args]
+
+        return super().get_model_fields()
 
 
 class BaseXapiResultScoreFactory(ModelFactory[BaseXapiResultScore]):

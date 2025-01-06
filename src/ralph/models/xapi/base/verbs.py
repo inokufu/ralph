@@ -1,6 +1,7 @@
 """Base xAPI `Verb` definitions."""
 
 from pydantic import Field
+from pydantic.json_schema import SkipJsonSchema
 
 from ..config import BaseModelWithConfig
 from .common import IRI, LanguageMap
@@ -13,7 +14,7 @@ class BaseXapiVerb(BaseModelWithConfig):
         description="Identifier for the verb",
         examples=["http://adlnet.gov/expapi/verbs/attended"],
     )
-    display: LanguageMap | None = Field(
+    display: LanguageMap | SkipJsonSchema[None] = Field(
         None,
         description="Human-readable representation of the verb",
         examples=[{"en-GB": "attended", "en-US": "attended"}],

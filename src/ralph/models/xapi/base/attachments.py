@@ -1,6 +1,7 @@
 """Base xAPI `Attachments` definitions."""
 
 from pydantic import AnyUrl, Field
+from pydantic.json_schema import SkipJsonSchema
 
 from ..config import BaseModelWithConfig
 from .common import IRI, LanguageMap
@@ -16,7 +17,7 @@ class BaseXapiAttachment(BaseModelWithConfig):
     display: LanguageMap = Field(
         description="Attachment's title", examples=[{"en-US": "Signature"}]
     )
-    description: LanguageMap | None = Field(
+    description: LanguageMap | SkipJsonSchema[None] = Field(
         None,
         description="Attachment's description",
         examples=[{"en-US": "A test signature"}],
@@ -31,7 +32,7 @@ class BaseXapiAttachment(BaseModelWithConfig):
         description="SHA-2 hash of the Attachment data",
         examples=["672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634"],
     )
-    fileUrl: AnyUrl | None = Field(
+    fileUrl: AnyUrl | SkipJsonSchema[None] = Field(
         None,
         description="URL from which the Attachment can be retrieved",
         examples=["http://example.com/myfile"],

@@ -23,7 +23,8 @@ from fastapi import (
 )
 from fastapi.dependencies.models import Dependant
 from fastapi.exceptions import RequestValidationError
-from pydantic import TypeAdapter, ValidationError
+from pydantic import Field, TypeAdapter, ValidationError
+from pydantic.json_schema import SkipJsonSchema
 from pydantic.types import Json
 from starlette.datastructures import Headers
 
@@ -74,7 +75,9 @@ class GetStatementsResponse(BaseModelWithConfig):
     """Get statements route response model."""
 
     statements: list[BaseXapiStatement]
-    more: Path | None = Field(None, examples=["/xAPI/statements/?pit_id=pit_id"])
+    more: Path | SkipJsonSchema[None] = Field(
+        None, examples=["/xAPI/statements/?pit_id=pit_id"]
+    )
 
 
 GetResponse = GetStatementsResponse | BaseXapiStatement
@@ -196,7 +199,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     agent: Annotated[
-        Json | None,
+        Json | SkipJsonSchema[None],
         Query(
             description=(
                 "Filter, only return Statements for which the specified "
@@ -205,13 +208,13 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     verb: Annotated[
-        str | None,
+        str | SkipJsonSchema[None],
         Query(
             description="Filter, only return Statements matching the specified Verb id",
         ),
     ] = None,
     activity: Annotated[
-        str | None,
+        str | SkipJsonSchema[None],
         Query(
             description=(
                 "Filter, only return Statements for which the Object "
@@ -220,7 +223,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     registration: Annotated[
-        UUID | None,
+        UUID | SkipJsonSchema[None],
         Query(
             description=(
                 "**Not implemented** "
@@ -230,7 +233,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     related_activities: Annotated[
-        bool | None,
+        bool | SkipJsonSchema[None],
         Query(
             description=(
                 "**Not implemented** "
@@ -243,7 +246,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = False,
     related_agents: Annotated[
-        bool | None,
+        bool | SkipJsonSchema[None],
         Query(
             description=(
                 "**Not implemented** "
@@ -256,7 +259,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = False,
     since: Annotated[
-        datetime | None,
+        datetime | SkipJsonSchema[None],
         Query(
             description=(
                 "Only Statements stored since the "
@@ -265,7 +268,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     until: Annotated[
-        datetime | None,
+        datetime | SkipJsonSchema[None],
         Query(
             description=(
                 "Only Statements stored at or "
@@ -274,7 +277,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     limit: Annotated[
-        int | None,
+        int | SkipJsonSchema[None],
         Query(
             ge=0,
             description=(
@@ -284,7 +287,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = settings.RUNSERVER_MAX_SEARCH_HITS_COUNT,
     format: Annotated[  # noqa: ARG001
-        Literal["ids", "exact", "canonical"] | None,
+        Literal["ids", "exact", "canonical"] | SkipJsonSchema[None],
         Query(
             description=(
                 "**Not implemented** "
@@ -305,7 +308,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = "exact",
     attachments: Annotated[  # noqa: ARG001
-        bool | None,
+        bool | SkipJsonSchema[None],
         Query(
             description=(
                 "**Not implemented** "
@@ -318,13 +321,13 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = False,
     ascending: Annotated[  # noqa: ARG001
-        bool | None,
+        bool | SkipJsonSchema[None],
         Query(
             description='If "true", return results in ascending order of stored time'
         ),
     ] = False,
     mine: Annotated[
-        bool | None,
+        bool | SkipJsonSchema[None],
         Query(
             description=(
                 'If "true", return only the results for which the authority matches '
@@ -336,7 +339,7 @@ async def get(  # noqa: PLR0912, PLR0913
     # Private use query string parameters
     ###
     search_after: Annotated[  # noqa: ARG001
-        str | None,
+        str | SkipJsonSchema[None],
         Query(
             description=(
                 "Sorting data to allow pagination through large number of search "
@@ -346,7 +349,7 @@ async def get(  # noqa: PLR0912, PLR0913
         ),
     ] = None,
     pit_id: Annotated[  # noqa: ARG001
-        str | None,
+        str | SkipJsonSchema[None],
         Query(
             description=(
                 "Point-in-time ID to ensure consistency of search requests through "

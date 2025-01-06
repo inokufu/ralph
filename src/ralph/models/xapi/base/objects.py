@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import Field
+from pydantic.json_schema import SkipJsonSchema
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -27,16 +28,16 @@ class BaseXapiSubStatement(BaseModelWithConfig):
     verb: BaseXapiVerb = Field(description="See BaseXapiVerb")
     object: BaseXapiUnnestedObject = Field(description="See BaseXapiUnnestedObject")
     objectType: Literal["SubStatement"] = Field(description="Value `SubStatement`")
-    result: BaseXapiResult | None = Field(
+    result: BaseXapiResult | SkipJsonSchema[None] = Field(
         None, description="Outcome related to the SubStatement"
     )
-    context: BaseXapiContext | None = Field(
+    context: BaseXapiContext | SkipJsonSchema[None] = Field(
         None, description="Contextual information for the SubStatement"
     )
-    timestamp: datetime | None = Field(
+    timestamp: datetime | SkipJsonSchema[None] = Field(
         None, description="Timestamp of when the event occurred"
     )
-    attachments: list[BaseXapiAttachment] | None = Field(
+    attachments: list[BaseXapiAttachment] | SkipJsonSchema[None] = Field(
         None, description="List of attachments"
     )
 

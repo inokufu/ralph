@@ -4,6 +4,7 @@ from abc import ABC
 from typing import Literal
 
 from pydantic import Field
+from pydantic.json_schema import SkipJsonSchema
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -24,7 +25,7 @@ class BaseXapiGroupCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Group"] = Field(description="Value `Group`")
-    name: NonEmptyStrictStr | None = Field(
+    name: NonEmptyStrictStr | SkipJsonSchema[None] = Field(
         None, description="Full name of the Group", examples=["Team Example"]
     )
 
@@ -44,7 +45,7 @@ class BaseXapiIdentifiedGroup(BaseXapiGroupCommonProperties):
     It is defined for Identified Group type.
     """
 
-    member: list[BaseXapiAgent] | None = Field(
+    member: list[BaseXapiAgent] | SkipJsonSchema[None] = Field(
         None, description="List of the members of this Group"
     )
 

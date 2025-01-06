@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Annotated, Any
 
 from pydantic import Field, StrictBool, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -15,16 +16,18 @@ from .common import IRI
 class BaseXapiResultScore(BaseModelWithConfig):
     """Pydantic model for result `score` property."""
 
-    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = Field(
+    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | SkipJsonSchema[None] = Field(
         None,
         description="Normalized score related to the experience",
         examples=[0],
     )
-    raw: Decimal | None = Field(
+    raw: Decimal | SkipJsonSchema[None] = Field(
         None, description="Non-normalized score achieved by the Actor", examples=[10]
     )
-    min: Decimal | None = Field(None, description="Lowest possible score", examples=[0])
-    max: Decimal | None = Field(
+    min: Decimal | SkipJsonSchema[None] = Field(
+        None, description="Lowest possible score", examples=[0]
+    )
+    max: Decimal | SkipJsonSchema[None] = Field(
         None, description="Highest possible score", examples=[20]
     )
 
@@ -45,26 +48,28 @@ class BaseXapiResultScore(BaseModelWithConfig):
 class BaseXapiResult(BaseModelWithConfig):
     """Pydantic model for `result` property."""
 
-    score: BaseXapiResultScore | None = Field(
+    score: BaseXapiResultScore | SkipJsonSchema[None] = Field(
         None, description="See BaseXapiResultScore"
     )
-    success: StrictBool | None = Field(
+    success: StrictBool | SkipJsonSchema[None] = Field(
         None, description="Indicates whether the attempt on the Activity was successful"
     )
-    completion: StrictBool | None = Field(
+    completion: StrictBool | SkipJsonSchema[None] = Field(
         None, description="Indicates whether the Activity was completed"
     )
-    response: NonEmptyStrictStr | None = Field(
+    response: NonEmptyStrictStr | SkipJsonSchema[None] = Field(
         None,
         description="Response for the given Activity",
         examples=["Wow, nice work!"],
     )
-    duration: timedelta | None = Field(
+    duration: timedelta | SkipJsonSchema[None] = Field(
         None,
         description="Duration over which the Statement occurred",
         examples=["PT1234S"],
     )
-    extensions: dict[IRI, str | int | bool | list | dict | None] | None = Field(
+    extensions: (
+        dict[IRI, str | int | bool | list | dict | None] | SkipJsonSchema[None]
+    ) = Field(
         None,
         description="Dictionary of other properties as needed",
         examples=[{"http://example.com/extensions/example-ext": 0}],

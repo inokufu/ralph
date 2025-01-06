@@ -4,6 +4,7 @@ from abc import ABC
 from typing import Literal
 
 from pydantic import Field
+from pydantic.json_schema import SkipJsonSchema
 
 from ralph.conf import NonEmptyStrictStr
 from ralph.models.xapi.config import BaseModelWithConfig
@@ -36,7 +37,7 @@ class BaseXapiAgentCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Agent"] = "Agent"
-    name: NonEmptyStrictStr | None = Field(
+    name: NonEmptyStrictStr | SkipJsonSchema[None] = Field(
         None, description="full name of the Agent", examples=["John Doe"]
     )
 

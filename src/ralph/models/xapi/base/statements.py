@@ -6,6 +6,7 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from pydantic import Field, StringConstraints, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -20,7 +21,7 @@ from .verbs import BaseXapiVerb
 class BaseXapiStatement(BaseModelWithConfig):
     """Pydantic model for base xAPI statements."""
 
-    id: UUID | None = Field(
+    id: UUID | SkipJsonSchema[None] = Field(
         None, description="Generated UUID string from the source event string"
     )
     actor: BaseXapiAgent | BaseXapiGroup = Field(
@@ -30,25 +31,25 @@ class BaseXapiStatement(BaseModelWithConfig):
     object: BaseXapiObject = Field(
         description="Definition of the thing that was acted on"
     )
-    result: BaseXapiResult | None = Field(
+    result: BaseXapiResult | SkipJsonSchema[None] = Field(
         None, description="Outcome related to the Statement"
     )
-    context: BaseXapiContext | None = Field(
+    context: BaseXapiContext | SkipJsonSchema[None] = Field(
         None, description="Contextual information for the Statement"
     )
-    timestamp: datetime | None = Field(
+    timestamp: datetime | SkipJsonSchema[None] = Field(
         None, description="Timestamp of when the event occurred"
     )
-    stored: datetime | None = Field(
+    stored: datetime | SkipJsonSchema[None] = Field(
         None, description="Timestamp of when the event was recorded"
     )
-    authority: BaseXapiAgent | BaseXapiGroup | None = Field(
+    authority: BaseXapiAgent | BaseXapiGroup | SkipJsonSchema[None] = Field(
         None, description="Actor asserting this Statement is true"
     )
     version: Annotated[str, StringConstraints(pattern=r"^1\.0\.[0-9]+$")] = Field(
         "1.0.0", description="Associated xAPI version of the Statement"
     )
-    attachments: list[BaseXapiAttachment] | None = Field(
+    attachments: list[BaseXapiAttachment] | SkipJsonSchema[None] = Field(
         None, description="List of attachments"
     )
 
