@@ -1,5 +1,7 @@
 """Base xAPI `Attachments` definitions."""
 
+from typing import Annotated
+
 from pydantic import AnyUrl, Field
 from pydantic.json_schema import SkipJsonSchema
 
@@ -25,7 +27,7 @@ class BaseXapiAttachment(BaseModelWithConfig):
     contentType: str = Field(
         description="Attachment's content type", examples=["application/octet-stream"]
     )
-    length: int = Field(
+    length: Annotated[int, Field(strict=True)] = Field(
         description="Length of the Attachment's data in octets", examples=[4235]
     )
     sha2: str = Field(
