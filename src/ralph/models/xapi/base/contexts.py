@@ -39,7 +39,7 @@ class BaseXapiContext(BaseModelWithConfig):
     registration: UUID | None = Field(
         None, description="Registration that the Statement is associated with"
     )
-    instructor: BaseXapiAgent | None = Field(
+    instructor: BaseXapiAgent | BaseXapiGroup | None = Field(
         None, description="Instructor that the Statement relates to"
     )
     team: BaseXapiGroup | None = Field(
