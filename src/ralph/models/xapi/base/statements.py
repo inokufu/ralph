@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Self
 from uuid import UUID
 
 from pydantic import Field, StringConstraints, model_validator
@@ -16,6 +16,8 @@ from .groups import BaseXapiGroup
 from .objects import BaseXapiObject
 from .results import BaseXapiResult
 from .verbs import BaseXapiVerb
+
+VOIDED_VERB_ID = "http://adlnet.gov/expapi/verbs/voided"
 
 
 class BaseXapiStatement(BaseModelWithConfig):
@@ -85,3 +87,14 @@ class BaseXapiStatement(BaseModelWithConfig):
                 )
 
         return values
+
+    @model_validator(mode="after")
+    def check_voiding_requirements(self) -> Self:
+        """Check if a voiding statement is valid."""
+        if (
+            str(self.verb.id) == VOIDED_VERB_ID
+            and self.object.objectType != "StatementRef"
+        ):
+            raise ValueError("Statement verb voided does not use object 'StatementRef'")
+
+        return self
