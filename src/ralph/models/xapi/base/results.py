@@ -1,7 +1,6 @@
 """Base xAPI `Result` definitions."""
 
 from datetime import timedelta
-from decimal import Decimal
 from typing import Annotated, Any
 
 from pydantic import Field, StrictBool, model_validator
@@ -15,16 +14,18 @@ from .common import IRI
 class BaseXapiResultScore(BaseModelWithConfig):
     """Pydantic model for result `score` property."""
 
-    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = Field(
+    scaled: Annotated[float, Field(ge=-1, le=1, strict=True)] | None = Field(
         None,
         description="Normalized score related to the experience",
         examples=[0],
     )
-    raw: Decimal | None = Field(
+    raw: Annotated[float, Field(strict=True)] | None = Field(
         None, description="Non-normalized score achieved by the Actor", examples=[10]
     )
-    min: Decimal | None = Field(None, description="Lowest possible score", examples=[0])
-    max: Decimal | None = Field(
+    min: Annotated[float, Field(strict=True)] | None = Field(
+        None, description="Lowest possible score", examples=[0]
+    )
+    max: Annotated[float, Field(strict=True)] | None = Field(
         None, description="Highest possible score", examples=[20]
     )
 
