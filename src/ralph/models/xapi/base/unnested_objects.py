@@ -9,7 +9,9 @@ from pydantic import AnyUrl, Field, StringConstraints, field_validator
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
+from .agents import BaseXapiAgent
 from .common import IRI, LanguageMap
+from .groups import BaseXapiGroup
 
 
 class BaseXapiActivityDefinition(BaseModelWithConfig):
@@ -135,4 +137,6 @@ class BaseXapiStatementRef(BaseModelWithConfig):
     objectType: Literal["StatementRef"] = Field(description="Value `StatementRef`")
 
 
-BaseXapiUnnestedObject = BaseXapiActivity | BaseXapiStatementRef
+BaseXapiUnnestedObject = (
+    BaseXapiActivity | BaseXapiStatementRef | BaseXapiAgent | BaseXapiGroup
+)
