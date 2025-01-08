@@ -40,7 +40,7 @@ class BaseXapiContext(BaseModelWithConfig):
     registration: UUID | SkipJsonSchema[None] = Field(
         None, description="Registration that the Statement is associated with"
     )
-    instructor: BaseXapiAgent | SkipJsonSchema[None] = Field(
+    instructor: BaseXapiAgent | BaseXapiGroup | SkipJsonSchema[None] = Field(
         None, description="Instructor that the Statement relates to"
     )
     team: BaseXapiGroup | SkipJsonSchema[None] = Field(
