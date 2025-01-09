@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Annotated, Any, Self
 from uuid import UUID
 
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import BeforeValidator, Field, StringConstraints, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from ..config import BaseModelWithConfig
@@ -15,9 +15,21 @@ from .contexts import BaseXapiContext
 from .groups import BaseXapiGroup
 from .objects import BaseXapiObject
 from .results import BaseXapiResult
+from .unnested_objects import BaseXapiActivity
 from .verbs import BaseXapiVerb
 
 VOIDED_VERB_ID = "http://adlnet.gov/expapi/verbs/voided"
+
+
+def ensure_object_wo_objecttype_is_activity(value: Any) -> Any:
+    """Check that if no objectType is provided, the object is an activity.
+
+    See: https://github.com/adlnet/xAPI-Spec/blob/master/xAPI-Data.md#details-8
+    """
+    if isinstance(value, dict) and "objectType" not in value:
+        return BaseXapiActivity.model_validate(value)
+
+    return value
 
 
 class BaseXapiStatement(BaseModelWithConfig):
@@ -30,9 +42,9 @@ class BaseXapiStatement(BaseModelWithConfig):
         description="Definition of who performed the action"
     )
     verb: BaseXapiVerb = Field(description="Action between an Actor and an Activity")
-    object: BaseXapiObject = Field(
-        description="Definition of the thing that was acted on"
-    )
+    object: Annotated[
+        BaseXapiObject, BeforeValidator(ensure_object_wo_objecttype_is_activity)
+    ] = Field(description="Definition of the thing that was acted on")
     result: BaseXapiResult | SkipJsonSchema[None] = Field(
         None, description="Outcome related to the Statement"
     )
