@@ -1,8 +1,9 @@
 """Base xAPI `Context` definitions."""
 
+from typing import Annotated, Any
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 from pydantic.json_schema import SkipJsonSchema
 
 from ralph.conf import NonEmptyStrictStr
@@ -14,21 +15,39 @@ from .groups import BaseXapiGroup
 from .unnested_objects import BaseXapiActivity, BaseXapiStatementRef
 
 
+def ensure_list(value: Any) -> Any:
+    """Transform single Activity Objects into list."""
+    if not isinstance(value, list):
+        return [value]
+    else:
+        return value
+
+
 class BaseXapiContextContextActivities(BaseModelWithConfig):
     """Pydantic model for context `contextActivities` property."""
 
-    parent: BaseXapiActivity | list[BaseXapiActivity] | SkipJsonSchema[None] = Field(
+    parent: (
+        Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)]
+        | SkipJsonSchema[None]
+    ) = Field(
         None,
         description="An Activity with a direct relation to the statement's Activity",
     )
-    grouping: BaseXapiActivity | list[BaseXapiActivity] | SkipJsonSchema[None] = Field(
+    grouping: (
+        Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)]
+        | SkipJsonSchema[None]
+    ) = Field(
         None,
         description="An Activity with an indirect relation to the statement's Activity",
     )
-    category: BaseXapiActivity | list[BaseXapiActivity] | SkipJsonSchema[None] = Field(
-        None, description="An Activity used to categorize the Statement"
-    )
-    other: BaseXapiActivity | list[BaseXapiActivity] | SkipJsonSchema[None] = Field(
+    category: (
+        Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)]
+        | SkipJsonSchema[None]
+    ) = Field(None, description="An Activity used to categorize the Statement")
+    other: (
+        Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)]
+        | SkipJsonSchema[None]
+    ) = Field(
         None,
         description="A contextActivity that doesn't fit one of the other properties",
     )
