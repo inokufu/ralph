@@ -11,7 +11,10 @@ from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
 from .attachments import BaseXapiAttachment
 from .contexts import BaseXapiContext
-from .groups import BaseXapiGroup
+from .groups import (
+    BaseXapiAuthorityAnonymousGroup,
+    BaseXapiGroup,
+)
 from .objects import BaseXapiObject
 from .results import BaseXapiResult
 from .unnested_objects import BaseXapiActivity
@@ -56,7 +59,7 @@ class BaseXapiStatement(BaseModelWithConfig):
     stored: datetime | None = Field(
         None, description="Timestamp of when the event was recorded"
     )
-    authority: BaseXapiAgent | BaseXapiGroup | None = Field(
+    authority: BaseXapiAgent | BaseXapiAuthorityAnonymousGroup | None = Field(
         None, description="Actor asserting this Statement is true"
     )
     version: Annotated[str, StringConstraints(pattern=r"^1\.0\.[0-9]+$")] = Field(
