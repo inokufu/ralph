@@ -1,15 +1,30 @@
 """Base xAPI `Result` definitions."""
 
+import re
 from datetime import timedelta
 from typing import Annotated, Any
 
-from pydantic import Field, StrictBool, model_validator
+from pydantic import BeforeValidator, Field, StrictBool, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
 from .common import IRI
+
+
+def ensure_duration_is_valid(value: Any) -> Any:
+    """Check that duration is valid ISO 8601 format string."""
+    if isinstance(value, timedelta):
+        return value
+
+    if not isinstance(value, str):
+        raise ValueError("Duration must be expressed using ISO 8601 format string.")
+
+    if "W" in value and not re.search(r"^P\d+W$", value):
+        raise ValueError("Combining any other unit with weeks is not allowed.")
+
+    return value
 
 
 class BaseXapiResultScore(BaseModelWithConfig):
@@ -63,7 +78,10 @@ class BaseXapiResult(BaseModelWithConfig):
         description="Response for the given Activity",
         examples=["Wow, nice work!"],
     )
-    duration: timedelta | SkipJsonSchema[None] = Field(
+    duration: (
+        Annotated[timedelta, BeforeValidator(ensure_duration_is_valid)]
+        | SkipJsonSchema[None]
+    ) = Field(
         None,
         description="Duration over which the Statement occurred",
         examples=["PT1234S"],
