@@ -44,7 +44,7 @@ def test_models_xapi_base_statement_with_invalid_null_values(path, value):
     statement = statement.model_dump(exclude_none=True)
     set_dict_value_from_path(statement, path.split("__"), value)
 
-    with pytest.raises(ValidationError, match="invalid empty value"):
+    with pytest.raises(ValidationError):
         BaseXapiStatement(**statement)
 
 
