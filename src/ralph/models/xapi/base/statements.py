@@ -62,7 +62,7 @@ class BaseXapiStatement(BaseModelWithConfig):
     authority: BaseXapiAgent | BaseXapiAuthorityAnonymousGroup | None = Field(
         None, description="Actor asserting this Statement is true"
     )
-    version: Annotated[str, StringConstraints(pattern=r"^1\.0\.[0-9]+$")] = Field(
+    version: Annotated[str, StringConstraints(pattern=r"^1\.0(?:\.[0-9]+)?$")] = Field(
         "1.0.0", description="Associated xAPI version of the Statement"
     )
     attachments: list[BaseXapiAttachment] | None = Field(
