@@ -20,6 +20,7 @@ from .results import BaseXapiResult
 from .unnested_objects import BaseXapiActivity
 from .verbs import BaseXapiVerb
 
+EMPTY_OBJECT_ALLOWED_FIELDS = ["definition", "extensions"]
 VOIDED_VERB_ID = "http://adlnet.gov/expapi/verbs/voided"
 
 
@@ -81,8 +82,14 @@ class BaseXapiStatement(BaseModelWithConfig):
             return values
 
         for field, value in values.items():
-            if value in [None, "", {}]:
-                raise ValueError(f"{field}: invalid empty value")
+            if value is None:
+                raise ValueError(f"{field}: invalid null value")
+
+            if value == "":
+                raise ValueError(f"{field}: invalid empty string")
+
+            if field not in EMPTY_OBJECT_ALLOWED_FIELDS and value == {}:
+                raise ValueError(f"{field}: invalid empty object")
 
             if isinstance(value, Mapping) and field != "extensions":
                 cls.check_absence_of_empty_and_invalid_values(value)
