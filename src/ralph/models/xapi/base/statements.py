@@ -1,5 +1,6 @@
 """Base xAPI `Statement` definitions."""
 
+import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Annotated, Any, Self
@@ -35,6 +36,14 @@ def ensure_object_wo_objecttype_is_activity(value: Any) -> Any:
     return value
 
 
+def ensure_timestamp_is_valid(value: Any) -> Any:
+    """Check that timestamp doesn't end with '-0000' or '-00:00'."""
+    if isinstance(value, str) and re.search("-00:?00$", value):
+        raise ValueError("Invalid timestamp.")
+
+    return value
+
+
 class BaseXapiStatement(BaseModelWithConfig):
     """Pydantic model for base xAPI statements."""
 
@@ -54,9 +63,9 @@ class BaseXapiStatement(BaseModelWithConfig):
     context: BaseXapiContext | None = Field(
         None, description="Contextual information for the Statement"
     )
-    timestamp: datetime | None = Field(
-        None, description="Timestamp of when the event occurred"
-    )
+    timestamp: (
+        Annotated[datetime, BeforeValidator(ensure_timestamp_is_valid)] | None
+    ) = Field(None, description="Timestamp of when the event occurred")
     stored: datetime | None = Field(
         None, description="Timestamp of when the event was recorded"
     )
