@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from pydantic import AnyUrl, Field
+from pydantic import AnyUrl, Field, StrictStr
 
 from ..config import BaseModelWithConfig
 from .common import IRI, LanguageMap
@@ -23,13 +23,13 @@ class BaseXapiAttachment(BaseModelWithConfig):
         description="Attachment's description",
         examples=[{"en-US": "A test signature"}],
     )
-    contentType: str = Field(
+    contentType: StrictStr = Field(
         description="Attachment's content type", examples=["application/octet-stream"]
     )
     length: Annotated[int, Field(strict=True)] = Field(
         description="Length of the Attachment's data in octets", examples=[4235]
     )
-    sha2: str = Field(
+    sha2: StrictStr = Field(
         description="SHA-2 hash of the Attachment data",
         examples=["672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634"],
     )
