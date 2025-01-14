@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from fastapi import Depends, FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 
@@ -133,14 +134,5 @@ async def validation_exception_handler(
     """Called on invalid request data, return error detail as json response."""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": str(exc.errors())},
-    )
-
-
-@app.exception_handler(TypeError)
-async def type_exception_handler(_: Request, exc: TypeError) -> JSONResponse:
-    """Called on bad type or value, return error detail as json response."""
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": str(exc)},
+        content=jsonable_encoder({"detail": exc.errors()}),
     )

@@ -63,7 +63,7 @@ def validate_comma_separated_tuple(value: Union[str, Tuple[str, ...]]) -> Tuple[
     if isinstance(value, str):
         return tuple(value.split(","))
 
-    raise TypeError("Invalid comma separated tuple")
+    raise ValueError("Invalid comma separated tuple")
 
 
 CommaSeparatedTuple = Annotated[
@@ -142,7 +142,7 @@ def validate_auth_backends(
     if isinstance(value, str):
         return tuple(AuthBackend(val) for val in value.lower().split(","))
 
-    raise TypeError("Invalid comma separated tuple")
+    raise ValueError("Invalid comma separated tuple")
 
 
 AuthBackends = Annotated[
