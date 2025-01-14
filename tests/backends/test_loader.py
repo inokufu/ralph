@@ -1,12 +1,7 @@
 """Tests for Ralph's backend utilities."""
 
 import logging
-import sys
-
-if sys.version_info < (3, 10):
-    from importlib_metadata import EntryPoint, EntryPoints, entry_points
-else:
-    from importlib.metadata import EntryPoint, EntryPoints, entry_points
+from importlib.metadata import EntryPoint, EntryPoints, entry_points
 
 from ralph.backends.data.async_es import AsyncESDataBackend
 from ralph.backends.data.async_lrs import AsyncLRSDataBackend
@@ -120,6 +115,7 @@ def test_backends_loader_get_cli_backends(monkeypatch):
         ]
 
     monkeypatch.setattr("ralph.backends.loader.entry_points", mock_entry_points)
+
     get_cli_backends.cache_clear()
     assert get_cli_backends() == {
         "test_backend": TestBackend,
@@ -137,6 +133,9 @@ def test_backends_loader_get_cli_backends(monkeypatch):
         "s3": S3DataBackend,
         "swift": SwiftDataBackend,
     }
+
+    monkeypatch.undo()
+    get_lrs_backends.cache_clear()
 
 
 def test_backends_loader_get_cli_write_backends():
@@ -196,6 +195,7 @@ def test_backends_loader_get_lrs_backends(monkeypatch):
 
     monkeypatch.setattr("ralph.backends.loader.entry_points", mock_entry_points)
     get_lrs_backends.cache_clear()
+
     assert get_lrs_backends() == {
         "test_backend": TestBackend,
         "async_es": AsyncESLRSBackend,
@@ -206,3 +206,6 @@ def test_backends_loader_get_lrs_backends(monkeypatch):
         "fs": FSLRSBackend,
         "mongo": MongoLRSBackend,
     }
+
+    monkeypatch.undo()
+    get_lrs_backends.cache_clear()

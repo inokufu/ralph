@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 import responses
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from ralph.api import app
 from ralph.api.auth.basic import get_basic_auth_user
@@ -602,7 +602,7 @@ async def test_api_statements_put_with_forwarding(  # noqa: PLR0913
         )
         # Start forwarding LRS client
         async with AsyncClient(
-            app=app,
+            transport=ASGITransport(app=app),
             base_url="http://testserver",
             headers={"X-Experience-API-Version": "1.0.3"},
         ) as forwarding_client:

@@ -68,7 +68,7 @@ def test_backends_data_clickhouse_default_instantiation(monkeypatch, fs):
     )
 
 
-def test_backends_data_clickhouse_instantiation_with_settings():
+def test_backends_data_clickhouse_instantiation_with_settings(clickhouse_custom):
     """Test the `ClickHouseDataBackend` instantiation."""
     settings = ClickHouseDataBackendSettings(
         HOST=CLICKHOUSE_TEST_HOST,
@@ -331,7 +331,7 @@ def test_backends_data_clickhouse_list_with_failure(
 
 
 def test_backends_data_clickhouse_list_with_history(
-    clickhouse_backend, caplog, monkeypatch
+    clickhouse_backend, clickhouse_custom, caplog, monkeypatch
 ):
     """Test the `ClickHouseDataBackend.list` method given `new` argument set to True,
     should log a warning message.
@@ -679,7 +679,9 @@ def test_backends_data_clickhouse_write_with_custom_chunk_size(
     backend.close()
 
 
-def test_backends_data_clickhouse_close_with_failure(clickhouse_backend, monkeypatch):
+def test_backends_data_clickhouse_close_with_failure(
+    clickhouse_backend, clickhouse_custom, monkeypatch
+):
     """Test the `ClickHouseDataBackend.close` method with failure."""
 
     backend = clickhouse_backend()
