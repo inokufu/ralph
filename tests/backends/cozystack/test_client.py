@@ -114,7 +114,30 @@ async def test_cozystack_client_find(
     assert not response["next"]
     assert response["docs"][0]["_id"] == statements[1]["id"]
 
-    # edge case: empty query
+
+@pytest.mark.anyio
+async def test_cozystack_client_find_no_match(
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_target: str,
+):
+    """Test database querying with and without filter/selector."""
+    statements = [
+        {
+            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
+            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
+            "value": 0,
+        },
+        {
+            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
+            "timestamp": datetime.now().isoformat(),
+            "value": 1,
+        },
+    ]
+
+    init_cozystack_db_and_monkeypatch_backend(statements)
+    client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
+
+    # find w/ selector that does not match anything
     for query in [
         {"selector": {"source.value": "abc"}},
         {"selector": {"source.test": 0}},
@@ -122,12 +145,22 @@ async def test_cozystack_client_find(
         response = client.find(target=cozy_auth_target, query=query)
         assert len(response["docs"]) == 0
 
-    # edge case: malformed query
+
+@pytest.mark.anyio
+async def test_cozystack_client_find_bad_query(
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_target: str,
+):
+    """Test database querying with and without filter/selector."""
+    init_cozystack_db_and_monkeypatch_backend()
+    client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
+
+    # malformed query
     for query in [{"filter": {}}, {"selector": "abc"}, {"selector": {}, "limit": -1}]:
         with pytest.raises(InvalidRequestError):
             client.find(target=cozy_auth_target, query=query)
 
-    # edge case: wrong type query
+    # wrong type query
     for query in ["abc", 123, True]:
         with pytest.raises(ValidationError):
             client.find(target=cozy_auth_target, query=query)
@@ -214,13 +247,35 @@ async def test_cozystack_client_bulk_operation(
     assert len(response["docs"]) == 1
     assert response["docs"][0]["_id"] == statements[0]["id"]
 
-    # edge case: bad operation_type
+
+@pytest.mark.anyio
+async def test_cozystack_client_bulk_operation_bad_param(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test index, update and delete operation."""
+    statements = [
+        {
+            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
+            "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
+            "value": 0,
+        },
+        {
+            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
+            "timestamp": datetime.now().isoformat(),
+            "value": 1,
+        },
+    ]
+
+    cozystack_custom()
+    client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
+
+    # bad operation_type
     with pytest.raises(ValidationError):
         client.bulk_operation(
             target=cozy_auth_target, data=statements, operation_type="BAD_OPERATION"
         )
 
-    # edge case: bad data
+    # bad data
     for data in ["abc", 123, {"a": "b"}, ["abc", "def"], [123, 456], []]:
         with pytest.raises(ValidationError):
             client.bulk_operation(

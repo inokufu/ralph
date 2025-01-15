@@ -52,6 +52,24 @@ async def test_api_statements_put_single_statement_directly(
 
 
 @pytest.mark.anyio
+async def test_api_statements_put_bad_statement(
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
+):
+    """Test the post statements API route with one statement."""
+    init_cozystack_db_and_monkeypatch_backend()
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json={"abc": 123},
+    )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.anyio
 async def test_api_statements_put_enriching_without_existing_values(
     client: AsyncClient,
     init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],

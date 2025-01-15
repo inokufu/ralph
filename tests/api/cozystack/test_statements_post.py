@@ -55,7 +55,6 @@ async def test_api_statements_post_single_statement_directly(
     init_cozystack_db_and_monkeypatch_backend()
     statement = mock_statement()
 
-    # normal case
     response = await client.post(
         "/xAPI/statements/",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
@@ -74,7 +73,16 @@ async def test_api_statements_post_single_statement_directly(
         response.json(), {"statements": [statement]}
     )
 
-    # edge case: bad statement
+
+@pytest.mark.anyio
+async def test_api_statements_post_bad_statement(
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
+):
+    """Test the post statements API route with one statement."""
+    init_cozystack_db_and_monkeypatch_backend()
+
     response = await client.post(
         "/xAPI/statements/",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},

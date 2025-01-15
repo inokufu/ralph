@@ -140,7 +140,9 @@ async def request_validation_error_handler(
 
 
 @app.exception_handler(ValidationError)
-async def validation_error_handler(_: Request, exc: ValidationError) -> JSONResponse: # noqa: ARG001
+async def validation_error_handler(
+    _: Request, exc: ValidationError  # noqa: ARG001
+) -> JSONResponse:
     """Called on parameter validation error, return generic error message."""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
