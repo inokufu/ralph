@@ -18,6 +18,7 @@ from tests.fixtures.backends import (
 from tests.helpers import (
     assert_statement_get_responses_are_equivalent,
     mock_statement,
+    statements_are_equivalent,
     string_is_date,
     string_is_uuid,
 )
@@ -64,6 +65,7 @@ async def test_api_statements_post_single_statement_directly(
     assert response.status_code == 200
     assert response.json() == [statement["id"]]
 
+    # get all
     response = await client.get(
         "/xAPI/statements/",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
@@ -72,6 +74,14 @@ async def test_api_statements_post_single_statement_directly(
     assert_statement_get_responses_are_equivalent(
         response.json(), {"statements": [statement]}
     )
+
+    # get by id
+    response = await client.get(
+        f"/xAPI/statements/?statementId={statement["id"]}",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+    assert response.status_code == 200
+    assert statements_are_equivalent(response.json(), statement)
 
 
 @pytest.mark.anyio
