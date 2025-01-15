@@ -8,7 +8,8 @@ from datetime import datetime
 from typing import List, Optional, Union
 from uuid import UUID
 
-from ralph.api.auth import AuthBackend
+from ralph.api.auth.basic import get_basic_auth_user
+from ralph.conf import AuthBackend
 from ralph.utils import statements_are_equivalent
 
 from tests.fixtures.auth import AUDIENCE, ISSUER_URI
@@ -52,7 +53,7 @@ def assert_statement_get_responses_are_equivalent(response_1: dict, response_2: 
     assert len(response_1["statements"]) == len(response_2["statements"])
 
     for statement_1, statement_2 in zip(
-        response_1["statements"], response_2["statements"]
+        response_1["statements"], response_2["statements"], strict=False
     ):
         assert statements_are_equivalent(
             statement_1, statement_2
@@ -209,6 +210,15 @@ def mock_statement(
     }
 
 
+def configure_env_for_mock_basic_auth(monkeypatch):
+    """Configure environment variables to simulate OIDC use."""
+    monkeypatch.setenv("RUNSERVER_AUTH_BACKENDS", AuthBackend.BASIC.value)
+    monkeypatch.setattr(
+        "ralph.api.auth.settings.RUNSERVER_AUTH_BACKENDS", [AuthBackend.BASIC]
+    )
+    get_basic_auth_user.cache_clear()
+
+
 def configure_env_for_mock_oidc_auth(
     monkeypatch, runserver_auth_backends: List[AuthBackend] = None
 ):
@@ -231,4 +241,12 @@ def configure_env_for_mock_oidc_auth(
     monkeypatch.setattr(
         "ralph.api.auth.oidc.settings.RUNSERVER_AUTH_OIDC_AUDIENCE",
         AUDIENCE,
+    )
+
+
+def configure_env_for_mock_cozy_auth(monkeypatch):
+    """Configure environment variables to simulate Cozy auth use."""
+    monkeypatch.setenv("RUNSERVER_AUTH_BACKENDS", AuthBackend.COZY.value)
+    monkeypatch.setattr(
+        "ralph.api.auth.settings.RUNSERVER_AUTH_BACKENDS", [AuthBackend.COZY]
     )

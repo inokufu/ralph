@@ -1,5 +1,6 @@
 """Main module for Ralph's LRS API."""
 
+import os
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -8,8 +9,10 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from fastapi import Depends, FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError
 
 from ralph.conf import settings
 
@@ -68,7 +71,9 @@ async def check_x_experience_api_version_header(
 ) -> Response:
     """Check the headers for the X-Experience-API-Version in every request."""
     # about resource doesn't need the "X-Experience-API-Version" header
-    if not request.url.path == "/xAPI/about":
+    if request.url.path.startswith(
+        settings.XAPI_PREFIX
+    ) and request.url.path != os.path.join(settings.XAPI_PREFIX, "about"):
         # check that request includes X-Experience-API-Version header
         if "X-Experience-API-Version" not in request.headers:
             return JSONResponse(
@@ -124,20 +129,22 @@ async def set_x_experience_api_consistent_through_header(
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
+async def request_validation_error_handler(
     _: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Called on invalid request data, return error detail as json response."""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": str(exc.errors())},
+        content=jsonable_encoder({"detail": exc.errors()}),
     )
 
 
-@app.exception_handler(TypeError)
-async def type_exception_handler(_: Request, exc: TypeError) -> JSONResponse:
-    """Called on bad type or value, return error detail as json response."""
+@app.exception_handler(ValidationError)
+async def validation_error_handler(
+    _: Request, exc: ValidationError  # noqa: ARG001
+) -> JSONResponse:
+    """Called on parameter validation error, return generic error message."""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": str(exc)},
+        content={"detail": "An unexpected validation error has occurred."},
     )

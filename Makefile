@@ -243,7 +243,8 @@ run-databases: ## alias for running databases services
 run-databases: \
 	run-es \
 	run-mongo \
-	run-clickhouse
+	run-clickhouse \
+	run-cozy-stack
 .PHONY: run-databases
 
 run-es: ## start elasticsearch backend
@@ -260,6 +261,11 @@ run-swift: ## start swift backend
 	@echo "Waiting for swift to be up and running..."
 	@$(COMPOSE) up -d --wait swift
 .PHONY: run-swift
+
+run-cozy-stack: ## start cozystack backend
+	@echo "Waiting for cozy-stack to be up and running..."
+	@$(COMPOSE) up -d --wait cozy-stack
+.PHONY: run-cozy-stack
 
 status: ## an alias for "docker compose ps"
 	@$(COMPOSE) ps

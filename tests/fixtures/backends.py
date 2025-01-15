@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import random
+from collections.abc import Generator
 from contextlib import asynccontextmanager
 from functools import lru_cache, wraps
 from multiprocessing import Process
@@ -22,6 +23,7 @@ from pydantic import AnyHttpUrl, TypeAdapter
 from pymongo import MongoClient
 from pymongo.errors import CollectionInvalid
 
+from ralph.backends import cozystack
 from ralph.backends.data.async_es import AsyncESDataBackend
 from ralph.backends.data.async_lrs import AsyncLRSDataBackend
 from ralph.backends.data.async_mongo import AsyncMongoDataBackend
@@ -39,6 +41,7 @@ from ralph.backends.data.swift import SwiftDataBackend
 from ralph.backends.lrs.async_es import AsyncESLRSBackend
 from ralph.backends.lrs.async_mongo import AsyncMongoLRSBackend
 from ralph.backends.lrs.clickhouse import ClickHouseLRSBackend
+from ralph.backends.lrs.cozystack import CozyStackLRSBackend
 from ralph.backends.lrs.es import ESLRSBackend
 from ralph.backends.lrs.fs import FSLRSBackend
 from ralph.backends.lrs.mongo import MongoLRSBackend
@@ -85,6 +88,11 @@ MONGO_TEST_DATABASE = os.environ.get(
 )
 MONGO_TEST_CONNECTION_URI = os.environ.get(
     "RALPH_BACKENDS__DATA__MONGO__TEST_CONNECTION_URI", "mongodb://localhost:27017/"
+)
+
+# CozyStack backend defaults
+COZYSTACK_TEST_DOCTYPE = os.environ.get(
+    "RALPH_BACKENDS__DATA__COZYSTACK__TEST_DOCTYPE", "io.cozy.learningrecords"
 )
 
 RUNSERVER_TEST_HOST = os.environ.get("RALPH_RUNSERVER_TEST_HOST", "0.0.0.0")
@@ -162,6 +170,15 @@ def get_async_mongo_test_backend(
         WRITE_CHUNK_SIZE=499,
     )
     return AsyncMongoLRSBackend(settings)
+
+
+@lru_cache
+def get_cozystack_test_backend():
+    """Return a CozyStack backend instance using test defaults."""
+    settings = CozyStackLRSBackend.settings_class(
+        DEFAULT_DOCTYPE=COZYSTACK_TEST_DOCTYPE
+    )
+    return CozyStackLRSBackend(settings)
 
 
 def get_es_fixture(host=ES_TEST_HOSTS, index=ES_TEST_INDEX):
@@ -608,6 +625,30 @@ def clickhouse_custom():
         client_db.command(f"DROP TABLE IF EXISTS {table}")
 
     client.command(f"DROP DATABASE IF EXISTS {database}")
+
+
+@pytest.fixture
+def cozystack_custom(
+    cozy_auth_target,
+) -> Generator[Callable[[], cozystack.CozyStackClient]]:
+    """Yield `_cozystack_custom` function."""
+
+    client = cozystack.CozyStackClient(doctype=COZYSTACK_TEST_DOCTYPE)
+
+    def _cozystack_custom():
+        """Create indices and yield client."""
+        client.create_index(cozy_auth_target, [])
+        client.create_index(cozy_auth_target, ["source.id"])
+        client.create_index(cozy_auth_target, ["source.timestamp", "source.id"])
+
+        return client
+
+    yield _cozystack_custom
+
+    try:
+        client.delete_database(target=cozy_auth_target)
+    except cozystack.DatabaseDoesNotExistError:
+        pass
 
 
 @pytest.fixture

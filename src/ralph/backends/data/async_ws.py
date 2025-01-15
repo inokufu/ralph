@@ -55,7 +55,6 @@ class WSClientOptions(ClientOptions):
     origin: Optional[str] = None
     ping_interval: Optional[float] = 20
     ping_timeout: Optional[float] = 20
-    read_limit: int = 2**16
     user_agent_header: Optional[str] = USER_AGENT
     write_limit: int = 2**16
 

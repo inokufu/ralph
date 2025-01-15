@@ -63,7 +63,7 @@ def validate_comma_separated_tuple(value: Union[str, Tuple[str, ...]]) -> Tuple[
     if isinstance(value, str):
         return tuple(value.split(","))
 
-    raise TypeError("Invalid comma separated tuple")
+    raise ValueError("Invalid comma separated tuple")
 
 
 CommaSeparatedTuple = Annotated[
@@ -129,6 +129,7 @@ class AuthBackend(str, Enum):
 
     BASIC = "basic"
     OIDC = "oidc"
+    COZY = "cozy"
 
 
 def validate_auth_backends(
@@ -141,7 +142,7 @@ def validate_auth_backends(
     if isinstance(value, str):
         return tuple(AuthBackend(val) for val in value.lower().split(","))
 
-    raise TypeError("Invalid comma separated tuple")
+    raise ValueError("Invalid comma separated tuple")
 
 
 AuthBackends = Annotated[
@@ -215,6 +216,7 @@ class Settings(BaseSettings):
     SENTRY_IGNORE_HEALTH_CHECKS: bool = False
     SENTRY_LRS_TRACES_SAMPLE_RATE: float = 1.0
     XAPI_FORWARDINGS: List[XapiForwardingConfigurationSettings] = []
+    XAPI_PREFIX: str = "/xAPI"
     XAPI_VERSIONS_SUPPORTED: List[str] = ["1.0.3"]
     XAPI_VERSION_FALLBACK: str = "1.0.3"
 

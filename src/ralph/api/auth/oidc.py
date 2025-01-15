@@ -9,11 +9,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, OpenIdConnect
 from jose import ExpiredSignatureError, JWTError, jwt
 from jose.exceptions import JWTClaimsError
-from pydantic import AnyUrl, BaseModel, ConfigDict
+from pydantic import AnyUrl
 from typing_extensions import Annotated
 
+from ralph.api.auth.token import BaseIDToken
 from ralph.api.auth.user import AuthenticatedUser, UserScopes
-from ralph.conf import settings
+from ralph.conf import AuthBackend, settings
 
 OPENID_CONFIGURATION_PATH = "/.well-known/openid-configuration"
 oauth2_scheme = OpenIdConnect(
@@ -26,7 +27,7 @@ oauth2_scheme = OpenIdConnect(
 logger = logging.getLogger(__name__)
 
 
-class IDToken(BaseModel):
+class IDToken(BaseIDToken):
     """Pydantic model representing the core of an OpenID Connect ID Token.
 
     ID Tokens are polymorphic and may have many attributes not defined in the
@@ -43,15 +44,9 @@ class IDToken(BaseModel):
         target (str): Target for storing the statements.
     """
 
-    iss: str
     sub: str
     aud: Optional[str] = None
     exp: int
-    iat: int
-    scope: Optional[str] = None
-    target: Optional[str] = None
-
-    model_config = ConfigDict(extra="ignore")
 
 
 @lru_cache()
@@ -96,7 +91,7 @@ def get_public_keys(jwks_uri: AnyUrl) -> Dict:
 
 def get_oidc_user(
     auth_header: Annotated[Optional[HTTPBearer], Depends(oauth2_scheme)],
-) -> AuthenticatedUser:
+) -> AuthenticatedUser | None:
     """Decode and validate OpenId Connect ID token against issuer in config.
 
     Args:
@@ -110,6 +105,9 @@ def get_oidc_user(
     Raises:
         HTTPException
     """
+    if AuthBackend.OIDC not in settings.RUNSERVER_AUTH_BACKENDS:
+        return None
+
     if auth_header is None or "bearer" not in auth_header.lower():
         logger.debug(
             "Not using OIDC auth. The OpenID Connect authentication mode requires a "
