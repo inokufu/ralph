@@ -1,9 +1,14 @@
 """Tests for the PUT statements endpoint of the Ralph API."""
 
+from collections.abc import Callable
+from typing import Any
 from uuid import uuid4
 
 import pytest
+from httpx import AsyncClient
+from pytest import MonkeyPatch
 
+from ralph.backends.cozystack import CozyStackClient
 from ralph.exceptions import BackendException
 
 from tests.fixtures.backends import (
@@ -19,7 +24,9 @@ from tests.helpers import (
 
 @pytest.mark.anyio
 async def test_api_statements_put_single_statement_directly(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the put statements API route with one statement."""
     init_cozystack_db_and_monkeypatch_backend()
@@ -46,7 +53,9 @@ async def test_api_statements_put_single_statement_directly(
 
 @pytest.mark.anyio
 async def test_api_statements_put_enriching_without_existing_values(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test that statements are properly enriched when statement provides no values."""
     init_cozystack_db_and_monkeypatch_backend()
@@ -100,12 +109,12 @@ async def test_api_statements_put_enriching_without_existing_values(
     ],
 )
 async def test_api_statements_put_enriching_with_existing_values(  # noqa: PLR0913
-    client,
-    field,
-    value,
-    status,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
+    client: AsyncClient,
+    field: str,
+    value: Any,
+    status: int,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test that statements are properly enriched when values are provided."""
     init_cozystack_db_and_monkeypatch_backend()
@@ -141,9 +150,9 @@ async def test_api_statements_put_enriching_with_existing_values(  # noqa: PLR09
 
 @pytest.mark.anyio
 async def test_api_statements_put_single_statement_no_trailing_slash(
-    client,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test that the statements endpoint also works without the trailing slash."""
     init_cozystack_db_and_monkeypatch_backend()
@@ -160,9 +169,9 @@ async def test_api_statements_put_single_statement_no_trailing_slash(
 
 @pytest.mark.anyio
 async def test_api_statements_put_id_mismatch(
-    client,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the put statements API route when the statementId doesn't match."""
     init_cozystack_db_and_monkeypatch_backend()
@@ -183,9 +192,9 @@ async def test_api_statements_put_id_mismatch(
 
 @pytest.mark.anyio
 async def test_api_statements_put_list_of_one(
-    client,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test that we fail on PUTs with a list, even if it's one statement."""
     init_cozystack_db_and_monkeypatch_backend()
@@ -202,9 +211,9 @@ async def test_api_statements_put_list_of_one(
 
 @pytest.mark.anyio
 async def test_api_statements_put_duplicate_of_existing_statement(
-    client,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the put statements API route, given a statement that already exist in the
     database (has the same ID), should fail.
@@ -242,10 +251,10 @@ async def test_api_statements_put_duplicate_of_existing_statement(
 
 @pytest.mark.anyio
 async def test_api_statements_put_with_failure_during_storage(
-    client,
-    monkeypatch,
-    cozystack_custom,
-    cozy_auth_token,
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_token: str,
 ):
     """Test the put statements API route with a failure happening during storage."""
 
@@ -272,7 +281,10 @@ async def test_api_statements_put_with_failure_during_storage(
 
 @pytest.mark.anyio
 async def test_api_statements_put_with_a_failure_during_id_query(
-    client, monkeypatch, cozystack_custom, cozy_auth_token
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_token: str,
 ):
     """Test the put statements API route with a failure during query execution."""
 
@@ -301,7 +313,10 @@ async def test_api_statements_put_with_a_failure_during_id_query(
 
 @pytest.mark.anyio
 async def test_api_statements_put_without_forwarding(
-    client, monkeypatch, cozystack_custom, cozy_auth_token
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_token: str,
 ):
     """Test the put statements API route, given an empty forwarding configuration,
     should not start the forwarding background task.

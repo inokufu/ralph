@@ -1,5 +1,7 @@
 """Test fixtures related to the API."""
 
+from collections.abc import AsyncGenerator
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -8,7 +10,7 @@ from ralph.api import app
 
 @pytest.mark.anyio
 @pytest.fixture(scope="session")
-async def client():
+async def client() -> AsyncGenerator[AsyncClient]:
     """Return an AsyncClient for the FastAPI app."""
     async with AsyncClient(
         transport=ASGITransport(app=app),

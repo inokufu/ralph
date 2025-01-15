@@ -1,11 +1,15 @@
 """Tests for the GET statements endpoint of the Ralph API."""
 
 import json
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, quote_plus, urlparse
 
 import pytest
+from httpx import AsyncClient
+from pytest import MonkeyPatch
 
+from ralph.backends.cozystack import CozyStackClient
 from ralph.exceptions import BackendException
 
 from tests.fixtures.backends import get_cozystack_test_backend
@@ -14,7 +18,9 @@ from tests.helpers import mock_activity, mock_agent
 
 @pytest.mark.anyio
 async def test_api_statements_get(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route without any filters set up."""
 
@@ -44,7 +50,9 @@ async def test_api_statements_get(
 
 @pytest.mark.anyio
 async def test_api_statements_get_ascending(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "ascending" query parameter, should
     return statements in ascending order by their timestamp.
@@ -63,6 +71,7 @@ async def test_api_statements_get_ascending(
 
     init_cozystack_db_and_monkeypatch_backend(statements)
 
+    # normal case
     response = await client.get(
         "/xAPI/statements/?ascending=true",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
@@ -71,10 +80,24 @@ async def test_api_statements_get_ascending(
     assert response.status_code == 200
     assert response.json() == {"statements": [statements[0], statements[1]]}
 
+    # edge case: wrong ascending param
+    response = await client.get(
+        "/xAPI/statements/?ascending=toto",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 400
+
+    error = response.json()["detail"][0]
+    assert error["type"] == "bool_parsing"
+    assert error["loc"] == ["query", "ascending"]
+
 
 @pytest.mark.anyio
 async def test_api_statements_get_by_statement_id(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "statementId" query parameter, should
     return a list of statements matching the given statementId.
@@ -93,6 +116,7 @@ async def test_api_statements_get_by_statement_id(
 
     init_cozystack_db_and_monkeypatch_backend(statements)
 
+    # normal case
     response = await client.get(
         f"/xAPI/statements/?statementId={statements[1]['id']}",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
@@ -101,10 +125,24 @@ async def test_api_statements_get_by_statement_id(
     assert response.status_code == 200
     assert response.json() == statements[1]
 
+    # edge case: wrong statementId param
+    response = await client.get(
+        "/xAPI/statements/?statementId=abc",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 400
+
+    error = response.json()["detail"][0]
+    assert error["type"] == "uuid_parsing"
+    assert error["loc"] == ["query", "statementId"]
+
 
 @pytest.mark.anyio
 async def test_api_statements_get_by_verb(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "verb" query parameter, should
     return a list of statements filtered by the given verb id.
@@ -124,6 +162,7 @@ async def test_api_statements_get_by_verb(
     ]
     init_cozystack_db_and_monkeypatch_backend(statements)
 
+    # normal case
     response = await client.get(
         "/xAPI/statements/?verb=" + quote_plus("http://adlnet.gov/expapi/verbs/played"),
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
@@ -132,10 +171,33 @@ async def test_api_statements_get_by_verb(
     assert response.status_code == 200
     assert response.json() == {"statements": [statements[1]]}
 
+    # edge case: unknown IRI verb
+    response = await client.get(
+        "/xAPI/statements/?verb=" + quote_plus("http://adlnet.gov/expapi/verbs/tested"),
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"statements": []}
+
+    # edge case: unknown no IRI verb
+    response = await client.get(
+        "/xAPI/statements/?verb=tested",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"][0]["msg"]
+        == "Value error, 'tested' is not a valid 'IRI'."
+    )
+
 
 @pytest.mark.anyio
 async def test_api_statements_get_by_activity(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "activity" query parameter, should
     return a list of statements filtered by the given activity id.
@@ -159,6 +221,7 @@ async def test_api_statements_get_by_activity(
 
     init_cozystack_db_and_monkeypatch_backend(statements)
 
+    # normal case
     response = await client.get(
         f"/xAPI/statements/?activity={activity_1['id']}",
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
@@ -167,10 +230,33 @@ async def test_api_statements_get_by_activity(
     assert response.status_code == 200
     assert response.json() == {"statements": [statements[1]]}
 
+    # edge case: unknown IRI activity
+    response = await client.get(
+        "/xAPI/statements/?activity=http://example.com/unknown",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"statements": []}
+
+    # edge case: unknown no IRI activity
+    response = await client.get(
+        "/xAPI/statements/?activity=unknown",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"][0]["msg"]
+        == "Value error, 'unknown' is not a valid 'IRI'."
+    )
+
 
 @pytest.mark.anyio
 async def test_api_statements_get_since_timestamp(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "since" query parameter, should
     return a list of statements filtered by the given timestamp.
@@ -189,6 +275,7 @@ async def test_api_statements_get_since_timestamp(
 
     init_cozystack_db_and_monkeypatch_backend(statements)
 
+    # normal case: since timestamp between the two statements' timestamp
     since = (datetime.now() - timedelta(minutes=30)).isoformat()
 
     response = await client.get(
@@ -199,10 +286,35 @@ async def test_api_statements_get_since_timestamp(
     assert response.status_code == 200
     assert response.json() == {"statements": [statements[1]]}
 
+    # normal case: since timestamp after the two statements' timestamp
+    since = (datetime.now() + timedelta(minutes=30)).isoformat()
+
+    response = await client.get(
+        f"/xAPI/statements/?since={since}",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"statements": []}
+
+    # edge case: wrong since param
+    response = await client.get(
+        "/xAPI/statements/?since=abc",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 400
+
+    error = response.json()["detail"][0]
+    assert error["type"] == "datetime_from_date_parsing"
+    assert error["loc"] == ["query", "since"]
+
 
 @pytest.mark.anyio
 async def test_api_statements_get_until_timestamp(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "until" query parameter,
     should return a list of statements filtered by the given timestamp.
@@ -221,6 +333,7 @@ async def test_api_statements_get_until_timestamp(
 
     init_cozystack_db_and_monkeypatch_backend(statements)
 
+    # normal case: until timestamp between the two statements' timestamp
     until = (datetime.now() - timedelta(minutes=30)).isoformat()
     response = await client.get(
         f"/xAPI/statements/?until={until}",
@@ -230,10 +343,35 @@ async def test_api_statements_get_until_timestamp(
     assert response.status_code == 200
     assert response.json() == {"statements": [statements[0]]}
 
+    # normal case: until timestamp before the two statements' timestamp
+    until = (datetime.now() - timedelta(hours=2)).isoformat()
+    response = await client.get(
+        f"/xAPI/statements/?until={until}",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"statements": []}
+
+    # edge case: wrong until param
+    response = await client.get(
+        "/xAPI/statements/?until=abc",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 400
+
+    error = response.json()["detail"][0]
+    assert error["type"] == "datetime_from_date_parsing"
+    assert error["loc"] == ["query", "until"]
+
 
 @pytest.mark.anyio
 async def test_api_statements_get_with_pagination(
-    client, monkeypatch, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given a request leading to more results than
     can fit on the first page, should return a list of statements non-exceeding the page
@@ -277,8 +415,10 @@ async def test_api_statements_get_with_pagination(
 
     assert first_response.status_code == 200
     assert first_response.json()["statements"] == [statements[4], statements[3]]
+
     more = urlparse(first_response.json()["more"])
     more_query_params = parse_qs(more.query)
+
     assert more.path == "/xAPI/statements/"
     assert all(key in more_query_params for key in ("pit_id", "search_after"))
 
@@ -290,12 +430,14 @@ async def test_api_statements_get_with_pagination(
 
     assert second_response.status_code == 200
     assert second_response.json()["statements"] == [statements[2], statements[1]]
+
     more = urlparse(first_response.json()["more"])
     more_query_params = parse_qs(more.query)
+
     assert more.path == "/xAPI/statements/"
     assert all(key in more_query_params for key in ("pit_id", "search_after"))
 
-    # Third response gets the missing result from the first response
+    # Third response gets the missing result from the second response
     third_response = await client.get(
         second_response.json()["more"],
         headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
@@ -307,7 +449,10 @@ async def test_api_statements_get_with_pagination(
 
 @pytest.mark.anyio
 async def test_api_statements_get_with_pagination_and_query(
-    client, monkeypatch, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given a request with a query parameter
     leading to more results than can fit on the first page, should return a list
@@ -374,7 +519,9 @@ async def test_api_statements_get_with_pagination_and_query(
 
 @pytest.mark.anyio
 async def test_api_statements_get_with_no_matching_statement(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the get statements API route, given a query yielding no matching statement,
     should return an empty list.
@@ -403,7 +550,7 @@ async def test_api_statements_get_with_no_matching_statement(
 
 @pytest.mark.anyio
 async def test_api_statements_get_with_database_query_failure(
-    client, monkeypatch, cozy_auth_token
+    client: AsyncClient, monkeypatch: MonkeyPatch, cozy_auth_token: str
 ):
     """Test the get statements API route, given a query raising a BackendException,
     should return an error response with HTTP code 500.
@@ -429,7 +576,11 @@ async def test_api_statements_get_with_database_query_failure(
 @pytest.mark.anyio
 @pytest.mark.parametrize("id_param", ["statementId", "voidedStatementId"])
 async def test_api_statements_get_invalid_query_parameters(
-    client, monkeypatch, id_param, cozystack_custom, cozy_auth_token
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    id_param: str,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_token: str,
 ):
     """Test error response for invalid query parameters"""
 

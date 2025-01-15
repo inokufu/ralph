@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import random
+from collections.abc import Generator
 from contextlib import asynccontextmanager
 from functools import lru_cache, wraps
 from multiprocessing import Process
@@ -627,7 +628,9 @@ def clickhouse_custom():
 
 
 @pytest.fixture
-def cozystack_custom(cozy_auth_target):
+def cozystack_custom(
+    cozy_auth_target,
+) -> Generator[Callable[[], cozystack.CozyStackClient]]:
     """Yield `_cozystack_custom` function."""
 
     client = cozystack.CozyStackClient(doctype=COZYSTACK_TEST_DOCTYPE)

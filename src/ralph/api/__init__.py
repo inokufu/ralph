@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError
 
 from ralph.conf import settings
 
@@ -128,11 +129,20 @@ async def set_x_experience_api_consistent_through_header(
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
+async def request_validation_error_handler(
     _: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Called on invalid request data, return error detail as json response."""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content=jsonable_encoder({"detail": exc.errors()}),
+    )
+
+
+@app.exception_handler(ValidationError)
+async def validation_error_handler(_: Request, exc: ValidationError) -> JSONResponse: # noqa: ARG001
+    """Called on parameter validation error, return generic error message."""
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": "An unexpected validation error has occurred."},
     )

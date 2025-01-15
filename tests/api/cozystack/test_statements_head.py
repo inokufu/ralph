@@ -1,10 +1,13 @@
 """Tests for the HEAD statements endpoint of the Ralph API with CozyStack backend."""
 
 import json
+from collections.abc import Callable
 from datetime import datetime, timedelta
 
 import pytest
 import responses
+from httpx import AsyncClient
+from pytest import MonkeyPatch
 
 from ralph.exceptions import BackendException
 
@@ -25,9 +28,9 @@ TEST_STATEMENTS = [
 @pytest.mark.anyio
 @responses.activate
 async def test_api_statements_head(
-    client,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the head statements API route without any filters set up."""
     init_cozystack_db_and_monkeypatch_backend(TEST_STATEMENTS)
@@ -44,7 +47,9 @@ async def test_api_statements_head(
 
 @pytest.mark.anyio
 async def test_api_statements_head_by_statement_id(
-    client, init_cozystack_db_and_monkeypatch_backend, cozy_auth_token
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """Test the head statements API route given a "statementId" query parameter."""
     init_cozystack_db_and_monkeypatch_backend(TEST_STATEMENTS)
@@ -60,9 +65,9 @@ async def test_api_statements_head_by_statement_id(
 
 @pytest.mark.anyio
 async def test_api_statements_head_with_no_matching_statement(
-    client,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
 ):
     """
     Test the head statements API route, given a query yielding no matching statement.
@@ -80,7 +85,7 @@ async def test_api_statements_head_with_no_matching_statement(
 
 @pytest.mark.anyio
 async def test_api_statements_head_with_database_query_failure(
-    client, monkeypatch, cozy_auth_token
+    client: AsyncClient, monkeypatch: MonkeyPatch, cozy_auth_token: str
 ):
     """Test the head statements API route, given a query raising a BackendException."""
 
@@ -104,10 +109,10 @@ async def test_api_statements_head_with_database_query_failure(
 @pytest.mark.anyio
 @pytest.mark.parametrize("id_param", ["statementId", "voidedStatementId"])
 async def test_api_statements_head_invalid_query_parameters(
-    client,
-    init_cozystack_db_and_monkeypatch_backend,
-    cozy_auth_token,
-    id_param,
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_token: str,
+    id_param: str,
 ):
     """Test error response for invalid query parameters."""
     init_cozystack_db_and_monkeypatch_backend()

@@ -1,5 +1,7 @@
 """Test fixtures for statements."""
 
+from collections.abc import Callable
+
 import pytest
 from elasticsearch.helpers import bulk
 
@@ -133,7 +135,7 @@ def insert_cozystack_statements(statements, target):
 @pytest.fixture
 def init_cozystack_db_and_monkeypatch_backend(
     monkeypatch, cozystack_custom, cozy_auth_target
-):
+) -> Callable[[list[dict] | None], None]:
     """Return a function that inserts statements into CozyStack backend."""
 
     def _init_cozystack_db_and_monkeypatch_backend(statements=None):

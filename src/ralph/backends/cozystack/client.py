@@ -1,15 +1,25 @@
 """CozyStack client for Ralph."""
 
 import os
-from typing import Dict, Iterable, List
+from typing import Any, Dict, Iterable, List
 
 import httpx
 from fastapi import HTTPException, status
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError, conlist, constr
 
 from ralph.backends.cozystack import exceptions
 from ralph.backends.data.base import BaseOperationType
 from ralph.models.cozy import CozyAuthData
+
+NonEmptyStr = constr(strict=True, min_length=1)
+
+doctype_adapter = TypeAdapter(
+    constr(strict=True, min_length=1, pattern=r"(?:[a-z]+\.)+[a-z]+")
+)
+fields_adapter = TypeAdapter(list[NonEmptyStr])
+query_adapter = TypeAdapter(dict[NonEmptyStr, Any])
+operation_type_adapter = TypeAdapter(BaseOperationType)
+data_adapter = TypeAdapter(conlist(dict[NonEmptyStr, Any], min_length=1))
 
 
 class CozyStackHttpClient:
@@ -48,7 +58,12 @@ class CozyStackClient:
     """CozyStack low-level client. Provides a straightforward mappingfrom Python to CozyStack REST APIs."""  # noqa: E501
 
     def __init__(self, doctype: str):
-        """Instanciate the CozyStack client."""
+        """Instanciate the CozyStack client.
+
+        Raises:
+            pydantic.ValidationError: When doctype is malformed.
+        """
+        doctype_adapter.validate_python(doctype)
         self.doctype = doctype
 
     @staticmethod
@@ -80,13 +95,19 @@ class CozyStackClient:
     def create_index(self, target: str, fields: List[str]) -> Dict:
         """Create an index for some documents.
 
+        Attributes:
+            target (str): The target instance url with auth data.
+            fields (list[str]): List of fields to create index for.
+
         Return:
             Dict: Index creation informations.
 
         Raises:
             fastapi.HTTPException: When target is malformed.
+            pydantic.ValidationError: When fields is malformed.
             CozyStackError: see ralph.backends.cozystack.exceptions.
         """
+        fields_adapter.validate_python(fields)
         url = os.path.join("/", self.doctype, "_index")
 
         with CozyStackHttpClient(target=target) as client:
@@ -137,15 +158,18 @@ class CozyStackClient:
 
         Attributes:
             target (str): The target instance url with auth data.
-            query (CozyStackQuery): The query to select records to read.
+            query (dict): The query to select records to read.
 
         Return:
             Dict: Response containing records to read.
 
         Raises:
             fastapi.HTTPException: When target is malformed.
+            pydantic.ValidationError: When query is malformed.
             CozyStackError: see ralph.backends.cozystack.exceptions.
         """
+        query_adapter.validate_python(query)
+
         url = os.path.join("/", self.doctype, "_find")
 
         with CozyStackHttpClient(target=target) as client:
@@ -207,8 +231,12 @@ class CozyStackClient:
 
         Raises:
             fastapi.HTTPException: When target is malformed.
+            pydantic.ValidationError: When data or operation_type is malformed.
             CozyStackError: see ralph.backends.cozystack.exceptions.
         """  # noqa: E501
+        data = data_adapter.validate_python(data)
+        operation_type_adapter.validate_python(operation_type)
+
         url = os.path.join("/", self.doctype, "_bulk_docs")
         prepared_data = self._prepare_data(data, operation_type)
 

@@ -1,9 +1,11 @@
 """Test for CozyStack client."""
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from ralph.backends.cozystack import (
     CozyStackClient,
@@ -17,7 +19,10 @@ from tests.fixtures.backends import COZYSTACK_TEST_DOCTYPE
 
 
 @pytest.mark.anyio
-async def test_cozystack_client_create_index(cozystack_custom, cozy_auth_target):
+async def test_cozystack_client_create_index(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test index creation."""
     cozystack_custom()
     client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
 
@@ -27,9 +32,16 @@ async def test_cozystack_client_create_index(cozystack_custom, cozy_auth_target)
     response = client.create_index(cozy_auth_target, fields=["abc"])
     assert response["result"] == "exists"
 
+    for bad_value in [[123], "abc", True]:
+        with pytest.raises(ValidationError):
+            client.create_index(cozy_auth_target, fields=bad_value)
+
 
 @pytest.mark.anyio
-async def test_cozystack_client_delete_database(cozystack_custom, cozy_auth_target):
+async def test_cozystack_client_delete_database(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test database deletion."""
     cozystack_custom()
     client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
 
@@ -42,7 +54,10 @@ async def test_cozystack_client_delete_database(cozystack_custom, cozy_auth_targ
 
 
 @pytest.mark.anyio
-async def test_cozystack_client_list_all_doctypes(cozystack_custom, cozy_auth_target):
+async def test_cozystack_client_list_all_doctypes(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test doctype listing."""
     cozystack_custom()
     client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
 
@@ -52,8 +67,10 @@ async def test_cozystack_client_list_all_doctypes(cozystack_custom, cozy_auth_ta
 
 @pytest.mark.anyio
 async def test_cozystack_client_find(
-    init_cozystack_db_and_monkeypatch_backend, cozy_auth_target
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    cozy_auth_target: str,
 ):
+    """Test database querying with and without filter/selector."""
     statements = [
         {
             "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
@@ -97,13 +114,30 @@ async def test_cozystack_client_find(
     assert not response["next"]
     assert response["docs"][0]["_id"] == statements[1]["id"]
 
-    # bad query
-    with pytest.raises(InvalidRequestError):
-        client.find(target=cozy_auth_target, query={"filter": {}})
+    # edge case: empty query
+    for query in [
+        {"selector": {"source.value": "abc"}},
+        {"selector": {"source.test": 0}},
+    ]:
+        response = client.find(target=cozy_auth_target, query=query)
+        assert len(response["docs"]) == 0
+
+    # edge case: malformed query
+    for query in [{"filter": {}}, {"selector": "abc"}, {"selector": {}, "limit": -1}]:
+        with pytest.raises(InvalidRequestError):
+            client.find(target=cozy_auth_target, query=query)
+
+    # edge case: wrong type query
+    for query in ["abc", 123, True]:
+        with pytest.raises(ValidationError):
+            client.find(target=cozy_auth_target, query=query)
 
 
 @pytest.mark.anyio
-async def test_cozystack_client_bulk_operation(cozystack_custom, cozy_auth_target):
+async def test_cozystack_client_bulk_operation(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test index, update and delete operation."""
     statements = [
         {
             "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
@@ -126,7 +160,7 @@ async def test_cozystack_client_bulk_operation(cozystack_custom, cozy_auth_targe
     )
     assert response == len(statements)
 
-    # try ton index twice
+    # try to index twice
     response = client.bulk_operation(
         target=cozy_auth_target, data=statements, operation_type=BaseOperationType.INDEX
     )
@@ -180,9 +214,27 @@ async def test_cozystack_client_bulk_operation(cozystack_custom, cozy_auth_targe
     assert len(response["docs"]) == 1
     assert response["docs"][0]["_id"] == statements[0]["id"]
 
+    # edge case: bad operation_type
+    with pytest.raises(ValidationError):
+        client.bulk_operation(
+            target=cozy_auth_target, data=statements, operation_type="BAD_OPERATION"
+        )
+
+    # edge case: bad data
+    for data in ["abc", 123, {"a": "b"}, ["abc", "def"], [123, 456], []]:
+        with pytest.raises(ValidationError):
+            client.bulk_operation(
+                target=cozy_auth_target,
+                data=data,
+                operation_type=BaseOperationType.INDEX,
+            )
+
 
 @pytest.mark.anyio
-async def test_cozystack_client_bad_doctype(cozystack_custom, cozy_auth_target):
+async def test_cozystack_client_bad_doctype(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test index creation and database deletion when wrong doctype is given."""
     cozystack_custom()
     client = CozyStackClient("io.cozy.baddoctype")
 
@@ -194,7 +246,13 @@ async def test_cozystack_client_bad_doctype(cozystack_custom, cozy_auth_target):
 
 
 @pytest.mark.anyio
-async def test_cozystack_client_bad_target(cozystack_custom):
+async def test_cozystack_client_bad_target(
+    cozystack_custom: Callable[[], CozyStackClient]
+):
+    """
+    Test index creation, database deletion and doctype listing
+    when wrong target is given.
+    """
     cozystack_custom()
     client = CozyStackClient(COZYSTACK_TEST_DOCTYPE)
 

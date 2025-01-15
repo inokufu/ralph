@@ -2,9 +2,12 @@
 
 import json
 import logging
+from collections.abc import Callable
 from io import BytesIO
 
 import pytest
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import LogCaptureFixture, MonkeyPatch
 
 from ralph.backends.cozystack import (
     CozyStackClient,
@@ -22,7 +25,9 @@ from ralph.exceptions import BackendException, BackendParameterException
 from ralph.utils import now
 
 
-def test_backends_data_cozystack_default_instantiation(monkeypatch, fs):
+def test_backends_data_cozystack_default_instantiation(
+    monkeypatch: MonkeyPatch, fs: FakeFilesystem
+):
     """Test the `CozyStackDataBackend` default instantiation."""
 
     fs.create_file(".env")
@@ -68,7 +73,9 @@ def test_backends_data_cozystack_instantiation_with_settings():
     ],
 )
 def test_backends_data_cozystack_list_with_failure(
-    caplog, monkeypatch, exception_class
+    caplog: LogCaptureFixture,
+    monkeypatch: MonkeyPatch,
+    exception_class: type[Exception],
 ):
     """
     Test the `CozyStackDataBackend.list` method
@@ -94,7 +101,9 @@ def test_backends_data_cozystack_list_with_failure(
 
 
 def test_backends_data_cozystack_list_with_ignored_args(
-    caplog, cozystack_custom, cozy_auth_target
+    caplog: LogCaptureFixture,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_target: str,
 ):
     """
     Test the `CozyStackDataBackend.list` method given `details` and `new` argument
@@ -119,7 +128,9 @@ def test_backends_data_cozystack_list_with_ignored_args(
     ) in caplog.record_tuples
 
 
-def test_backends_data_cozystack_list(cozystack_custom, cozy_auth_target):
+def test_backends_data_cozystack_list(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
     cozystack_custom()
     backend = CozyStackDataBackend()
     assert "io.cozy.learningrecords" in list(backend.list(cozy_auth_target))
@@ -134,7 +145,10 @@ def test_backends_data_cozystack_list(cozystack_custom, cozy_auth_target):
     ],
 )
 def test_backends_data_cozystack_read_with_failure(
-    caplog, monkeypatch, exception_class, cozy_auth_target
+    caplog: LogCaptureFixture,
+    monkeypatch: MonkeyPatch,
+    exception_class: type[Exception],
+    cozy_auth_target: str,
 ):
     """
     Test the `CozyStackDataBackend.read` method, given a request failure,
@@ -160,7 +174,9 @@ def test_backends_data_cozystack_read_with_failure(
 
 
 def test_backends_data_cozystack_read_with_ignored_args(
-    caplog, cozystack_custom, cozy_auth_target
+    caplog: LogCaptureFixture,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_target: str,
 ):
     """
     Test the `CozyStackDataBackend.read` method given `ignore_errors`
@@ -186,13 +202,13 @@ def test_backends_data_cozystack_read_with_ignored_args(
 
 
 def test_backends_data_cozystack_read_with_raw_ouput(
-    cozystack_custom, cozy_auth_target
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
 ):
     """Test the `CozyStackDataBackend.read` method with `raw_output` set to `True`."""
     cozystack_custom()
     backend = CozyStackDataBackend()
 
-    documents = [{"id": idx, "timestamp": now()} for idx in range(10)]
+    documents = [{"id": str(idx), "timestamp": now()} for idx in range(10)]
     assert backend.write(documents, target=cozy_auth_target) == 10
 
     hits = list(backend.read(target=cozy_auth_target, raw_output=True))
@@ -203,13 +219,13 @@ def test_backends_data_cozystack_read_with_raw_ouput(
 
 
 def test_backends_data_cozystack_read_without_raw_ouput(
-    cozystack_custom, cozy_auth_target
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
 ):
     """Test the `CozyStackDataBackend.read` method with `raw_output` set to `False`."""
     cozystack_custom()
     backend = CozyStackDataBackend()
 
-    documents = [{"id": idx, "timestamp": now()} for idx in range(10)]
+    documents = [{"id": str(idx), "timestamp": now()} for idx in range(10)]
     assert backend.write(documents, target=cozy_auth_target) == 10
 
     hits = backend.read(target=cozy_auth_target)
@@ -219,7 +235,9 @@ def test_backends_data_cozystack_read_without_raw_ouput(
 
 
 def test_backends_data_cozystack_read_with_query(
-    cozystack_custom, cozy_auth_target, caplog
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_target: str,
+    caplog: LogCaptureFixture,
 ):
     """Test the `CozyStackDataBackend.read` method with a query."""
     cozystack_custom()
@@ -286,7 +304,9 @@ def test_backends_data_cozystack_read_with_query(
 
 
 def test_backends_data_cozystack_write_with_create_operation(
-    cozystack_custom, cozy_auth_target, caplog
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_target: str,
+    caplog: LogCaptureFixture,
 ):
     """Test the `CozyStackDataBackend.write` method, given an `CREATE` `operation_type`,
     should insert the target documents with the provided data.
@@ -335,7 +355,7 @@ def test_backends_data_cozystack_write_with_create_operation(
 
 
 def test_backends_data_cozystack_write_with_delete_operation(
-    cozystack_custom, cozy_auth_target
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
 ):
     """
     Test the `CozyStackDataBackend.write` method, given a `DELETE` `operation_type`,
@@ -369,7 +389,7 @@ def test_backends_data_cozystack_write_with_delete_operation(
 
 
 def test_backends_data_cozystack_write_with_update_operation(
-    cozystack_custom, cozy_auth_target
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
 ):
     """
     Test the `CozyStackDataBackend.write` method, given an `UPDATE` `operation_type`,
@@ -418,7 +438,9 @@ def test_backends_data_cozystack_write_with_update_operation(
     ]
 
 
-def test_backends_data_cozystack_write_with_append_operation(cozystack_custom, caplog):
+def test_backends_data_cozystack_write_with_append_operation(
+    cozystack_custom: Callable[[], CozyStackClient], caplog: LogCaptureFixture
+):
     """Test the `CozyStackDataBackend.write` method, given an `APPEND` `operation_type`,
     should raise a `BackendParameterException`.
     """

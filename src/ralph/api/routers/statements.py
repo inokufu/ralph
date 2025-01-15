@@ -20,7 +20,8 @@ from fastapi import (
     status,
 )
 from fastapi.dependencies.models import Dependant
-from pydantic import TypeAdapter
+from fastapi.exceptions import RequestValidationError
+from pydantic import TypeAdapter, ValidationError
 from pydantic.types import Json
 from starlette.datastructures import Headers
 from typing_extensions import Annotated
@@ -164,11 +165,11 @@ async def get(  # noqa: PLR0912, PLR0913
     # Query string parameters defined by the LRS specification
     ###
     statement_id: Annotated[
-        Optional[str],
+        Optional[UUID],
         Query(description="Id of Statement to fetch", alias="statementId"),
     ] = None,
     voided_statement_id: Annotated[
-        Optional[str],
+        Optional[UUID],
         Query(
             description="**Not implemented** Id of voided Statement to fetch",
             alias="voidedStatementId",
@@ -385,11 +386,14 @@ async def get(  # noqa: PLR0912, PLR0913
         ).model_dump(mode="json", exclude_none=True)
 
     # Coerce `verb` and `activity` as IRI
-    if query_params.get("verb"):
-        query_params["verb"] = IRI(query_params["verb"])
+    try:
+        if query_params.get("verb"):
+            query_params["verb"] = IRI(query_params["verb"])
 
-    if query_params.get("activity"):
-        query_params["activity"] = IRI(query_params["activity"])
+        if query_params.get("activity"):
+            query_params["activity"] = IRI(query_params["activity"])
+    except ValidationError as exc:
+        raise RequestValidationError(errors=exc.errors()) from exc
 
     # mine: If using scopes, only restrict users with limited scopes
     if settings.LRS_RESTRICT_BY_SCOPES:

@@ -1,9 +1,14 @@
 """Tests for Ralph CozyStack LRS backend."""
 
 import logging
+from collections.abc import Callable
+from typing import Any
 
 import pytest
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import LogCaptureFixture, MonkeyPatch
 
+from ralph.backends.cozystack import CozyStackClient
 from ralph.backends.cozystack.exceptions import ExpiredTokenError
 from ralph.backends.lrs.base import RalphStatementsQuery
 from ralph.backends.lrs.cozystack import CozyStackLRSBackend
@@ -11,7 +16,7 @@ from ralph.exceptions import BackendException
 
 
 def test_backends_lrs_cozystack_default_instantiation(
-    monkeypatch: pytest.MonkeyPatch, fs
+    monkeypatch: MonkeyPatch, fs: FakeFilesystem
 ):
     """Test the `CozyStackLRSBackend` default instantiation."""
     fs.create_file(".env")
@@ -191,7 +196,7 @@ def test_backends_lrs_cozystack_default_instantiation(
     ],
 )
 def test_backends_lrs_cozystack_query_statements_query(
-    params, expected_query, monkeypatch
+    params: dict[str, Any], expected_query: dict[str, Any], monkeypatch: MonkeyPatch
 ):
     """Test the `CozyStackLRSBackend.query_statements` method, given valid statement
     parameters, should produce the expected CozyStack query.
@@ -212,7 +217,9 @@ def test_backends_lrs_cozystack_query_statements_query(
     assert result.search_after == "abc"
 
 
-def test_backends_lrs_cozystack_query_statements(cozystack_custom, cozy_auth_target):
+def test_backends_lrs_cozystack_query_statements(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
     """Test the `CozyStackLRSBackend.query_statements` method, given a query,
     should return matching statements.
     """
@@ -234,7 +241,10 @@ def test_backends_lrs_cozystack_query_statements(cozystack_custom, cozy_auth_tar
 
 
 def test_backends_lrs_cozystack_query_statements_with_search_query_failure(
-    monkeypatch, caplog, cozystack_custom, cozy_auth_target
+    monkeypatch: MonkeyPatch,
+    caplog: LogCaptureFixture,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_target: str,
 ):
     """
     Test the `CozyStackLRSBackend.query_statements`, given a search query failure,
@@ -264,7 +274,10 @@ def test_backends_lrs_cozystack_query_statements_with_search_query_failure(
 
 
 def test_backends_lrs_cozystack_query_statements_by_ids_with_search_query_failure(
-    monkeypatch, caplog, cozystack_custom, cozy_auth_target
+    monkeypatch: MonkeyPatch,
+    caplog: LogCaptureFixture,
+    cozystack_custom: Callable[[], CozyStackClient],
+    cozy_auth_target: str,
 ):
     """
     Test the `CozyStackLRSBackend.query_statements_by_ids` method,
