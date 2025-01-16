@@ -1,6 +1,6 @@
 """Enrollment models event field definition."""
 
-from typing import Literal, Union
+from typing import Literal
 
 from ...base import AbstractBaseEventField
 
@@ -19,7 +19,5 @@ class EnrollmentEventField(AbstractBaseEventField):
     """
 
     course_id: str
-    mode: Union[
-        Literal["audit"], Literal["honor"], Literal["professional"], Literal["verified"]
-    ]
+    mode: Literal["audit", "honor", "professional", "verified"]
     user_id: int | Literal[""] | None = None

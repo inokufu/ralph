@@ -1,7 +1,7 @@
 """Base xAPI `Group` definitions."""
 
 from abc import ABC
-from typing import Literal, Union
+from typing import Literal
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -83,10 +83,10 @@ class BaseXapiIdentifiedGroupWithAccount(BaseXapiIdentifiedGroup, BaseXapiAccoun
     """
 
 
-BaseXapiGroup = Union[
-    BaseXapiAnonymousGroup,
-    BaseXapiIdentifiedGroupWithMbox,
-    BaseXapiIdentifiedGroupWithMboxSha1Sum,
-    BaseXapiIdentifiedGroupWithOpenId,
-    BaseXapiIdentifiedGroupWithAccount,
-]
+BaseXapiGroup = (
+    BaseXapiAnonymousGroup
+    | BaseXapiIdentifiedGroupWithMbox
+    | BaseXapiIdentifiedGroupWithMboxSha1Sum
+    | BaseXapiIdentifiedGroupWithOpenId
+    | BaseXapiIdentifiedGroupWithAccount
+)

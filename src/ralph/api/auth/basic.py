@@ -6,7 +6,7 @@ from collections.abc import Iterator, Sequence
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 
 import bcrypt
 from cachetools import TTLCache, cached
@@ -113,7 +113,7 @@ def get_stored_credentials(auth_file: os.PathLike) -> ServerUsersCredentials:
     ),
 )
 def get_basic_auth_user(
-    credentials: Annotated[Optional[HTTPBasicCredentials], Depends(security)],
+    credentials: Annotated[HTTPBasicCredentials | None, Depends(security)],
 ) -> AuthenticatedUser | None:
     """Check valid auth parameters.
 

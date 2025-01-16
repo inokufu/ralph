@@ -1,7 +1,7 @@
 """Base xAPI `Agent` definitions."""
 
 from abc import ABC
-from typing import Literal, Union
+from typing import Literal
 
 from ralph.conf import NonEmptyStrictStr
 from ralph.models.xapi.config import BaseModelWithConfig
@@ -71,9 +71,9 @@ class BaseXapiAgentWithAccount(BaseXapiAgentCommonProperties, BaseXapiAccountIFI
     """
 
 
-BaseXapiAgent = Union[
-    BaseXapiAgentWithMbox,
-    BaseXapiAgentWithMboxSha1Sum,
-    BaseXapiAgentWithOpenId,
-    BaseXapiAgentWithAccount,
-]
+BaseXapiAgent = (
+    BaseXapiAgentWithMbox
+    | BaseXapiAgentWithMboxSha1Sum
+    | BaseXapiAgentWithOpenId
+    | BaseXapiAgentWithAccount
+)

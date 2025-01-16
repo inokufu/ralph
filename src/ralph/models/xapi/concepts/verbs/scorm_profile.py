@@ -25,7 +25,7 @@ class InitializedVerb(BaseXapiVerb):
 
     Attributes:
         id (str): Consists of the value `http://adlnet.gov/expapi/verbs/initialized`.
-        display (Dict): Consists of the dictionary `{"en-US": "initialized"}`.
+        display (dict): Consists of the dictionary `{"en-US": "initialized"}`.
     """
 
     id: Literal["http://adlnet.gov/expapi/verbs/initialized"] = (

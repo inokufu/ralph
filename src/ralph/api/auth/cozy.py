@@ -87,7 +87,7 @@ def model_validate_cozy_id_token(decoded_token: Mapping) -> CozyIDToken:
     """Validate decoded authentication token data.
 
     Attributes:
-        decoded_token (Dict): Cozy decoded token.
+        decoded_token (dict): Cozy decoded token.
 
     Return:
         CozyIDToken: Decoded authentication token data.

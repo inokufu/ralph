@@ -4,7 +4,7 @@
 # because of the circular dependency : objects -> context -> objects.
 
 from datetime import datetime
-from typing import Literal, Union
+from typing import Literal
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -36,9 +36,9 @@ class BaseXapiSubStatement(BaseModelWithConfig):
     attachments: list[BaseXapiAttachment] | None = None
 
 
-BaseXapiObject = Union[
-    BaseXapiUnnestedObject,
-    BaseXapiSubStatement,
-    BaseXapiAgent,
-    BaseXapiGroup,
-]
+BaseXapiObject = (
+    BaseXapiUnnestedObject
+    | BaseXapiSubStatement
+    | BaseXapiAgent
+    | BaseXapiGroup
+)

@@ -3,7 +3,7 @@
 from datetime import datetime
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 from pydantic import (
     AnyHttpUrl,
@@ -32,14 +32,14 @@ class ContextModuleField(BaseModelWithConfig):
         str, StringConstraints(pattern=r"^block-v1:.+\+.+\+.+type@.+@[a-f0-9]{32}$")
     ]
     display_name: str
-    original_usage_key: Optional[
+    original_usage_key: (
         Annotated[
             str,
             StringConstraints(
                 pattern=r"^block-v1:.+\+.+\+.+type@problem\+block@[a-f0-9]{32}$"
             ),
         ]
-    ] = None
+    ) | None = None
     original_usage_version: str | None = None
 
 
@@ -47,7 +47,7 @@ class BaseContextField(BaseModelWithConfig):
     """Pydantic model for core `context` field.
 
     Attributes:
-        course_user_tags (Dict of str): Content from `user_api_usercoursetag` table.
+        course_user_tags (dict of str): Content from `user_api_usercoursetag` table.
             Retrieved with::
                 `dict(
                     UserCourseTag.objects.filter(

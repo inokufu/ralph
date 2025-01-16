@@ -1,6 +1,6 @@
 """Common for xAPI base definitions."""
 
-from typing import Type, Union
+from typing import Type
 
 from langcodes import tag_is_valid
 from pydantic import RootModel, model_validator, validate_email
@@ -41,7 +41,7 @@ class URI(ResourceIdentifier):
         return str(uri)
 
 
-class LanguageTag(RootModel[Union[str, "LanguageTag"]]):
+class LanguageTag(RootModel[str | "LanguageTag"]):
     """Pydantic custom data type validating RFC 5646 Language tags."""
 
     def __hash__(self):  # noqa: D105

@@ -1,6 +1,6 @@
 """Textbook interaction event fields definitions."""
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import Field, StringConstraints
 
@@ -108,21 +108,7 @@ class TextbookPdfZoomMenuChangedEventField(TextbookInteractionBaseEventField):
     """
 
     name: Literal["textbook.pdf.zoom.menu.changed"]
-    amount: Union[
-        Literal["0.5"],
-        Literal["0.75"],
-        Literal["1"],
-        Literal["1.25"],
-        Literal["1.5"],
-        Literal["2"],
-        Literal["3"],
-        Literal["4"],
-        Literal["auto"],
-        Literal["custom"],
-        Literal["page-actual"],
-        Literal["page-fit"],
-        Literal["page-width"],
-    ]
+    amount: Literal["0.5", "0.75", "1", "1.25", "1.5", "2", "3", "4", "auto", "custom", "page-actual", "page-fit", "page-width"]
 
 
 class TextbookPdfDisplayScaledEventField(TextbookInteractionBaseEventField):
