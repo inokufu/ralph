@@ -6,7 +6,7 @@ from typing import Any
 from .exceptions import EventKeyError
 
 
-def anonymous(event: Mapping) -> dict | Any:
+def anonymous(event: Mapping) -> Any:
     """Remove anonymous events.
 
     Args:

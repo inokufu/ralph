@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from collections.abc import Mapping
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, Union
 
 import pytest
 
@@ -193,9 +193,9 @@ def test_backends_data_base_get_backend_generic_argument():
 
     # Given a backend with type hints containing a `Union`, the function should return
     # the first item of the Union.
-    T = TypeVar("T", bound=int | str)
+    T = TypeVar("T", bound=Union[int, str])
 
-    class DummyUnionBackend(BaseDataBackend[dict | int, T]):  # type: ignore
+    class DummyUnionBackend(BaseDataBackend[Union[dict, int], T]):  # type: ignore
         """Dummy Union backend."""
 
     assert get_backend_generic_argument(DummyUnionBackend, 0) is dict

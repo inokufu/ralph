@@ -108,7 +108,21 @@ class TextbookPdfZoomMenuChangedEventField(TextbookInteractionBaseEventField):
     """
 
     name: Literal["textbook.pdf.zoom.menu.changed"]
-    amount: Literal["0.5", "0.75", "1", "1.25", "1.5", "2", "3", "4", "auto", "custom", "page-actual", "page-fit", "page-width"]
+    amount: Literal[
+        "0.5",
+        "0.75",
+        "1",
+        "1.25",
+        "1.5",
+        "2",
+        "3",
+        "4",
+        "auto",
+        "custom",
+        "page-actual",
+        "page-fit",
+        "page-width",
+    ]
 
 
 class TextbookPdfDisplayScaledEventField(TextbookInteractionBaseEventField):
