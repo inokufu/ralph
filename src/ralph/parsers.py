@@ -3,7 +3,8 @@
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import BinaryIO, Generator, TextIO, Union
+from collections.abc import Generator
+from typing import BinaryIO, TextIO
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ class BaseParser(ABC):
     name = "base"
 
     @abstractmethod
-    def parse(self, input_file: Union[TextIO, BinaryIO]) -> Generator:
+    def parse(self, input_file: TextIO | BinaryIO) -> Generator:
         """Parse GELF formatted logs (one JSON string event per row).
 
         Args:
@@ -34,7 +35,7 @@ class GELFParser(BaseParser):
 
     name = "gelf"
 
-    def parse(self, input_file: Union[TextIO, BinaryIO]) -> Generator:
+    def parse(self, input_file: TextIO | BinaryIO) -> Generator:
         """Parse GELF formatted logs (one JSON string event per row).
 
         Args:
@@ -66,7 +67,7 @@ class ElasticSearchParser(BaseParser):
 
     name = "es"
 
-    def parse(self, input_file: Union[TextIO, BinaryIO]) -> Generator:
+    def parse(self, input_file: TextIO | BinaryIO) -> Generator:
         """Parse Elasticsearch JSON documents.
 
         Args:

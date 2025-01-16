@@ -3,7 +3,7 @@
 import base64
 import json
 import os
-from typing import Optional
+from collections.abc import Mapping, Sequence
 
 import bcrypt
 import pytest
@@ -34,9 +34,9 @@ def mock_basic_auth_user(  # noqa: PLR0913
     fs_,
     username: str = "jane",
     password: str = "pwd",
-    scopes: Optional[list] = None,
-    agent: Optional[dict] = None,
-    target: Optional[str] = None,
+    scopes: Sequence | None = None,
+    agent: Mapping | None = None,
+    target: str | None = None,
 ):
     """Create a user using Basic Auth in the (fake) file system.
 
@@ -44,7 +44,7 @@ def mock_basic_auth_user(  # noqa: PLR0913
         fs_: fixture provided by pyfakefs
         username (str): username used for auth
         password (str): password used for auth
-        scopes (List[str]): list of scopes available to the user
+        scopes (list[str]): list of scopes available to the user
         agent (dict): an agent that represents the user and may be used as authority
         target (str): The target index or database to store statements into.
     """
@@ -93,7 +93,7 @@ def basic_auth_credentials(fs, user_scopes=None, agent=None, target=None):
 
     Args:
         fs: fixture provided by pyfakefs (not called in the code)
-        user_scopes (List[str]): list of scopes to associate to the user
+        user_scopes (list[str]): list of scopes to associate to the user
         agent (dict): valid Agent (per xAPI specification) representing the user
         target (str): The target index or database to store statements into.
 

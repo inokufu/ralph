@@ -1,7 +1,6 @@
 """Problem interaction events model definitions."""
 
-import sys
-from typing import List, Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -24,11 +23,6 @@ from .fields.events import (
     UIProblemResetEventField,
     UIProblemShowEventField,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxProblemHintDemandhintDisplayed(BaseServerModel):
@@ -141,7 +135,7 @@ class UIProblemGraded(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="problem_graded")
 
-    event: List[Union[str, Literal[None], None]]
+    event: list[str | Literal[None] | None]
     event_type: Literal["problem_graded"]
     name: Literal["problem_graded"]
 
@@ -196,11 +190,7 @@ class UIProblemReset(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="problem_reset")
 
-    event: Union[
-        str,
-        Json[UIProblemResetEventField],
-        UIProblemResetEventField,
-    ]
+    event: str | Json[UIProblemResetEventField] | UIProblemResetEventField
     event_type: Literal["problem_reset"]
     name: Literal["problem_reset"]
 
@@ -237,10 +227,7 @@ class UIProblemShow(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="problem_show")
 
-    event: Union[
-        Json[UIProblemShowEventField],
-        UIProblemShowEventField,
-    ]
+    event: Json[UIProblemShowEventField] | UIProblemShowEventField
     event_type: Literal["problem_show"]
     name: Literal["problem_show"]
 

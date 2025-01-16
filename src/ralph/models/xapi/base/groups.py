@@ -1,8 +1,9 @@
 """Base xAPI `Group` definitions."""
 
-import sys
 from abc import ABC
-from typing import List, Optional, Union
+from typing import Literal
+
+from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
@@ -12,13 +13,6 @@ from .ifi import (
     BaseXapiMboxSha1SumIFI,
     BaseXapiOpenIdIFI,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
-from ralph.conf import NonEmptyStrictStr
 
 
 class BaseXapiGroupCommonProperties(BaseModelWithConfig, ABC):
@@ -32,7 +26,7 @@ class BaseXapiGroupCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Group"]
-    name: Optional[NonEmptyStrictStr] = None
+    name: NonEmptyStrictStr | None = None
 
 
 class BaseXapiAnonymousGroup(BaseXapiGroupCommonProperties):
@@ -44,7 +38,7 @@ class BaseXapiAnonymousGroup(BaseXapiGroupCommonProperties):
         member (list): Consist of a list of the members of this Group.
     """
 
-    member: List[BaseXapiAgent]
+    member: list[BaseXapiAgent]
 
 
 class BaseXapiIdentifiedGroup(BaseXapiGroupCommonProperties):
@@ -56,7 +50,7 @@ class BaseXapiIdentifiedGroup(BaseXapiGroupCommonProperties):
         member (list): Consist of a list of the members of this Group.
     """
 
-    member: Optional[List[BaseXapiAgent]] = None
+    member: list[BaseXapiAgent] | None = None
 
 
 class BaseXapiIdentifiedGroupWithMbox(BaseXapiIdentifiedGroup, BaseXapiMboxIFI):
@@ -89,10 +83,10 @@ class BaseXapiIdentifiedGroupWithAccount(BaseXapiIdentifiedGroup, BaseXapiAccoun
     """
 
 
-BaseXapiGroup = Union[
-    BaseXapiAnonymousGroup,
-    BaseXapiIdentifiedGroupWithMbox,
-    BaseXapiIdentifiedGroupWithMboxSha1Sum,
-    BaseXapiIdentifiedGroupWithOpenId,
-    BaseXapiIdentifiedGroupWithAccount,
-]
+BaseXapiGroup = (
+    BaseXapiAnonymousGroup
+    | BaseXapiIdentifiedGroupWithMbox
+    | BaseXapiIdentifiedGroupWithMboxSha1Sum
+    | BaseXapiIdentifiedGroupWithOpenId
+    | BaseXapiIdentifiedGroupWithAccount
+)

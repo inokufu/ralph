@@ -2,10 +2,10 @@
 
 import json
 import logging
+from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from importlib import reload
 from pathlib import Path
-from typing import Optional, Union
 
 import pytest
 from click.exceptions import BadParameter
@@ -170,11 +170,11 @@ def test_cli_help_option():
 def _gen_cli_auth_args(  # noqa: PLR0913
     username: str,
     password: str,
-    scopes: list,
+    scopes: Sequence,
     ifi_command: str,
-    ifi_value: Union[str, dict],
-    agent_name: Optional[str] = None,
-    target: Optional[str] = None,
+    ifi_value: str | dict,
+    agent_name: str | None = None,
+    target: str | None = None,
     write: bool = False,
 ):
     """Generate arguments for cli to create user."""
@@ -193,11 +193,11 @@ def _gen_cli_auth_args(  # noqa: PLR0913
 
 
 def _assert_matching_basic_auth_credentials(  # noqa: PLR0913
-    credentials: dict,
+    credentials: Mapping,
     username: str,
-    scopes: list,
+    scopes: Sequence,
     ifi_type: str,
-    ifi_value: Union[str, dict],
+    ifi_value: str | dict,
     agent_name: str = None,
     hash_: str = None,
     target: str = None,

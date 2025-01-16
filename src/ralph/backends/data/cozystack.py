@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Iterator, List, Optional, TypeVar, Union
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from typing import Annotated, TypeVar
 
 from fastapi import HTTPException, status
 from pydantic import NonNegativeInt, StringConstraints
 from pydantic_settings import SettingsConfigDict
-from typing_extensions import Annotated
 
 from ralph.backends.cozystack import CozyStackClient, CozyStackError
 from ralph.backends.data.base import (
@@ -64,16 +64,16 @@ class CozyStackQuery(BaseQuery):
 
     """
 
-    selector: dict = {}
+    selector: Mapping = {}
 
-    limit: Optional[NonNegativeInt] = None
-    skip: Optional[NonNegativeInt] = None
+    limit: NonNegativeInt | None = None
+    skip: NonNegativeInt | None = None
 
-    sort: Optional[List[dict]] = None
-    fields: Optional[List[str]] = None
+    sort: Sequence[Mapping] | None = None
+    fields: Sequence[str] | None = None
 
-    next: Optional[bool] = None
-    bookmark: Optional[str] = None
+    next: bool | None = None
+    bookmark: str | None = None
 
 
 Settings = TypeVar("Settings", bound=CozyStackDataBackendSettings)
@@ -87,7 +87,7 @@ class CozyStackDataBackend(
     name = "cozy-stack"
     unsupported_operation_types = {BaseOperationType.APPEND}
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the CozyStack data backend.
 
         Args:
@@ -106,8 +106,8 @@ class CozyStackDataBackend(
         return DataBackendStatus.OK
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List doctypes in the `target` database.
 
         Args:
@@ -138,7 +138,7 @@ class CozyStackDataBackend(
     def _read_dicts(
         self,
         query: CozyStackQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,  # noqa: ARG002
         ignore_errors: bool,
     ) -> Iterator[dict]:
@@ -168,8 +168,8 @@ class CozyStackDataBackend(
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,  # noqa: ARG002
         ignore_errors: bool,  # noqa: ARG002
         operation_type: BaseOperationType,

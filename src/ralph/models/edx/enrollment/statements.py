@@ -1,7 +1,6 @@
 """Enrollment event model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -14,11 +13,6 @@ from .fields.contexts import (
     EdxCourseEnrollmentUpgradeSucceededContextField,
 )
 from .fields.events import EnrollmentEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxCourseEnrollmentActivated(BaseServerModel):
@@ -35,10 +29,7 @@ class EdxCourseEnrollmentActivated(BaseServerModel):
     __selector__ = selector(
         event_source="server", event_type="edx.course.enrollment.activated"
     )
-    event: Union[
-        Json[EnrollmentEventField],
-        EnrollmentEventField,
-    ]
+    event: Json[EnrollmentEventField] | EnrollmentEventField
     event_type: Literal["edx.course.enrollment.activated"]
     name: Literal["edx.course.enrollment.activated"]
 
@@ -58,10 +49,7 @@ class EdxCourseEnrollmentDeactivated(BaseServerModel):
         event_source="server", event_type="edx.course.enrollment.deactivated"
     )
 
-    event: Union[
-        Json[EnrollmentEventField],
-        EnrollmentEventField,
-    ]
+    event: Json[EnrollmentEventField] | EnrollmentEventField
     event_type: Literal["edx.course.enrollment.deactivated"]
     name: Literal["edx.course.enrollment.deactivated"]
 
@@ -82,10 +70,7 @@ class EdxCourseEnrollmentModeChanged(BaseServerModel):
         event_source="server", event_type="edx.course.enrollment.mode_changed"
     )
 
-    event: Union[
-        EnrollmentEventField,
-        Json[EnrollmentEventField],
-    ]
+    event: EnrollmentEventField | Json[EnrollmentEventField]
     event_type: Literal["edx.course.enrollment.mode_changed"]
     name: Literal["edx.course.enrollment.mode_changed"]
 

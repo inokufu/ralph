@@ -1,7 +1,6 @@
 """Bookmark event model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -16,11 +15,6 @@ from ralph.models.selector import selector
 
 from ..browser import BaseBrowserModel
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class UIEdxBookmarkAccessed(BaseBrowserModel):
@@ -37,10 +31,7 @@ class UIEdxBookmarkAccessed(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="edx.bookmark.accessed")
 
-    event: Union[
-        Json[EdxBookmarkBaseEventField],
-        EdxBookmarkBaseEventField,
-    ]
+    event: Json[EdxBookmarkBaseEventField] | EdxBookmarkBaseEventField
     event_type: Literal["edx.bookmark.accessed"]
     name: Literal["edx.bookmark.accessed"]
 
@@ -58,10 +49,8 @@ class EdxBookmarkAdded(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.bookmark.added")
 
-    event: Union[
-        Json[EdxBookmarkAddedEventField],
-        EdxBookmarkAddedEventField,
-    ]
+    event: Json[EdxBookmarkAddedEventField] | EdxBookmarkAddedEventField
+
     event_type: Literal["edx.bookmark.added"]
     name: Literal["edx.bookmark.added"]
 
@@ -81,10 +70,8 @@ class EdxBookmarkListed(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.bookmark.listed")
 
-    event: Union[
-        Json[EdxBookmarkListedEventField],
-        EdxBookmarkListedEventField,
-    ]
+    event: Json[EdxBookmarkListedEventField] | EdxBookmarkListedEventField
+
     event_type: Literal["edx.bookmark.listed"]
     name: Literal["edx.bookmark.listed"]
 
@@ -102,10 +89,7 @@ class EdxBookmarkRemoved(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.bookmark.removed")
 
-    event: Union[
-        Json[EdxBookmarkRemovedEventField],
-        EdxBookmarkRemovedEventField,
-    ]
+    event: Json[EdxBookmarkRemovedEventField] | EdxBookmarkRemovedEventField
     event_type: Literal["edx.bookmark.removed"]
     name: Literal["edx.bookmark.removed"]
 
@@ -127,9 +111,6 @@ class UIEdxCourseToolAccessed(BaseBrowserModel):
         event_source="browser", event_type="edx.course.tool.accessed"
     )
 
-    event: Union[
-        Json[UIEdxCourseToolAccessedEventField],
-        UIEdxCourseToolAccessedEventField,
-    ]
+    event: Json[UIEdxCourseToolAccessedEventField] | UIEdxCourseToolAccessedEventField
     event_type: Literal["edx.course.tool.accessed"]
     name: Literal["edx.course.tool.accessed"]

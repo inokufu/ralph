@@ -1,17 +1,10 @@
 """Video event fields definitions."""
 
-import sys
-from typing import Optional
+from typing import Annotated, Literal
 
 from pydantic import StringConstraints
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxBookmarkBaseEventField(AbstractBaseEventField):
@@ -73,9 +66,9 @@ class EdxBookmarkListedEventField(AbstractBaseEventField):
     """
 
     bookmarks_count: int
-    course_id: Optional[
-        Annotated[str, StringConstraints(pattern=r"^$|^course-v1:.+\+.+\+.+$")]
-    ]
+    course_id: (
+        Annotated[str, StringConstraints(pattern=r"^$|^course-v1:.+\+.+\+.+$")] | None
+    )
     list_type: Literal["per_course", "all_courses"]
     page_number: int
     page_size: int

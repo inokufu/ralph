@@ -1,15 +1,9 @@
 """`Video` verbs definitions."""
 
-import sys
-from typing import Dict, Optional
+from typing import Literal
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class PlayedVerb(BaseXapiVerb):
@@ -23,7 +17,7 @@ class PlayedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/video/verbs/played"] = (
         "https://w3id.org/xapi/video/verbs/played"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["played"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["played"]] | None = None
 
 
 class PausedVerb(BaseXapiVerb):
@@ -37,7 +31,7 @@ class PausedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/video/verbs/paused"] = (
         "https://w3id.org/xapi/video/verbs/paused"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["paused"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["paused"]] | None = None
 
 
 class SeekedVerb(BaseXapiVerb):
@@ -51,4 +45,4 @@ class SeekedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/video/verbs/seeked"] = (
         "https://w3id.org/xapi/video/verbs/seeked"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["seeked"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["seeked"]] | None = None

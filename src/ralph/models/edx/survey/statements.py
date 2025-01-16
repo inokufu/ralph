@@ -1,7 +1,6 @@
 """Survey event model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -9,11 +8,6 @@ from ralph.models.edx.survey.fields.events import XBlockSurveySubmittedEventFiel
 from ralph.models.selector import selector
 
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class XBlockSurveySubmitted(BaseServerModel):
@@ -29,10 +23,7 @@ class XBlockSurveySubmitted(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="xblock.survey.submitted")
 
-    event: Union[
-        Json[XBlockSurveySubmittedEventField],
-        XBlockSurveySubmittedEventField,
-    ]
+    event: Json[XBlockSurveySubmittedEventField] | XBlockSurveySubmittedEventField
     event_type: Literal["xblock.survey.submitted"]
     name: Literal["xblock.survey.submitted"]
 

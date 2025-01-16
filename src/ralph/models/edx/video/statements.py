@@ -1,7 +1,6 @@
 """Video event model definitions."""
 
-import sys
-from typing import Optional, Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -19,11 +18,6 @@ from ralph.models.selector import selector
 
 from ..browser import BaseBrowserModel
 
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
 
 class UILoadVideo(BaseBrowserModel):
     """Pydantic model for `load_video` statement.
@@ -39,10 +33,7 @@ class UILoadVideo(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="load_video")
 
-    event: Union[
-        Json[VideoBaseEventField],
-        VideoBaseEventField,
-    ]
+    event: Json[VideoBaseEventField] | VideoBaseEventField
     event_type: Literal["load_video"]
     name: Literal["load_video", "edx.video.loaded"]
 
@@ -61,12 +52,9 @@ class UIPlayVideo(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="play_video")
 
-    event: Union[
-        Json[PlayVideoEventField],
-        PlayVideoEventField,
-    ]
+    event: Json[PlayVideoEventField] | PlayVideoEventField
     event_type: Literal["play_video"]
-    name: Optional[Literal["play_video", "edx.video.played"]] = None
+    name: Literal["play_video", "edx.video.played"] | None = None
 
 
 class UIPauseVideo(BaseBrowserModel):
@@ -83,12 +71,9 @@ class UIPauseVideo(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="pause_video")
 
-    event: Union[
-        Json[PauseVideoEventField],
-        PauseVideoEventField,
-    ]
+    event: Json[PauseVideoEventField] | PauseVideoEventField
     event_type: Literal["pause_video"]
-    name: Optional[Literal["pause_video", "edx.video.paused"]] = None
+    name: Literal["pause_video", "edx.video.paused"] | None = None
 
 
 class UISeekVideo(BaseBrowserModel):
@@ -106,12 +91,9 @@ class UISeekVideo(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="seek_video")
 
-    event: Union[
-        Json[SeekVideoEventField],
-        SeekVideoEventField,
-    ]
+    event: Json[SeekVideoEventField] | SeekVideoEventField
     event_type: Literal["seek_video"]
-    name: Optional[Literal["seek_video", "edx.video.position.changed"]] = None
+    name: Literal["seek_video", "edx.video.position.changed"] | None = None
 
 
 class UIStopVideo(BaseBrowserModel):
@@ -128,12 +110,9 @@ class UIStopVideo(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="stop_video")
 
-    event: Union[
-        Json[StopVideoEventField],
-        StopVideoEventField,
-    ]
+    event: Json[StopVideoEventField] | StopVideoEventField
     event_type: Literal["stop_video"]
-    name: Optional[Literal["stop_video", "edx.video.stopped"]] = None
+    name: Literal["stop_video", "edx.video.stopped"] | None = None
 
 
 class UIHideTranscript(BaseBrowserModel):
@@ -151,10 +130,7 @@ class UIHideTranscript(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="hide_transcript")
 
-    event: Union[
-        Json[VideoHideTranscriptEventField],
-        VideoHideTranscriptEventField,
-    ]
+    event: Json[VideoHideTranscriptEventField] | VideoHideTranscriptEventField
     event_type: Literal["hide_transcript"]
     name: Literal["hide_transcript", "edx.video.transcript.hidden"]
 
@@ -174,10 +150,7 @@ class UIShowTranscript(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="show_transcript")
 
-    event: Union[
-        Json[VideoShowTranscriptEventField],
-        VideoShowTranscriptEventField,
-    ]
+    event: Json[VideoShowTranscriptEventField] | VideoShowTranscriptEventField
     event_type: Literal["show_transcript"]
     name: Literal["show_transcript", "edx.video.transcript.shown"]
 
@@ -195,12 +168,9 @@ class UISpeedChangeVideo(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="speed_change_video")
 
-    event: Union[
-        Json[SpeedChangeVideoEventField],
-        SpeedChangeVideoEventField,
-    ]
+    event: Json[SpeedChangeVideoEventField] | SpeedChangeVideoEventField
     event_type: Literal["speed_change_video"]
-    name: Optional[Literal["speed_change_video"]] = None
+    name: Literal["speed_change_video"] | None = None
 
 
 class UIVideoHideCCMenu(BaseBrowserModel):
@@ -216,12 +186,9 @@ class UIVideoHideCCMenu(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="video_hide_cc_menu")
 
-    event: Union[
-        Json[VideoBaseEventField],
-        VideoBaseEventField,
-    ]
+    event: Json[VideoBaseEventField] | VideoBaseEventField
     event_type: Literal["video_hide_cc_menu"]
-    name: Optional[Literal["video_hide_cc_menu"]] = None
+    name: Literal["video_hide_cc_menu"] | None = None
 
 
 class UIVideoShowCCMenu(BaseBrowserModel):
@@ -239,9 +206,6 @@ class UIVideoShowCCMenu(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="video_show_cc_menu")
 
-    event: Union[
-        Json[VideoBaseEventField],
-        VideoBaseEventField,
-    ]
+    event: Json[VideoBaseEventField] | VideoBaseEventField
     event_type: Literal["video_show_cc_menu"]
-    name: Optional[Literal["video_show_cc_menu"]] = None
+    name: Literal["video_show_cc_menu"] | None = None

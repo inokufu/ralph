@@ -1,14 +1,8 @@
 """Ralph backend loader."""
 
 import logging
-import sys
 from functools import lru_cache
-from typing import Dict, Tuple
-
-if sys.version_info < (3, 10):
-    from importlib_metadata import EntryPoints, entry_points
-else:
-    from importlib.metadata import EntryPoints, entry_points
+from importlib.metadata import EntryPoints, entry_points
 
 from ralph.backends.data.base import (
     AsyncListable,
@@ -24,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_backends(
-    backends: EntryPoints, base_backends: Tuple[type, ...]
-) -> Dict[str, type]:
+    backends: EntryPoints, base_backends: tuple[type, ...]
+) -> dict[str, type]:
     """Return sub-classes of `base_backends` from `backends`.
 
     Args:
@@ -58,7 +52,7 @@ def get_backends(
 
 
 @lru_cache(maxsize=1)
-def get_cli_backends() -> Dict[str, type]:
+def get_cli_backends() -> dict[str, type]:
     """Return Ralph's backend classes for cli usage."""
     base_backends = (BaseAsyncDataBackend, BaseDataBackend)
     data_backends = entry_points(group="ralph.backends.data")
@@ -66,7 +60,7 @@ def get_cli_backends() -> Dict[str, type]:
 
 
 @lru_cache(maxsize=1)
-def get_cli_write_backends() -> Dict[str, type]:
+def get_cli_write_backends() -> dict[str, type]:
     """Return Ralph's backends classes for cli write usage."""
     return {
         name: backend
@@ -76,7 +70,7 @@ def get_cli_write_backends() -> Dict[str, type]:
 
 
 @lru_cache(maxsize=1)
-def get_cli_list_backends() -> Dict[str, type]:
+def get_cli_list_backends() -> dict[str, type]:
     """Return Ralph's backends classes for cli list usage."""
     return {
         name: backend
@@ -86,7 +80,7 @@ def get_cli_list_backends() -> Dict[str, type]:
 
 
 @lru_cache(maxsize=1)
-def get_lrs_backends() -> Dict[str, type]:
+def get_lrs_backends() -> dict[str, type]:
     """Return Ralph's backend classes for LRS usage."""
     lrs_backends = entry_points(group="ralph.backends.lrs")
     return get_backends(lrs_backends, (BaseAsyncLRSBackend, BaseLRSBackend))

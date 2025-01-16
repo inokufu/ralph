@@ -1,9 +1,10 @@
 """Configurations for Ralph."""
 
 import io
+from collections.abc import Sequence
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Annotated
 
 from pydantic import (
     AfterValidator,
@@ -17,7 +18,6 @@ from pydantic import (
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Annotated
 
 from ralph.exceptions import ConfigurationException
 from ralph.utils import import_string
@@ -55,7 +55,7 @@ class CoreSettings(BaseSettings):
 core_settings = CoreSettings()
 
 
-def validate_comma_separated_tuple(value: Union[str, Tuple[str, ...]]) -> Tuple[str]:
+def validate_comma_separated_tuple(value: str | tuple[str, ...]) -> tuple[str]:
     """Checks whether the value is a comma separated string or a tuple."""
     if isinstance(value, tuple):
         return value
@@ -67,7 +67,7 @@ def validate_comma_separated_tuple(value: Union[str, Tuple[str, ...]]) -> Tuple[
 
 
 CommaSeparatedTuple = Annotated[
-    Union[str, Tuple[str, ...]], AfterValidator(validate_comma_separated_tuple)
+    str | tuple[str, ...], AfterValidator(validate_comma_separated_tuple)
 ]
 
 
@@ -133,8 +133,8 @@ class AuthBackend(str, Enum):
 
 
 def validate_auth_backends(
-    value: Union[str, Tuple[str, ...], List[str]]
-) -> Tuple[AuthBackend]:
+    value: str | tuple[str, ...] | Sequence[str]
+) -> tuple[AuthBackend]:
     """Check whether the value is a comma separated string or a list/tuple."""
     if isinstance(value, (tuple, list)):
         return tuple(AuthBackend(val.lower()) for val in value)
@@ -146,7 +146,7 @@ def validate_auth_backends(
 
 
 AuthBackends = Annotated[
-    Union[str, Tuple[str, ...], List[str]], AfterValidator(validate_auth_backends)
+    str | tuple[str, ...] | Sequence[str], AfterValidator(validate_auth_backends)
 ]
 
 
@@ -164,7 +164,7 @@ class Settings(BaseSettings):
     AUTH_FILE: Path = _CORE.APP_DIR / "auth.json"
     AUTH_CACHE_MAX_SIZE: int = 100
     AUTH_CACHE_TTL: int = 3600
-    CONVERTER_EDX_XAPI_UUID_NAMESPACE: Optional[str] = None
+    CONVERTER_EDX_XAPI_UUID_NAMESPACE: str | None = None
     EXECUTION_ENVIRONMENT: str = "development"
     HISTORY_FILE: Path = _CORE.APP_DIR / "history.json"
     LOGGING: dict = {
@@ -202,8 +202,8 @@ class Settings(BaseSettings):
     RUNSERVER_AUTH_BACKENDS: AuthBackends = TypeAdapter(AuthBackends).validate_python(
         "Basic"
     )
-    RUNSERVER_AUTH_OIDC_AUDIENCE: Optional[str] = None
-    RUNSERVER_AUTH_OIDC_ISSUER_URI: Optional[AnyHttpUrl] = None
+    RUNSERVER_AUTH_OIDC_AUDIENCE: str | None = None
+    RUNSERVER_AUTH_OIDC_ISSUER_URI: AnyHttpUrl | None = None
     RUNSERVER_BACKEND: str = "es"
     RUNSERVER_HOST: str = "0.0.0.0"  # noqa: S104
     RUNSERVER_MAX_SEARCH_HITS_COUNT: int = 100
@@ -212,12 +212,12 @@ class Settings(BaseSettings):
     LRS_RESTRICT_BY_AUTHORITY: bool = False
     LRS_RESTRICT_BY_SCOPES: bool = False
     SENTRY_CLI_TRACES_SAMPLE_RATE: float = 1.0
-    SENTRY_DSN: Optional[str] = None
+    SENTRY_DSN: str | None = None
     SENTRY_IGNORE_HEALTH_CHECKS: bool = False
     SENTRY_LRS_TRACES_SAMPLE_RATE: float = 1.0
-    XAPI_FORWARDINGS: List[XapiForwardingConfigurationSettings] = []
+    XAPI_FORWARDINGS: list[XapiForwardingConfigurationSettings] = []
     XAPI_PREFIX: str = "/xAPI"
-    XAPI_VERSIONS_SUPPORTED: List[str] = ["1.0.3"]
+    XAPI_VERSIONS_SUPPORTED: list[str] = ["1.0.3"]
     XAPI_VERSION_FALLBACK: str = "1.0.3"
 
     @property

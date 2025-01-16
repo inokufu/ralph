@@ -1,7 +1,6 @@
 """Open Response Assessment events model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -20,11 +19,6 @@ from .fields.events import (
     ORASubmitFeedbackOnAssessmentsEventField,
     ORAUploadFileEventField,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class ORAGetPeerSubmission(BaseServerModel):
@@ -241,6 +235,6 @@ class ORAUploadFile(BaseBrowserModel):
         event_source="browser", event_type="openassessment.upload_file"
     )
 
-    event: Union[Json[ORAUploadFileEventField], ORAUploadFileEventField]
+    event: Json[ORAUploadFileEventField] | ORAUploadFileEventField
     event_type: Literal["openassessment.upload_file"]
     name: Literal["openassessment.upload_file"]

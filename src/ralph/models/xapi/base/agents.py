@@ -1,8 +1,7 @@
 """Base xAPI `Agent` definitions."""
 
-import sys
 from abc import ABC
-from typing import Optional, Union
+from typing import Literal
 
 from ralph.conf import NonEmptyStrictStr
 from ralph.models.xapi.config import BaseModelWithConfig
@@ -14,11 +13,6 @@ from .ifi import (
     BaseXapiMboxSha1SumIFI,
     BaseXapiOpenIdIFI,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class BaseXapiAgentAccount(BaseModelWithConfig):
@@ -44,7 +38,7 @@ class BaseXapiAgentCommonProperties(BaseModelWithConfig, ABC):
     """
 
     objectType: Literal["Agent"] = "Agent"
-    name: Optional[NonEmptyStrictStr] = None
+    name: NonEmptyStrictStr | None = None
 
 
 class BaseXapiAgentWithMbox(BaseXapiAgentCommonProperties, BaseXapiMboxIFI):
@@ -77,9 +71,9 @@ class BaseXapiAgentWithAccount(BaseXapiAgentCommonProperties, BaseXapiAccountIFI
     """
 
 
-BaseXapiAgent = Union[
-    BaseXapiAgentWithMbox,
-    BaseXapiAgentWithMboxSha1Sum,
-    BaseXapiAgentWithOpenId,
-    BaseXapiAgentWithAccount,
-]
+BaseXapiAgent = (
+    BaseXapiAgentWithMbox
+    | BaseXapiAgentWithMboxSha1Sum
+    | BaseXapiAgentWithOpenId
+    | BaseXapiAgentWithAccount
+)

@@ -1,17 +1,10 @@
 """Notes event field definition."""
 
-import sys
-from typing import Dict, List
+from typing import Annotated, Literal
 
 from pydantic import StringConstraints
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class NotesEventField(AbstractBaseEventField):
@@ -32,8 +25,8 @@ class NotesEventField(AbstractBaseEventField):
     highlighted_content: str
     note_id: str
     note_text: Annotated[str, StringConstraints(max_length=8333)]
-    tags: List[str] = []
-    truncated: List[
+    tags: list[str] = []
+    truncated: list[
         Literal["note_text", "highlighted_content", "tags", "old_note_text", "old_tags"]
     ] = []
 
@@ -49,7 +42,7 @@ class UIEdxCourseStudentNotesEditedEventField(NotesEventField):
     """
 
     old_note_text: Annotated[str, StringConstraints(max_length=8333)]
-    old_tags: List[str] = []
+    old_tags: list[str] = []
 
 
 class UIEdxCourseStudentNotesNotesPageViewedEventField(AbstractBaseEventField):
@@ -100,4 +93,4 @@ class UIEdxCourseStudentNotesViewedEventField(AbstractBaseEventField):
             same text.
     """
 
-    notes: List[Dict[Literal["note_id"], str]]
+    notes: list[dict[Literal["note_id"], str]]

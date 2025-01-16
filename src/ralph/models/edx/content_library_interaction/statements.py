@@ -1,7 +1,6 @@
 """Content library interaction event model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -12,11 +11,6 @@ from ralph.models.edx.content_library_interaction.fields.events import (
 from ralph.models.selector import selector
 
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxLibraryContentBlockContentAssigned(BaseServerModel):
@@ -38,10 +32,10 @@ class EdxLibraryContentBlockContentAssigned(BaseServerModel):
         event_source="server", event_type="edx.librarycontentblock.content.assigned"
     )
 
-    event: Union[
-        Json[EdxLibraryContentBlockContentAssignedEventField],
-        EdxLibraryContentBlockContentAssignedEventField,
-    ]
+    event: (
+        Json[EdxLibraryContentBlockContentAssignedEventField]
+        | EdxLibraryContentBlockContentAssignedEventField
+    )
     event_type: Literal["edx.librarycontentblock.content.assigned"]
     name: Literal["edx.librarycontentblock.content.assigned"]
 
@@ -65,9 +59,9 @@ class EdxLibraryContentBlockContentRemoved(BaseServerModel):
         event_source="server", event_type="edx.librarycontentblock.content.removed"
     )
 
-    event: Union[
-        Json[EdxLibraryContentBlockContentRemovedEventField],
-        EdxLibraryContentBlockContentRemovedEventField,
-    ]
+    event: (
+        Json[EdxLibraryContentBlockContentRemovedEventField]
+        | EdxLibraryContentBlockContentRemovedEventField
+    )
     event_type: Literal["edx.librarycontentblock.content.removed"]
     name: Literal["edx.librarycontentblock.content.removed"]

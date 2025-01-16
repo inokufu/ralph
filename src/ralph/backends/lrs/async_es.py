@@ -1,7 +1,7 @@
 """Asynchronous Elasticsearch LRS backend for Ralph."""
 
 import logging
-from typing import AsyncIterator, List, Optional
+from collections.abc import AsyncIterator, Sequence
 
 from ralph.backends.data.async_es import AsyncESDataBackend
 from ralph.backends.lrs.base import (
@@ -19,7 +19,7 @@ class AsyncESLRSBackend(BaseAsyncLRSBackend[ESLRSBackendSettings], AsyncESDataBa
     """Asynchronous Elasticsearch LRS backend implementation."""
 
     async def query_statements(
-        self, params: RalphStatementsQuery, target: Optional[str] = None
+        self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
         query = ESLRSBackend.get_query(params=params)
@@ -41,7 +41,7 @@ class AsyncESLRSBackend(BaseAsyncLRSBackend[ESLRSBackendSettings], AsyncESDataBa
         )
 
     async def query_statements_by_ids(
-        self, ids: List[str], target: Optional[str] = None
+        self, ids: Sequence[str], target: str | None = None
     ) -> AsyncIterator[dict]:
         """Yield statements with matching ids from the backend."""
         query = self.query_class(query={"terms": {"_id": ids}})

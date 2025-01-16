@@ -1,17 +1,11 @@
 """Cohort event field definition."""
 
-import sys
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import AnyHttpUrl, StringConstraints
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class CertificateBaseEventField(AbstractBaseEventField):

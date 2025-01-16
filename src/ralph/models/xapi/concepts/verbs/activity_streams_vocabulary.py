@@ -1,15 +1,9 @@
 """`Activity streams vocabulary` verbs definitions."""
 
-import sys
-from typing import Dict, Optional
+from typing import Literal
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class JoinVerb(BaseXapiVerb):
@@ -21,7 +15,7 @@ class JoinVerb(BaseXapiVerb):
     """
 
     id: Literal["http://activitystrea.ms/join"] = "http://activitystrea.ms/join"
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["joined"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["joined"]] | None = None
 
 
 class LeaveVerb(BaseXapiVerb):
@@ -33,4 +27,4 @@ class LeaveVerb(BaseXapiVerb):
     """
 
     id: Literal["http://activitystrea.ms/leave"] = "http://activitystrea.ms/leave"
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["left"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["left"]] | None = None

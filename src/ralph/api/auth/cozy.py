@@ -2,14 +2,14 @@
 
 import logging
 import re
-from typing import Dict, List, Optional
+from collections.abc import Mapping
+from typing import Annotated
 
 import httpx
 from fastapi import Header, HTTPException, status
 from jose import ExpiredSignatureError, JWTError, jwt
 from jose.exceptions import JWTClaimsError
 from pydantic import ValidationError
-from typing_extensions import Annotated
 
 from ralph.api.auth.token import BaseIDToken
 from ralph.api.auth.user import AuthenticatedUser
@@ -42,12 +42,12 @@ class CozyIDToken(BaseIDToken):
         session_id (str): CozyStack session identifier.
     """
 
-    sub: Optional[str] = None
-    aud: List[str]
-    session_id: Optional[str] = None
+    sub: str | None = None
+    aud: list[str]
+    session_id: str | None = None
 
 
-def decode_auth_token(x_auth_token: str) -> Dict:
+def decode_auth_token(x_auth_token: str) -> dict:
     """Decode Cozy ID token (jwt).
 
     Attributes:
@@ -83,11 +83,11 @@ def decode_auth_token(x_auth_token: str) -> Dict:
         raise unauthorized_http_exception from exc
 
 
-def model_validate_cozy_id_token(decoded_token: Dict) -> CozyIDToken:
+def model_validate_cozy_id_token(decoded_token: Mapping) -> CozyIDToken:
     """Validate decoded authentication token data.
 
     Attributes:
-        decoded_token (Dict): Cozy decoded token.
+        decoded_token (dict): Cozy decoded token.
 
     Return:
         CozyIDToken: Decoded authentication token data.

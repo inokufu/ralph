@@ -1,7 +1,6 @@
 """Peer instruction events model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -9,11 +8,6 @@ from ralph.models.selector import selector
 
 from ..server import BaseServerModel
 from .fields.events import PeerInstructionEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class PeerInstructionAccessed(BaseServerModel):
@@ -53,10 +47,7 @@ class PeerInstructionOriginalSubmitted(BaseServerModel):
         event_source="server", event_type="ubc.peer_instruction.original_submitted"
     )
 
-    event: Union[
-        Json[PeerInstructionEventField],
-        PeerInstructionEventField,
-    ]
+    event: Json[PeerInstructionEventField] | PeerInstructionEventField
     event_type: Literal["ubc.peer_instruction.original_submitted"]
     name: Literal["ubc.peer_instruction.original_submitted"]
 
@@ -79,9 +70,6 @@ class PeerInstructionRevisedSubmitted(BaseServerModel):
         event_source="server", event_type="ubc.peer_instruction.revised_submitted"
     )
 
-    event: Union[
-        Json[PeerInstructionEventField],
-        PeerInstructionEventField,
-    ]
+    event: Json[PeerInstructionEventField] | PeerInstructionEventField
     event_type: Literal["ubc.peer_instruction.revised_submitted"]
     name: Literal["ubc.peer_instruction.revised_submitted"]

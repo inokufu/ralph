@@ -1,10 +1,10 @@
 """Main module for Ralph's LRS API."""
 
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
-from typing import Any, Dict, List, Union
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -23,12 +23,12 @@ from .routers import health, statements, xapi
 
 
 @lru_cache(maxsize=None)
-def get_health_check_routes() -> List:
+def get_health_check_routes() -> list:
     """Return the health check routes."""
     return [route.path for route in health.router.routes]
 
 
-def filter_transactions(event: Dict, hint) -> Union[Dict, None]:  # noqa: ARG001
+def filter_transactions(event: Mapping, hint) -> dict | None:  # noqa: ARG001
     """Filter transactions for Sentry."""
     url = urlparse(event["request"]["url"])
 
@@ -56,8 +56,8 @@ app.include_router(xapi.router)
 
 @app.get("/whoami")
 async def whoami(
-    user: AuthenticatedUser = Depends(get_authenticated_user),
-) -> Dict[str, Any]:
+    user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
+) -> dict[str, Any]:
     """Return the current user's username along with their scopes."""
     return {
         "agent": user.agent.model_dump(mode="json", exclude_none=True),

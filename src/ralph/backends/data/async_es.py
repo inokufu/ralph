@@ -1,8 +1,9 @@
 """Asynchronous Elasticsearch data backend for Ralph."""
 
 import logging
+from collections.abc import AsyncIterator, Iterable, Mapping
 from io import IOBase
-from typing import AsyncIterator, Iterable, Optional, TypeVar, Union
+from typing import TypeVar
 
 from elasticsearch import ApiError, AsyncElasticsearch, TransportError
 from elasticsearch.helpers import BulkIndexError, async_streaming_bulk
@@ -30,7 +31,7 @@ class AsyncESDataBackend(
     name = "async_es"
     unsupported_operation_types = {BaseOperationType.APPEND}
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the asynchronous Elasticsearch client.
 
         Args:
@@ -70,8 +71,8 @@ class AsyncESDataBackend(
         return DataBackendStatus.ERROR
 
     async def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[AsyncIterator[str], AsyncIterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> AsyncIterator[str] | AsyncIterator[dict]:
         """List available Elasticsearch indices, data streams and aliases.
 
         Args:
@@ -111,14 +112,14 @@ class AsyncESDataBackend(
 
     async def read(  # noqa: PLR0913
         self,
-        query: Optional[ESQuery] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: ESQuery | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        prefetch: Optional[PositiveInt] = None,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[AsyncIterator[bytes], AsyncIterator[dict]]:
+        prefetch: PositiveInt | None = None,
+        max_statements: PositiveInt | None = None,
+    ) -> AsyncIterator[bytes] | AsyncIterator[dict]:
         """Read documents matching the query in the target index and yield them.
 
         Args:
@@ -158,7 +159,7 @@ class AsyncESDataBackend(
     async def _read_dicts(
         self,
         query: ESQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> AsyncIterator[dict]:
@@ -204,12 +205,12 @@ class AsyncESDataBackend(
 
     async def write(  # noqa: PLR0913
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
-        concurrency: Optional[PositiveInt] = None,
+        operation_type: BaseOperationType | None = None,
+        concurrency: PositiveInt | None = None,
     ) -> int:
         """Write data documents to the target index and return their count.
 
@@ -243,8 +244,8 @@ class AsyncESDataBackend(
 
     async def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,

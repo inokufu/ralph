@@ -1,17 +1,10 @@
 """Peer instruction event field definition."""
 
-import sys
-from typing import List, Union
+from typing import Annotated, Literal
 
 from pydantic import StringConstraints, validator
-from typing_extensions import Annotated
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class TeamsEventField(AbstractBaseEventField):
@@ -41,7 +34,7 @@ class EdxTeamChangedEventField(TeamsEventField):
     field: str
     new: Annotated[str, StringConstraints(max_length=1250)]
     old: Annotated[str, StringConstraints(max_length=1250)]
-    truncated: List[str]
+    truncated: list[str]
 
     @validator("truncated")
     def check_truncated_length(cls, v):
@@ -103,7 +96,7 @@ class EdxTeamPageViewedEventField(TeamsEventField):
         "single-team",
         "single-topic",
     ]
-    topic_id: Union[str, Literal["null"]]
+    topic_id: str | Literal["null"]
 
 
 class EdxTeamSearchedEventField(AbstractBaseEventField):

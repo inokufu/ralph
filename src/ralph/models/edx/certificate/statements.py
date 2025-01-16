@@ -1,7 +1,6 @@
 """Certificate events model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -16,11 +15,6 @@ from .fields.events import (
     EdxCertificateSharedEventField,
 )
 
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
 
 class EdxCertificateCreated(BaseServerModel):
     """Pydantic model for `edx.certificate.created` statement.
@@ -32,10 +26,7 @@ class EdxCertificateCreated(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.certificate.created")
 
-    event: Union[
-        Json[EdxCertificateCreatedEventField],
-        EdxCertificateCreatedEventField,
-    ]
+    event: Json[EdxCertificateCreatedEventField] | EdxCertificateCreatedEventField
     event_type: Literal["edx.certificate.created"]
     name: Literal["edx.certificate.created"]
 
@@ -50,10 +41,7 @@ class EdxCertificateRevoked(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.certificate.revoked")
 
-    event: Union[
-        Json[EdxCertificateRevokedEventField],
-        EdxCertificateRevokedEventField,
-    ]
+    event: Json[EdxCertificateRevokedEventField] | EdxCertificateRevokedEventField
     event_type: Literal["edx.certificate.revoked"]
     name: Literal["edx.certificate.revoked"]
 
@@ -68,10 +56,8 @@ class EdxCertificateShared(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.certificate.shared")
 
-    event: Union[
-        Json[EdxCertificateSharedEventField],
-        EdxCertificateSharedEventField,
-    ]
+    event: Json[EdxCertificateSharedEventField] | EdxCertificateSharedEventField
+
     event_type: Literal["edx.certificate.shared"]
     name: Literal["edx.certificate.shared"]
 
@@ -88,10 +74,10 @@ class EdxCertificateEvidenceVisited(BaseServerModel):
         event_source="server", event_type="edx.certificate.evidence_visited"
     )
 
-    event: Union[
-        Json[EdxCertificateEvidenceVisitedEventField],
-        EdxCertificateEvidenceVisitedEventField,
-    ]
+    event: (
+        Json[EdxCertificateEvidenceVisitedEventField]
+        | EdxCertificateEvidenceVisitedEventField
+    )
     event_type: Literal["edx.certificate.evidence_visited"]
     name: Literal["edx.certificate.evidence_visited"]
 
@@ -108,10 +94,9 @@ class EdxCertificateGenerationEnabled(BaseServerModel):
         event_source="server", event_type="edx.certificate.generation.enabled"
     )
 
-    event: Union[
-        Json[CertificateGenerationBaseEventField],
-        CertificateGenerationBaseEventField,
-    ]
+    event: (
+        Json[CertificateGenerationBaseEventField] | CertificateGenerationBaseEventField
+    )
     event_type: Literal["edx.certificate.generation.enabled"]
     name: Literal["edx.certificate.generation.enabled"]
 
@@ -128,9 +113,6 @@ class EdxCertificateGenerationDisabled(BaseServerModel):
         event_source="server", event_type="edx.certificate.generation.disabled"
     )
 
-    event: Union[
-        Json[CertificateGenerationBaseEventField],
-        CertificateGenerationBaseEventField,
-    ]
+    event: CertificateGenerationBaseEventField | CertificateGenerationBaseEventField
     event_type: Literal["edx.certificate.generation.disabled"]
     name: Literal["edx.certificate.generation.disabled"]

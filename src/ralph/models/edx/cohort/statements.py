@@ -1,7 +1,6 @@
 """Cohort events model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -9,11 +8,6 @@ from ralph.models.selector import selector
 
 from ..server import BaseServerModel
 from .fields.events import CohortBaseEventField, CohortUserBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxCohortCreated(BaseServerModel):
@@ -28,10 +22,7 @@ class EdxCohortCreated(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.cohort.created")
 
-    event: Union[
-        Json[CohortBaseEventField],
-        CohortBaseEventField,
-    ]
+    event: Json[CohortBaseEventField] | CohortBaseEventField
     event_type: Literal["edx.cohort.created"]
     name: Literal["edx.cohort.created"]
 
@@ -48,10 +39,7 @@ class EdxCohortUserAdded(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.cohort.user_added")
 
-    event: Union[
-        Json[CohortUserBaseEventField],
-        CohortUserBaseEventField,
-    ]
+    event: Json[CohortUserBaseEventField] | CohortUserBaseEventField
     event_type: Literal["edx.cohort.user_added"]
     name: Literal["edx.cohort.user_added"]
 
@@ -70,9 +58,6 @@ class EdxCohortUserRemoved(BaseServerModel):
 
     __selector__ = selector(event_source="server", event_type="edx.cohort.user_removed")
 
-    event: Union[
-        Json[CohortUserBaseEventField],
-        CohortUserBaseEventField,
-    ]
+    event: Json[CohortUserBaseEventField] | CohortUserBaseEventField
     event_type: Literal["edx.cohort.user_removed"]
     name: Literal["edx.cohort.user_removed"]

@@ -1,7 +1,8 @@
 """CozyStack client for Ralph."""
 
 import os
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
@@ -92,7 +93,7 @@ class CozyStackClient:
 
             raise exceptions.CozyStackError() from exc
 
-    def create_index(self, target: str, fields: List[str]) -> Dict:
+    def create_index(self, target: str, fields: Sequence[str]) -> dict:
         """Create an index for some documents.
 
         Attributes:
@@ -115,7 +116,7 @@ class CozyStackClient:
             self.check_error(response)
             return response.json()
 
-    def delete_database(self, target: str) -> Dict:
+    def delete_database(self, target: str) -> dict:
         """Delete doctype database.
 
         Attributes:
@@ -135,14 +136,14 @@ class CozyStackClient:
             self.check_error(response)
             return response.json()
 
-    def list_all_doctypes(self, target: str) -> List[str]:
+    def list_all_doctypes(self, target: str) -> list[str]:
         """List all doctypes available on targeted instance.
 
         Attributes:
             target (str): The target instance url with auth data.
 
         Return:
-            List[str]: The doctypes available on targeted instance.
+            Sequence[str]: The doctypes available on targeted instance.
 
         Raises:
             fastapi.HTTPException: When target is malformed.
@@ -153,7 +154,7 @@ class CozyStackClient:
             self.check_error(response)
             return response.json()
 
-    def find(self, target: str, query: Dict) -> Dict:
+    def find(self, target: str, query: Mapping) -> dict:
         """Find document using a mango selector.
 
         Attributes:
@@ -178,7 +179,7 @@ class CozyStackClient:
             return response.json()
 
     @classmethod
-    def _check_item_for_update_or_delete_operation(cls, item: Dict):
+    def _check_item_for_update_or_delete_operation(cls, item: Mapping):
         """Raise ValueError if _id or _rev field missing in item."""
         for field in ["_id", "_rev"]:
             if field not in item:
@@ -187,7 +188,7 @@ class CozyStackClient:
                 )
 
     @classmethod
-    def _prepare_data(cls, data: Iterable[dict], operation_type: BaseOperationType):
+    def _prepare_data(cls, data: Iterable[Mapping], operation_type: BaseOperationType):
         """Enrich data based on operation type."""
         prepared_data = []
 
@@ -217,7 +218,7 @@ class CozyStackClient:
         return prepared_data
 
     def bulk_operation(
-        self, target: str, data: Iterable[Dict], operation_type: BaseOperationType
+        self, target: str, data: Iterable[Mapping], operation_type: BaseOperationType
     ) -> int:
         """Create, update, or delete multiple documents at the same time within a single request.
 

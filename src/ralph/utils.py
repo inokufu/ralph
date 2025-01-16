@@ -5,6 +5,15 @@ import datetime
 import json
 import logging
 import operator
+from collections.abc import (
+    AsyncIterable,
+    AsyncIterator,
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 from functools import reduce
 from importlib import import_module
 from inspect import getmembers, isclass, iscoroutine
@@ -12,18 +21,8 @@ from itertools import islice
 from logging import Logger, getLogger
 from typing import (
     Any,
-    AsyncIterable,
-    AsyncIterator,
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
     Type,
     TypeVar,
-    Union,
 )
 
 from ralph.exceptions import BackendException, UnsupportedBackendException
@@ -71,7 +70,7 @@ def import_string(dotted_path: str) -> Any:
         ) from err
 
 
-def get_backend_class(backends: Dict[str, Type], name: str) -> Any:
+def get_backend_class(backends: Mapping[str, Type], name: str) -> Any:
     """Return the backend class from available backends by its name."""
     backend_class = backends.get(name)
     if not backend_class:
@@ -82,7 +81,7 @@ def get_backend_class(backends: Dict[str, Type], name: str) -> Any:
     return backend_class
 
 
-def get_backend_instance(backend_class: Type, options: Dict) -> Any:
+def get_backend_instance(backend_class: Type, options: Mapping) -> Any:
     """Return the instantiated backend given the backend class and options."""
     prefix = f"{backend_class.name}_"
     # Filter backend-related parameters. Parameter name is supposed to start
@@ -108,7 +107,7 @@ def now() -> str:
     return datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
 
-def get_dict_value_from_path(dict_: Dict, path: Sequence[str]) -> Union[Dict, None]:
+def get_dict_value_from_path(dict_: Mapping, path: Sequence[str]) -> dict | None:
     """Get a nested dictionary value.
 
     Args:
@@ -124,7 +123,7 @@ def get_dict_value_from_path(dict_: Dict, path: Sequence[str]) -> Union[Dict, No
         return None
 
 
-def set_dict_value_from_path(dict_: Dict, path: List[str], value: Any) -> None:
+def set_dict_value_from_path(dict_: Mapping, path: Sequence[str], value: Any) -> None:
     """Set a nested dictionary value.
 
     Args:
@@ -137,7 +136,7 @@ def set_dict_value_from_path(dict_: Dict, path: List[str], value: Any) -> None:
     dict_[path[-1]] = value
 
 
-async def gather_with_limited_concurrency(num_tasks: Optional[int], *tasks: Any) -> Any:
+async def gather_with_limited_concurrency(num_tasks: int | None, *tasks: Any) -> Any:
     """Gather no more than `num_tasks` tasks at time.
 
     Args:
@@ -164,7 +163,7 @@ async def gather_with_limited_concurrency(num_tasks: Optional[int], *tasks: Any)
         raise exception
 
 
-def statements_are_equivalent(statement_1: dict, statement_2: dict) -> bool:
+def statements_are_equivalent(statement_1: Mapping, statement_2: Mapping) -> bool:
     """Check if statements are equivalent.
 
     To be equivalent, they must be identical on all fields not modified on input by the
@@ -192,7 +191,7 @@ T = TypeVar("T")
 def parse_iterable_to_dict(
     raw_documents: Iterable[T],
     ignore_errors: bool,
-    parser: Callable[[T], Dict[str, Any]] = json.loads,
+    parser: Callable[[T], Mapping[str, Any]] = json.loads,
 ) -> Iterator[dict]:
     """Read the `raw_documents` Iterable and yield dictionaries."""
     for i, raw_document in enumerate(raw_documents):
@@ -210,7 +209,7 @@ def parse_iterable_to_dict(
 async def async_parse_iterable_to_dict(
     raw_documents: AsyncIterable[T],
     ignore_errors: bool,
-    parser: Callable[[T], Dict[str, Any]] = json.loads,
+    parser: Callable[[T], Mapping[str, Any]] = json.loads,
 ) -> AsyncIterator[dict]:
     """Read the `raw_documents` Iterable and yield dictionaries."""
     i = 0
@@ -229,7 +228,7 @@ async def async_parse_iterable_to_dict(
 
 
 def parse_dict_to_bytes(
-    documents: Iterable[Dict[str, Any]],
+    documents: Iterable[Mapping[str, Any]],
     encoding: str,
     ignore_errors: bool,
 ) -> Iterator[bytes]:
@@ -247,7 +246,7 @@ def parse_dict_to_bytes(
 
 
 async def async_parse_dict_to_bytes(
-    documents: AsyncIterable[Dict[str, Any]],
+    documents: AsyncIterable[Mapping[str, Any]],
     encoding: str,
     ignore_errors: bool,
 ) -> AsyncIterator[bytes]:

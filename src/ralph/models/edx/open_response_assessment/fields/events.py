@@ -1,19 +1,12 @@
 """Open Response Assessment events model event fields definitions."""
 
-import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import StringConstraints
-from typing_extensions import Annotated
 
 from ralph.models.edx.base import AbstractBaseEventField, BaseModelWithConfig
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class ORAGetPeerSubmissionEventField(AbstractBaseEventField):
@@ -38,7 +31,7 @@ class ORAGetPeerSubmissionEventField(AbstractBaseEventField):
         ),
     ]
     requesting_student_id: str
-    submission_returned_uuid: Union[str, None] = None
+    submission_returned_uuid: str | None = None
 
 
 class ORAGetSubmissionForStaffGradingEventField(AbstractBaseEventField):
@@ -63,7 +56,7 @@ class ORAGetSubmissionForStaffGradingEventField(AbstractBaseEventField):
             pattern=(r"^block-v1:.+\+.+\+.+type@openassessment+block@[a-f0-9]{32}$")
         ),
     ]
-    submission_returned_uuid: Union[str, None] = None
+    submission_returned_uuid: str | None = None
     requesting_staff_id: str
     type: Literal["full-grade"]
 
@@ -93,7 +86,7 @@ class ORAAssessEventPartsField(BaseModelWithConfig):
 
     option: str
     criterion: ORAAssessEventPartsCriterionField
-    feedback: Optional[str] = None
+    feedback: str | None = None
 
 
 class ORAAssessEventRubricField(BaseModelWithConfig):
@@ -135,7 +128,7 @@ class ORAAssessEventField(AbstractBaseEventField):
     """
 
     feedback: str
-    parts: List[ORAAssessEventPartsField]
+    parts: list[ORAAssessEventPartsField]
     rubric: ORAAssessEventRubricField
     scored_at: datetime
     scorer_id: Annotated[str, StringConstraints(max_length=40)]
@@ -168,7 +161,7 @@ class ORASubmitFeedbackOnAssessmentsEventField(AbstractBaseEventField):
     """  # noqa: D205
 
     feedback_text: str
-    options: List[str]
+    options: list[str]
     submission_uuid: UUID
 
 
@@ -184,9 +177,9 @@ class ORACreateSubmissionEventAnswerField(BaseModelWithConfig):
             given for answer.
     """  # noqa: D205
 
-    parts: List[Dict[Literal["text"], str]]
-    file_keys: Optional[List[str]] = None
-    files_descriptions: Optional[List[str]] = None
+    parts: list[dict[Literal["text"], str]]
+    file_keys: list[str] | None = None
+    files_descriptions: list[str] | None = None
 
 
 class ORACreateSubmissionEventField(AbstractBaseEventField):
@@ -221,7 +214,7 @@ class ORASaveSubmissionEventSavedResponseField(BaseModelWithConfig):
     """
 
     text: str
-    file_upload_key: Optional[str] = None
+    file_upload_key: str | None = None
 
 
 class ORASaveSubmissionEventField(AbstractBaseEventField):
@@ -252,8 +245,8 @@ class ORAStudentTrainingAssessExampleEventField(AbstractBaseEventField):
         submission_uuid (str): Consists of the unique identifier of the response.
     """  # noqa: D205
 
-    corrections: Dict[str, str]
-    options_selected: Dict[str, str]
+    corrections: dict[str, str]
+    options_selected: dict[str, str]
     submission_uuid: UUID
 
 

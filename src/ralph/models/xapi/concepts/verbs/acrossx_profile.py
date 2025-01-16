@@ -1,15 +1,9 @@
 """`AcrossX Profile` verbs definitions."""
 
-import sys
-from typing import Dict, Optional
+from typing import Literal
 
 from ...base.verbs import BaseXapiVerb
 from ...constants import LANG_EN_US_DISPLAY
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class PostedVerb(BaseXapiVerb):
@@ -23,4 +17,4 @@ class PostedVerb(BaseXapiVerb):
     id: Literal["https://w3id.org/xapi/acrossx/verbs/posted"] = (
         "https://w3id.org/xapi/acrossx/verbs/posted"
     )
-    display: Optional[Dict[Literal[LANG_EN_US_DISPLAY], Literal["posted"]]] = None
+    display: dict[Literal[LANG_EN_US_DISPLAY], Literal["posted"]] | None = None

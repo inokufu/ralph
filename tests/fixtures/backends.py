@@ -4,12 +4,12 @@ import asyncio
 import json
 import os
 import random
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from contextlib import asynccontextmanager
 from functools import lru_cache, wraps
 from multiprocessing import Process
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable
 
 import boto3
 import botocore
@@ -157,7 +157,7 @@ def get_mongo_test_backend():
 def get_async_mongo_test_backend(
     connection_uri: str = MONGO_TEST_CONNECTION_URI,
     default_collection: str = MONGO_TEST_COLLECTION,
-    client_options: dict = None,
+    client_options: Mapping | None = None,
 ):
     """Return an AsyncMongoDatabase backend instance using test defaults."""
     settings = AsyncMongoLRSBackend.settings_class(
@@ -296,7 +296,7 @@ def flavor(request):
 @pytest.fixture
 def lrs_backend(
     flavor,
-) -> Callable[[Optional[str]], Union[LRSDataBackend, AsyncLRSDataBackend]]:
+) -> Callable[[str | None], LRSDataBackend | AsyncLRSDataBackend]:
     """Return the `get_lrs_test_backend` function."""
     backend_class = LRSDataBackend if flavor == "sync" else AsyncLRSDataBackend
 
@@ -322,8 +322,8 @@ def lrs_backend(
         return async_func
 
     def _get_lrs_test_backend(
-        base_url: Optional[str] = "http://fake-lrs.com",
-    ) -> Union[LRSDataBackend, AsyncLRSDataBackend]:
+        base_url: str | None = "http://fake-lrs.com",
+    ) -> LRSDataBackend | AsyncLRSDataBackend:
         """Return an (Async)LRSDataBackend backend instance using test defaults."""
         headers = {
             "X_EXPERIENCE_API_VERSION": "1.0.3",
@@ -360,7 +360,7 @@ def async_mongo_backend():
     def get_mongo_data_backend(
         connection_uri: str = MONGO_TEST_CONNECTION_URI,
         default_collection: str = MONGO_TEST_COLLECTION,
-        client_options: dict = None,
+        client_options: Mapping | None = None,
     ):
         """Return an instance of `MongoDataBackend`."""
         settings = AsyncMongoDataBackend.settings_class(
@@ -452,7 +452,7 @@ def mongo_backend():
     def get_mongo_data_backend(
         connection_uri: str = MONGO_TEST_CONNECTION_URI,
         default_collection: str = MONGO_TEST_COLLECTION,
-        client_options: dict = None,
+        client_options: Mapping | None = None,
     ):
         """Return an instance of `MongoDataBackend`."""
         settings = MongoDataBackend.settings_class(
@@ -476,7 +476,7 @@ def mongo_lrs_backend():
     def get_mongo_lrs_backend(
         connection_uri: str = MONGO_TEST_CONNECTION_URI,
         default_collection: str = MONGO_TEST_COLLECTION,
-        client_options: dict = None,
+        client_options: Mapping | None = None,
     ):
         """Return an instance of MongoLRSBackend."""
         settings = MongoLRSBackend.settings_class(

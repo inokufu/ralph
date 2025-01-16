@@ -1,11 +1,10 @@
 """Video xAPI events context fields definitions."""
 
-import sys
-from typing import List, Optional, Union
+from collections.abc import Sequence
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import Field, NonNegativeFloat, field_validator
-from typing_extensions import Annotated
 
 from ..base.contexts import BaseXapiContext, BaseXapiContextContextActivities
 from ..base.unnested_objects import BaseXapiActivity
@@ -25,11 +24,6 @@ from ..concepts.constants.video import (
 )
 from ..config import BaseExtensionModelWithConfig
 
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
 
 class VideoProfileActivity(ProfileActivity):
     """Pydantic model for video profile `Activity` type.
@@ -48,20 +42,14 @@ class VideoContextContextActivities(BaseXapiContextContextActivities):
         category (dict or list): see VideoProfileActivity.
     """
 
-    category: Union[
-        VideoProfileActivity, List[Union[VideoProfileActivity, BaseXapiActivity]]
-    ]
+    category: VideoProfileActivity | list[VideoProfileActivity | BaseXapiActivity]
 
     @field_validator("category")
     @classmethod
     def check_presence_of_profile_activity_category(
         cls,
-        value: Union[
-            VideoProfileActivity, List[Union[VideoProfileActivity, BaseXapiActivity]]
-        ],
-    ) -> Union[
-        VideoProfileActivity, List[Union[VideoProfileActivity, BaseXapiActivity]]
-    ]:
+        value: VideoProfileActivity | Sequence[VideoProfileActivity | BaseXapiActivity],
+    ) -> VideoProfileActivity | list[VideoProfileActivity | BaseXapiActivity]:
         """Check that the category list contains a `VideoProfileActivity`."""
         if isinstance(value, VideoProfileActivity):
             return value
@@ -91,7 +79,7 @@ class VideoContextExtensions(BaseExtensionModelWithConfig):
         session (uuid): Consists of the ID of the active session.
     """
 
-    session_id: Annotated[Optional[UUID], Field(alias=CONTEXT_EXTENSION_SESSION_ID)]
+    session_id: Annotated[UUID | None, Field(alias=CONTEXT_EXTENSION_SESSION_ID)]
 
 
 class VideoInitializedContextExtensions(VideoContextExtensions):
@@ -118,27 +106,23 @@ class VideoInitializedContextExtensions(VideoContextExtensions):
 
     length: Annotated[NonNegativeFloat, Field(alias=CONTEXT_EXTENSION_LENGTH)]
     ccSubtitleEnabled: Annotated[
-        Optional[bool], Field(alias=CONTEXT_EXTENSION_CC_ENABLED)
+        bool | None, Field(alias=CONTEXT_EXTENSION_CC_ENABLED)
     ] = None
     ccSubtitleLang: Annotated[
-        Optional[str], Field(alias=CONTEXT_EXTENSION_CC_SUBTITLE_LANG)
+        str | None, Field(alias=CONTEXT_EXTENSION_CC_SUBTITLE_LANG)
     ] = None
-    fullScreen: Annotated[
-        Optional[bool], Field(alias=CONTEXT_EXTENSION_FULL_SCREEN)
-    ] = None
-    screenSize: Annotated[Optional[str], Field(alias=CONTEXT_EXTENSION_SCREEN_SIZE)] = (
+    fullScreen: Annotated[bool | None, Field(alias=CONTEXT_EXTENSION_FULL_SCREEN)] = (
         None
     )
+    screenSize: Annotated[str | None, Field(alias=CONTEXT_EXTENSION_SCREEN_SIZE)] = None
     videoPlaybackSize: Annotated[
-        Optional[str], Field(alias=CONTEXT_EXTENSION_VIDEO_PLAYBACK_SIZE)
+        str | None, Field(alias=CONTEXT_EXTENSION_VIDEO_PLAYBACK_SIZE)
     ] = None
-    speed: Annotated[Optional[str], Field(alias=CONTEXT_EXTENSION_SPEED)] = None
-    userAgent: Annotated[Optional[str], Field(alias=CONTEXT_EXTENSION_USER_AGENT)] = (
-        None
-    )
-    volume: Annotated[Optional[int], Field(alias=CONTEXT_EXTENSION_VOLUME)] = None
+    speed: Annotated[str | None, Field(alias=CONTEXT_EXTENSION_SPEED)] = None
+    userAgent: Annotated[str | None, Field(alias=CONTEXT_EXTENSION_USER_AGENT)] = None
+    volume: Annotated[int | None, Field(alias=CONTEXT_EXTENSION_VOLUME)] = None
     completionThreshold: Annotated[
-        Optional[float], Field(alias=CONTEXT_EXTENSION_COMPLETION_THRESHOLD)
+        float | None, Field(alias=CONTEXT_EXTENSION_COMPLETION_THRESHOLD)
     ] = None
 
 
@@ -155,7 +139,7 @@ class VideoBrowsingContextExtensions(VideoContextExtensions):
 
     length: Annotated[NonNegativeFloat, Field(alias=CONTEXT_EXTENSION_LENGTH)]
     completionThreshold: Annotated[
-        Optional[float], Field(alias=CONTEXT_EXTENSION_COMPLETION_THRESHOLD)
+        float | None, Field(alias=CONTEXT_EXTENSION_COMPLETION_THRESHOLD)
     ] = None
 
 
@@ -216,7 +200,7 @@ class VideoPlayedContext(BaseVideoContext):
         extensions (dict): See VideoContextExtensions.
     """
 
-    extensions: Optional[VideoContextExtensions] = None
+    extensions: VideoContextExtensions | None = None
 
 
 class VideoPausedContext(BaseVideoContext):
@@ -236,7 +220,7 @@ class VideoSeekedContext(BaseVideoContext):
         extensions (dict): See VideoContextExtensions.
     """
 
-    extensions: Optional[VideoContextExtensions] = None
+    extensions: VideoContextExtensions | None = None
 
 
 class VideoCompletedContext(BaseVideoContext):

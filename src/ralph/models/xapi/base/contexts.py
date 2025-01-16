@@ -1,6 +1,5 @@
 """Base xAPI `Context` definitions."""
 
-from typing import Dict, List, Optional, Union
 from uuid import UUID
 
 from ralph.conf import NonEmptyStrictStr
@@ -25,10 +24,10 @@ class BaseXapiContextContextActivities(BaseModelWithConfig):
             properties.
     """
 
-    parent: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
-    grouping: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
-    category: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
-    other: Optional[Union[BaseXapiActivity, List[BaseXapiActivity]]] = None
+    parent: BaseXapiActivity | list[BaseXapiActivity] | None = None
+    grouping: BaseXapiActivity | list[BaseXapiActivity] | None = None
+    category: BaseXapiActivity | list[BaseXapiActivity] | None = None
+    other: BaseXapiActivity | list[BaseXapiActivity] | None = None
 
 
 class BaseXapiContext(BaseModelWithConfig):
@@ -46,12 +45,12 @@ class BaseXapiContext(BaseModelWithConfig):
         extensions (dict): Consists of a dictionary of other properties as needed.
     """
 
-    registration: Optional[UUID] = None
-    instructor: Optional[BaseXapiAgent] = None
-    team: Optional[BaseXapiGroup] = None
-    contextActivities: Optional[BaseXapiContextContextActivities] = None
-    revision: Optional[NonEmptyStrictStr] = None
-    platform: Optional[NonEmptyStrictStr] = None
-    language: Optional[LanguageTag] = None
-    statement: Optional[BaseXapiStatementRef] = None
-    extensions: Optional[Dict[IRI, Union[str, int, bool, list, dict, None]]] = None
+    registration: UUID | None = None
+    instructor: BaseXapiAgent | None = None
+    team: BaseXapiGroup | None = None
+    contextActivities: BaseXapiContextContextActivities | None = None
+    revision: NonEmptyStrictStr | None = None
+    platform: NonEmptyStrictStr | None = None
+    language: LanguageTag | None = None
+    statement: BaseXapiStatementRef | None = None
+    extensions: dict[IRI, str | int | bool | list | dict | None] | None = None

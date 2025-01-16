@@ -1,14 +1,8 @@
 """Enrollment models event field definition."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from ...base import AbstractBaseEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EnrollmentEventField(AbstractBaseEventField):
@@ -25,7 +19,5 @@ class EnrollmentEventField(AbstractBaseEventField):
     """
 
     course_id: str
-    mode: Union[
-        Literal["audit"], Literal["honor"], Literal["professional"], Literal["verified"]
-    ]
-    user_id: Union[int, Literal[""], None] = None
+    mode: Literal["audit", "honor", "professional", "verified"]
+    user_id: int | Literal[""] | None = None

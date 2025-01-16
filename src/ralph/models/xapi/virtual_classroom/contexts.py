@@ -1,12 +1,11 @@
 """Virtual classroom xAPI events context fields definitions."""
 
-import sys
+from collections.abc import Sequence
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import Field, field_validator
-from typing_extensions import Annotated
 
 from ..base.contexts import BaseXapiContext, BaseXapiContextContextActivities
 from ..base.unnested_objects import BaseXapiActivity
@@ -15,11 +14,6 @@ from ..concepts.activity_types.virtual_classroom import VirtualClassroomActivity
 from ..concepts.constants.cmi5_profile import CONTEXT_EXTENSION_SESSION_ID
 from ..concepts.constants.tincan_vocabulary import CONTEXT_EXTENSION_PLANNED_DURATION
 from ..config import BaseExtensionModelWithConfig
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class VirtualClassroomProfileActivity(ProfileActivity):
@@ -41,23 +35,23 @@ class VirtualClassroomContextContextActivities(BaseXapiContextContextActivities)
         category (dict or list): see VirtualClassroomProfileActivity.
     """
 
-    category: Union[
-        VirtualClassroomProfileActivity,
-        List[Union[VirtualClassroomProfileActivity, BaseXapiActivity]],
-    ]
+    category: (
+        VirtualClassroomProfileActivity
+        | list[VirtualClassroomProfileActivity | BaseXapiActivity]
+    )
 
     @field_validator("category")
     @classmethod
     def check_presence_of_profile_activity_category(
         cls,
-        value: Union[
-            VirtualClassroomProfileActivity,
-            List[Union[VirtualClassroomProfileActivity, BaseXapiActivity]],
-        ],
-    ) -> Union[
-        VirtualClassroomProfileActivity,
-        List[Union[VirtualClassroomProfileActivity, BaseXapiActivity]],
-    ]:
+        value: (
+            VirtualClassroomProfileActivity
+            | Sequence[VirtualClassroomProfileActivity | BaseXapiActivity]
+        ),
+    ) -> (
+        VirtualClassroomProfileActivity
+        | list[VirtualClassroomProfileActivity | BaseXapiActivity]
+    ):
         """Check that the category list contains a `VirtualClassroomProfileActivity`."""
         if isinstance(value, VirtualClassroomProfileActivity):
             return value
@@ -105,7 +99,7 @@ class VirtualClassroomInitializedContextExtensions(VirtualClassroomContextExtens
     """
 
     planned_duration: Annotated[
-        Optional[datetime], Field(alias=CONTEXT_EXTENSION_PLANNED_DURATION)
+        datetime | None, Field(alias=CONTEXT_EXTENSION_PLANNED_DURATION)
     ]
 
 
@@ -131,7 +125,7 @@ class VirtualClassroomJoinedContextExtensions(VirtualClassroomContextExtensions)
     """
 
     planned_duration: Annotated[
-        Optional[datetime], Field(alias=CONTEXT_EXTENSION_PLANNED_DURATION)
+        datetime | None, Field(alias=CONTEXT_EXTENSION_PLANNED_DURATION)
     ]
 
 
@@ -157,7 +151,7 @@ class VirtualClassroomTerminatedContextExtensions(VirtualClassroomContextExtensi
     """
 
     planned_duration: Annotated[
-        Optional[datetime], Field(alias=CONTEXT_EXTENSION_PLANNED_DURATION)
+        datetime | None, Field(alias=CONTEXT_EXTENSION_PLANNED_DURATION)
     ]
 
 
@@ -181,7 +175,7 @@ class VirtualClassroomStartedPollContextActivities(
         parent (list): see VirtualClassroomActivity.
     """  # noqa: D205
 
-    parent: Union[VirtualClassroomActivity, List[VirtualClassroomActivity]]
+    parent: VirtualClassroomActivity | list[VirtualClassroomActivity]
 
 
 class VirtualClassroomStartedPollContext(VirtualClassroomContext):
@@ -210,7 +204,7 @@ class VirtualClassroomAnsweredPollContextActivities(
         parent (list): see VirtualClassroomActivity.
     """  # noqa: D205
 
-    parent: Union[VirtualClassroomActivity, List[VirtualClassroomActivity]]
+    parent: VirtualClassroomActivity | list[VirtualClassroomActivity]
 
 
 class VirtualClassroomAnsweredPollContext(VirtualClassroomContext):
@@ -238,7 +232,7 @@ class VirtualClassroomPostedPublicMessageContextActivities(
         parent (list): see VirtualClassroomActivity.
     """  # noqa: D205
 
-    parent: Union[VirtualClassroomActivity, List[VirtualClassroomActivity]]
+    parent: VirtualClassroomActivity | list[VirtualClassroomActivity]
 
 
 class VirtualClassroomPostedPublicMessageContext(VirtualClassroomContext):

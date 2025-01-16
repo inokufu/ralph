@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import logging
 import struct
+from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
 from io import IOBase
-from typing import Generator, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Annotated, TypeVar
 from uuid import uuid4
 
 from bson.errors import BSONError
@@ -23,7 +24,6 @@ from pymongo.errors import (
     InvalidOperation,
     PyMongoError,
 )
-from typing_extensions import Annotated
 
 from ralph.backends.data.base import (
     BaseDataBackend,
@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 class MongoClientOptions(ClientOptions):
     """MongoDB additional client options."""
 
-    document_class: Optional[str] = None
-    tz_aware: Optional[bool] = None
+    document_class: str | None = None
+    tz_aware: bool | None = None
 
 
 class MongoDataBackendSettings(BaseDataBackendSettings):
@@ -89,10 +89,10 @@ class MongoQuery(BaseQuery):
         sort (list): A list of (key, direction) pairs specifying the sort order.
     """
 
-    filter: Optional[dict] = None
-    limit: Optional[int] = None
-    projection: Optional[dict] = None
-    sort: Optional[List[Tuple]] = None
+    filter: Mapping | None = None
+    limit: int | None = None
+    projection: Mapping | None = None
+    sort: Sequence[tuple] | None = None
 
 
 Settings = TypeVar("Settings", bound=MongoDataBackendSettings)
@@ -104,7 +104,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
     name = "mongo"
     unsupported_operation_types = {BaseOperationType.APPEND}
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the MongoDB client.
 
         Args:
@@ -142,8 +142,8 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
         return DataBackendStatus.OK
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List collections in the `target` database.
 
         Args:
@@ -179,13 +179,13 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[MongoQuery] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: MongoQuery | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read documents matching the `query` from `target` collection and yield them.
 
         Args:
@@ -217,7 +217,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
     def _read_dicts(
         self,
         query: MongoQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> Iterator[dict]:
@@ -234,11 +234,11 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write `data` documents to the `target` collection and return their count.
 
@@ -267,8 +267,8 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -308,13 +308,13 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
             raise BackendException(msg % error) from error
 
     @staticmethod
-    def to_ids(data: Iterable[dict]) -> Iterable[str]:
+    def to_ids(data: Iterable[Mapping]) -> Iterable[str]:
         """Convert `data` statements to ids."""
         for statement in data:
             yield statement.get("id")
 
     @staticmethod
-    def to_replace_one(data: Iterable[dict]) -> Iterable[ReplaceOne]:
+    def to_replace_one(data: Iterable[Mapping]) -> Iterable[ReplaceOne]:
         """Convert `data` statements to Mongo `ReplaceOne` objects."""
         for statement in data:
             yield ReplaceOne(
@@ -324,7 +324,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
 
     @staticmethod
     def to_documents(
-        data: Iterable[dict],
+        data: Iterable[Mapping],
         ignore_errors: bool,
         operation_type: BaseOperationType,
     ) -> Generator[dict, None, None]:
@@ -374,7 +374,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
 
             yield document
 
-    def _get_target_collection(self, target: Union[str, None]) -> Collection:
+    def _get_target_collection(self, target: str | None) -> Collection:
         """Return the validated target collection."""
         try:
             return self.database[target] if target else self.collection
@@ -384,7 +384,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
             raise BackendParameterException(msg % (target, error)) from error
 
     def _bulk_import(
-        self, batch: List, ignore_errors: bool, collection: Collection
+        self, batch: Sequence, ignore_errors: bool, collection: Collection
     ) -> int:
         """Insert a `batch` of documents into the MongoDB `collection`."""
         try:
@@ -402,7 +402,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
         return inserted_count
 
     def _bulk_delete(
-        self, batch: List, ignore_errors: bool, collection: Collection
+        self, batch: Sequence, ignore_errors: bool, collection: Collection
     ) -> int:
         """Delete a `batch` of documents from the MongoDB `collection`."""
         try:
@@ -420,7 +420,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
         return deleted_count
 
     def _bulk_update(
-        self, batch: List, ignore_errors: bool, collection: Collection
+        self, batch: Sequence, ignore_errors: bool, collection: Collection
     ) -> int:
         """Update a `batch` of documents into the MongoDB `collection`."""
         try:

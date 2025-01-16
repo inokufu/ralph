@@ -1,7 +1,6 @@
 """Drag and drop event model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json
 
@@ -13,11 +12,6 @@ from ralph.models.edx.drag_and_drop.fields.events import (
 from ralph.models.selector import selector
 
 from ..server import BaseServerModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class EdxDragAndDropV2FeedbackClosed(BaseServerModel):
@@ -37,10 +31,7 @@ class EdxDragAndDropV2FeedbackClosed(BaseServerModel):
         event_source="server", event_type="edx.drag_and_drop_v2.feedback.closed"
     )
 
-    event: Union[
-        Json[EdxDragAndDropV2FeedbackEventField],
-        EdxDragAndDropV2FeedbackEventField,
-    ]
+    event: Json[EdxDragAndDropV2FeedbackEventField] | EdxDragAndDropV2FeedbackEventField
     event_type: Literal["edx.drag_and_drop_v2.feedback.closed"]
     name: Literal["edx.drag_and_drop_v2.feedback.closed"]
 
@@ -62,10 +53,7 @@ class EdxDragAndDropV2FeedbackOpened(BaseServerModel):
         event_source="server", event_type="edx.drag_and_drop_v2.feedback.opened"
     )
 
-    event: Union[
-        Json[EdxDragAndDropV2FeedbackEventField],
-        EdxDragAndDropV2FeedbackEventField,
-    ]
+    event: Json[EdxDragAndDropV2FeedbackEventField] | EdxDragAndDropV2FeedbackEventField
     event_type: Literal["edx.drag_and_drop_v2.feedback.opened"]
     name: Literal["edx.drag_and_drop_v2.feedback.opened"]
 
@@ -87,10 +75,10 @@ class EdxDragAndDropV2ItemDropped(BaseServerModel):
         event_source="server", event_type="edx.drag_and_drop_v2.item.dropped"
     )
 
-    event: Union[
-        Json[EdxDragAndDropV2ItemDroppedEventField],
-        EdxDragAndDropV2ItemDroppedEventField,
-    ]
+    event: (
+        Json[EdxDragAndDropV2ItemDroppedEventField]
+        | EdxDragAndDropV2ItemDroppedEventField
+    )
     event_type: Literal["edx.drag_and_drop_v2.item.dropped"]
     name: Literal["edx.drag_and_drop_v2.item.dropped"]
 
@@ -112,10 +100,10 @@ class EdxDragAndDropV2ItemPickedUp(BaseServerModel):
         event_source="server", event_type="edx.drag_and_drop_v2.item.picked_up"
     )
 
-    event: Union[
-        Json[EdxDragAndDropV2ItemPickedUpEventField],
-        EdxDragAndDropV2ItemPickedUpEventField,
-    ]
+    event: (
+        Json[EdxDragAndDropV2ItemPickedUpEventField]
+        | EdxDragAndDropV2ItemPickedUpEventField
+    )
     event_type: Literal["edx.drag_and_drop_v2.item.picked_up"]
     name: Literal["edx.drag_and_drop_v2.item.picked_up"]
 

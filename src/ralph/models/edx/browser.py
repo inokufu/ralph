@@ -1,17 +1,10 @@
 """Browser event model definitions."""
 
-import sys
-from typing import Union
+from typing import Annotated, Literal
 
 from pydantic import AnyUrl, StringConstraints
-from typing_extensions import Annotated
 
 from .base import BaseEdxModel
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class BaseBrowserModel(BaseEdxModel):
@@ -30,6 +23,4 @@ class BaseBrowserModel(BaseEdxModel):
 
     event_source: Literal["browser"]
     page: AnyUrl
-    session: Union[
-        Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")], Literal[""]
-    ]
+    session: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | Literal[""]

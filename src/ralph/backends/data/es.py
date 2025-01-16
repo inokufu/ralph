@@ -1,15 +1,15 @@
 """Elasticsearch data backend for Ralph."""
 
 import logging
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from io import IOBase
 from pathlib import Path
-from typing import Iterable, Iterator, List, Literal, Optional, TypeVar, Union
+from typing import Literal, Self, TypeVar
 
 from elasticsearch import ApiError, Elasticsearch, TransportError
 from elasticsearch.helpers import BulkIndexError, streaming_bulk
 from pydantic import BaseModel, PositiveInt, ValidationError
 from pydantic_settings import SettingsConfigDict
-from typing_extensions import Self
 
 from ralph.backends.data.base import (
     BaseDataBackend,
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 class ESClientOptions(ClientOptions):
     """Elasticsearch additional client options."""
 
-    ca_certs: Optional[Path] = None
-    verify_certs: Optional[bool] = None
+    ca_certs: Path | None = None
+    verify_certs: bool | None = None
 
 
 class ESDataBackendSettings(BaseDataBackendSettings):
@@ -65,7 +65,7 @@ class ESDataBackendSettings(BaseDataBackendSettings):
         "http://localhost:9200"  # CommaSeparatedTuple("http://localhost:9200")
     )
     POINT_IN_TIME_KEEP_ALIVE: str = "1m"
-    REFRESH_AFTER_WRITE: Optional[Union[Literal["false", "true", "wait_for"]]] = None
+    REFRESH_AFTER_WRITE: Literal["false", "true", "wait_for"] | None = None
 
 
 class ESQueryPit(BaseModel):
@@ -77,8 +77,8 @@ class ESQueryPit(BaseModel):
             time alive.
     """
 
-    id: Union[str, None] = None
-    keep_alive: Union[str, None] = None
+    id: str | None = None
+    keep_alive: str | None = None
 
 
 class ESQuery(BaseQuery):
@@ -102,12 +102,12 @@ class ESQuery(BaseQuery):
             Not used. Always set to `False`.
     """
 
-    q: Optional[str] = None
-    query: dict = {"match_all": {}}
+    q: str | None = None
+    query: Mapping = {"match_all": {}}
     pit: ESQueryPit = ESQueryPit()
-    size: Optional[int] = None
-    sort: Union[str, List[dict]] = "_shard_doc"
-    search_after: Optional[list] = None
+    size: int | None = None
+    sort: str | Sequence[dict] = "_shard_doc"
+    search_after: Sequence | None = None
     track_total_hits: Literal[False] = False
 
     @classmethod
@@ -130,7 +130,7 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
     name = "es"
     unsupported_operation_types = {BaseOperationType.APPEND}
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """Instantiate the Elasticsearch data backend.
 
         Args:
@@ -170,8 +170,8 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
         return DataBackendStatus.ERROR
 
     def list(
-        self, target: Optional[str] = None, details: bool = False, new: bool = False
-    ) -> Union[Iterator[str], Iterator[dict]]:
+        self, target: str | None = None, details: bool = False, new: bool = False
+    ) -> Iterator[str] | Iterator[dict]:
         """List available Elasticsearch indices, data streams and aliases.
 
         Args:
@@ -211,13 +211,13 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
 
     def read(  # noqa: PLR0913
         self,
-        query: Optional[ESQuery] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: ESQuery | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[Iterator[bytes], Iterator[dict]]:
+        max_statements: PositiveInt | None = None,
+    ) -> Iterator[bytes] | Iterator[dict]:
         """Read documents matching the query in the target index and yield them.
 
         Args:
@@ -246,7 +246,7 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
     def _read_dicts(
         self,
         query: ESQuery,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> Iterator[dict]:
@@ -289,11 +289,11 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
 
     def write(
         self,
-        data: Union[IOBase, Iterable[bytes], Iterable[dict]],
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        data: IOBase | Iterable[bytes] | Iterable[dict],
+        target: str | None = None,
+        chunk_size: int | None = None,
         ignore_errors: bool = False,
-        operation_type: Optional[BaseOperationType] = None,
+        operation_type: BaseOperationType | None = None,
     ) -> int:
         """Write data documents to the target index and return their count.
 
@@ -323,8 +323,8 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
 
     def _write_dicts(
         self,
-        data: Iterable[dict],
-        target: Optional[str],
+        data: Iterable[Mapping],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
@@ -372,7 +372,7 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
 
     @staticmethod
     def to_documents(
-        data: Iterable[dict],
+        data: Iterable[Mapping],
         target: str,
         operation_type: BaseOperationType,
     ) -> Iterator[dict]:

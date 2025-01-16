@@ -1,7 +1,7 @@
 """Websocket stream backend for Ralph."""
 
 import logging
-from typing import AsyncIterator, Optional, Union
+from collections.abc import AsyncIterator
 
 import websockets
 from pydantic import AnyUrl, PositiveInt
@@ -47,15 +47,15 @@ class WSClientOptions(ClientOptions):
         write_limit (int): High-water mark of write buffer in bytes.
     """
 
-    close_timeout: Optional[float] = None
-    compression: Optional[str] = "deflate"
-    max_size: Optional[int] = 2**20
-    max_queue: Optional[int] = 2**5
-    open_timeout: Optional[float] = 10
-    origin: Optional[str] = None
-    ping_interval: Optional[float] = 20
-    ping_timeout: Optional[float] = 20
-    user_agent_header: Optional[str] = USER_AGENT
+    close_timeout: float | None = None
+    compression: str | None = "deflate"
+    max_size: int | None = 2**20
+    max_queue: int | None = 2**5
+    open_timeout: float | None = 10
+    origin: str | None = None
+    ping_interval: float | None = 20
+    ping_timeout: float | None = 20
+    user_agent_header: str | None = USER_AGENT
     write_limit: int = 2**16
 
 
@@ -82,7 +82,7 @@ class AsyncWSDataBackend(BaseAsyncDataBackend[WSDataBackendSettings, str]):
 
     name = "async_ws"
 
-    def __init__(self, settings: Optional[WSDataBackendSettings] = None):
+    def __init__(self, settings: WSDataBackendSettings | None = None):
         """Instantiate the async websocket data backend.
 
         Args:
@@ -124,14 +124,14 @@ class AsyncWSDataBackend(BaseAsyncDataBackend[WSDataBackendSettings, str]):
 
     async def read(  # noqa: PLR0913
         self,
-        query: Optional[str] = None,
-        target: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        query: str | None = None,
+        target: str | None = None,
+        chunk_size: int | None = None,
         raw_output: bool = False,
         ignore_errors: bool = False,
-        prefetch: Optional[PositiveInt] = None,
-        max_statements: Optional[PositiveInt] = None,
-    ) -> Union[AsyncIterator[bytes], AsyncIterator[dict]]:
+        prefetch: PositiveInt | None = None,
+        max_statements: PositiveInt | None = None,
+    ) -> AsyncIterator[bytes] | AsyncIterator[dict]:
         """Read records matching the `query` in the `target` container and yield them.
 
         Args:
@@ -174,7 +174,7 @@ class AsyncWSDataBackend(BaseAsyncDataBackend[WSDataBackendSettings, str]):
     async def _read_bytes(
         self,
         query: str,  # noqa: ARG002
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,  # noqa: ARG002
     ) -> AsyncIterator[bytes]:
@@ -198,7 +198,7 @@ class AsyncWSDataBackend(BaseAsyncDataBackend[WSDataBackendSettings, str]):
     async def _read_dicts(
         self,
         query: str,
-        target: Optional[str],
+        target: str | None,
         chunk_size: int,
         ignore_errors: bool,
     ) -> AsyncIterator[dict]:

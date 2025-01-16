@@ -1,7 +1,6 @@
 """Navigational event model definitions."""
 
-import sys
-from typing import Union
+from typing import Literal
 
 from pydantic import Json, field_validator
 
@@ -9,11 +8,6 @@ from ralph.models.selector import selector
 
 from ..browser import BaseBrowserModel
 from .fields.events import NavigationalEventField
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class UIPageClose(BaseBrowserModel):
@@ -49,7 +43,7 @@ class UISeqGoto(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="seq_goto")
 
-    event: Union[Json[NavigationalEventField], NavigationalEventField]
+    event: Json[NavigationalEventField] | NavigationalEventField
     event_type: Literal["seq_goto"]
     name: Literal["seq_goto"]
 
@@ -68,15 +62,15 @@ class UISeqNext(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="seq_next")
 
-    event: Union[Json[NavigationalEventField], NavigationalEventField]
+    event: Json[NavigationalEventField] | NavigationalEventField
     event_type: Literal["seq_next"]
     name: Literal["seq_next"]
 
     @field_validator("event")
     @classmethod
     def validate_next_jump_event_field(
-        cls, value: Union[Json[NavigationalEventField], NavigationalEventField]
-    ) -> Union[Json[NavigationalEventField], NavigationalEventField]:
+        cls, value: Json[NavigationalEventField] | NavigationalEventField
+    ) -> Json[NavigationalEventField] | NavigationalEventField:
         """Check that event.new is equal to event.old + 1."""
         if value.new != value.old + 1:
             raise ValueError("event.new - event.old should be equal to 1")
@@ -99,15 +93,15 @@ class UISeqPrev(BaseBrowserModel):
 
     __selector__ = selector(event_source="browser", event_type="seq_prev")
 
-    event: Union[Json[NavigationalEventField], NavigationalEventField]
+    event: Json[NavigationalEventField] | NavigationalEventField
     event_type: Literal["seq_prev"]
     name: Literal["seq_prev"]
 
     @field_validator("event")
     @classmethod
     def validate_prev_jump_event_field(
-        cls, value: Union[Json[NavigationalEventField], NavigationalEventField]
-    ) -> Union[Json[NavigationalEventField], NavigationalEventField]:
+        cls, value: Json[NavigationalEventField] | NavigationalEventField
+    ) -> Json[NavigationalEventField] | NavigationalEventField:
         """Check that event.new is equal to event.old - 1."""
         if value.new != value.old - 1:
             raise ValueError("event.old - event.new should be equal to 1")
