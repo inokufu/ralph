@@ -1,8 +1,15 @@
 # -- Base image --
-FROM python:3.12.0-slim AS base
+FROM python:3.12.8-slim AS base
 
-# Upgrade pip to its latest release to speed up dependencies installation
-RUN pip install --upgrade pip
+# Set pip specific var env to reduce docker image size
+ENV PIP_NO_CACHE_DIR=1 PYTHONDONTWRITEBYTECODE=1
+
+# Upgrade pip to its latest release to speed up dependencies installation and install uv
+RUN pip install --upgrade pip && pip install uv 
+
+# set venv environment variables
+ENV UV_PROJECT_ENVIRONMENT=/venv
+ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
 
 # Upgrade system packages to install security updates
 RUN apt-get update && \
@@ -24,8 +31,6 @@ RUN apt-get update && \
         libc6-dev \
         libffi-dev && \
     rm -rf /var/lib/apt/lists/*
-
-RUN pip install .[full]
 
 
 # -- Core --
@@ -65,10 +70,8 @@ RUN apt-get update && \
         git && \
     rm -rf /var/lib/apt/lists/*;
 
-# Uninstall ralph and re-install it in editable mode along with development
-# dependencies
-RUN pip uninstall -y ralph-malph
-RUN pip install -e .[dev]
+# Install dependencies and project as editable
+RUN uv sync --extra full --extra dev --frozen
 
 # Un-privileged user running the application
 ARG DOCKER_USER=1000
@@ -77,6 +80,9 @@ USER ${DOCKER_USER}
 
 # -- Production --
 FROM core AS production
+
+# Install dependencies and project as not editable
+RUN uv sync --extra full --no-editable --frozen
 
 # Un-privileged user running the application
 ARG DOCKER_USER=1000
