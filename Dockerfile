@@ -1,11 +1,11 @@
 # -- Base image --
 FROM python:3.12.8-slim AS base
 
-# Upgrade pip to its latest release to speed up dependencies installation
-RUN pip install --upgrade pip
+# Set pip specific var env to reduce docker image size
+ENV PIP_NO_CACHE_DIR=1 PYTHONDONTWRITEBYTECODE=1
 
-# Install uv 
-RUN pip install uv 
+# Upgrade pip to its latest release to speed up dependencies installation and install uv
+RUN pip install --upgrade pip && pip install uv 
 
 # set venv environment variables
 ENV UV_PROJECT_ENVIRONMENT=/venv
