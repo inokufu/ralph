@@ -107,7 +107,7 @@ async def test_api_statements_get_ascending_no_bool(
 
     error = response.json()["detail"][0]
     assert error["type"] == "bool_parsing"
-    assert error["loc"] == ["query", "ascending"]
+    assert error["loc"] == ["query", "ascending", "bool"]
 
 
 @pytest.mark.anyio
@@ -442,7 +442,7 @@ async def test_api_statements_get_since_no_timestamp(
 
     error = response.json()["detail"][0]
     assert error["type"] == "datetime_from_date_parsing"
-    assert error["loc"] == ["query", "since"]
+    assert error["loc"] == ["query", "since", "datetime"]
 
 
 @pytest.mark.anyio
@@ -514,7 +514,7 @@ async def test_api_statements_get_until_no_timestamp(
 
     error = response.json()["detail"][0]
     assert error["type"] == "datetime_from_date_parsing"
-    assert error["loc"] == ["query", "until"]
+    assert error["loc"] == ["query", "until", "datetime"]
 
 
 @pytest.mark.anyio

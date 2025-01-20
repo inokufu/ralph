@@ -134,7 +134,7 @@ def test_models_xapi_base_statement_must_use_actor_verb_and_object(field):
 @pytest.mark.parametrize(
     "path,value,err",
     [
-        ("actor__name", 1, "name\n  Input should be a valid string"),
+        ("actor__name", 1, "name.constrained-str\n  Input should be a valid string"),
         ("actor__account__name", 1, "account.name\n  Input should be a valid string"),
         (
             "actor__account__homePage",
@@ -149,8 +149,22 @@ def test_models_xapi_base_statement_must_use_actor_verb_and_object(field):
                 "BaseXapiAccount"
             ),
         ),
-        ("verb__display", ["foo"], "display\n  Input should be a valid dictionary"),
-        ("verb__display", {"en": 1}, "display.en\n  Input should be a valid string"),
+        (
+            "verb__display",
+            ["foo"],
+            (
+                "display.dict\\[LanguageTag,constrained-str\\]\n  "
+                "Input should be a valid dictionary"
+            ),
+        ),
+        (
+            "verb__display",
+            {"en": 1},
+            (
+                "display.dict\\[LanguageTag,constrained-str\\].en\n  "
+                "Input should be a valid string"
+            ),
+        ),
         ("object__id", ["foo"], "is not a valid 'IRI'"),
     ],
 )
