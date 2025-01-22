@@ -5,7 +5,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from ralph.models.xapi.base.results import BaseXapiResultScore
+from ralph.models.xapi.base.results import BaseXapiResult, BaseXapiResultScore
 
 from tests.factories import mock_xapi_instance
 
@@ -33,3 +33,14 @@ def test_models_xapi_base_result_score_with_invalid_raw_min_max_relation(
 
     with pytest.raises(ValidationError, match=error_msg):
         BaseXapiResultScore(**invalid_field)
+
+
+@pytest.mark.parametrize("invalid_duration", [123, "abc", "P4W1D"])
+def test_models_xapi_base_result_with_invalid_duration(invalid_duration):
+    """Test invalid `duration` in BaseXapiResult raises ValidationError."""
+    result = mock_xapi_instance(BaseXapiResult)
+    fields = result.model_dump()
+    fields["duration"] = invalid_duration
+
+    with pytest.raises(ValidationError):
+        BaseXapiResult(**fields)

@@ -39,8 +39,14 @@ def ensure_object_wo_objecttype_is_activity(value: Any) -> Any:
 
 def ensure_timestamp_is_valid(value: Any) -> Any:
     """Check that timestamp doesn't end with '-0000' or '-00:00'."""
-    if isinstance(value, str) and re.search("-00:?00$", value):
-        raise ValueError("Invalid timestamp.")
+    if isinstance(value, datetime):
+        return value
+
+    if not isinstance(value, str):
+        raise ValueError("timestamp must be expressed as string")
+
+    if re.search("-00:?00$", value):
+        raise ValueError("invalid timestamp offset")
 
     return value
 
@@ -68,9 +74,10 @@ class BaseXapiStatement(BaseModelWithConfig):
         Annotated[datetime, BeforeValidator(ensure_timestamp_is_valid)]
         | SkipJsonSchema[None]
     ) = Field(None, description="Timestamp of when the event occurred")
-    stored: datetime | SkipJsonSchema[None] = Field(
-        None, description="Timestamp of when the event was recorded"
-    )
+    stored: (
+        Annotated[datetime, BeforeValidator(ensure_timestamp_is_valid)]
+        | SkipJsonSchema[None]
+    ) = Field(None, description="Timestamp of when the event was recorded")
     authority: (
         BaseXapiAgent | BaseXapiAuthorityAnonymousGroup | SkipJsonSchema[None]
     ) = Field(None, description="Actor asserting this Statement is true")
