@@ -3,7 +3,7 @@
 import json
 import logging
 import os
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal
@@ -163,6 +163,72 @@ def strict_query_params(request: Request) -> None:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"The following parameter is not allowed: `{requested_param}`",
             )
+
+
+async def get_statements_by_ids(
+    statements_ids: list[str], target: str | None
+) -> Iterator[dict]:
+    """Get existing statements from list of statement id on a given target.
+
+    Args:
+        statements_ids (list of str): List of statement ids to query.
+        target (str or None): The target container to query from.
+
+    Return:
+        Iterator[dict]: Statements corresponding to given ids and target.
+    Raise:
+        HTTPException: If query failed.
+    """
+    try:
+        if isinstance(BACKEND_CLIENT, BaseLRSBackend):
+            return list(
+                BACKEND_CLIENT.query_statements_by_ids(
+                    ids=statements_ids, target=target
+                )
+            )
+        else:
+            return [
+                x
+                async for x in BACKEND_CLIENT.query_statements_by_ids(
+                    ids=statements_ids, target=target
+                )
+            ]
+    except BackendException as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="xAPI statements query failed",
+        ) from error
+
+
+async def write_statements(
+    statements: list[dict], target: str | None, error_message: str
+) -> int:
+    """Index statements on a given target.
+
+    Args:
+        statements (list of dict): List of statement to index.
+        target (str or None): The target container to index on.
+        error_message (str): The error to return if indexing failed.
+
+    Return:
+        int: The number of documents written.
+    Raise:
+        HTTPException: if indexing failed.
+    """
+    try:
+        return await await_if_coroutine(
+            BACKEND_CLIENT.write(
+                data=statements,
+                target=target,
+                ignore_errors=False,
+            )
+        )
+    except (BackendException, BadFormatException) as exc:
+        logger.error("Failed to index submitted statements")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_message,
+        ) from exc
 
 
 @router.get(
@@ -544,25 +610,9 @@ async def put(
     # Finish enriching statements after forwarding
     _enrich_statement_with_authority(statement_as_dict, current_user)
 
-    try:
-        if isinstance(BACKEND_CLIENT, BaseLRSBackend):
-            existing_statements = list(
-                BACKEND_CLIENT.query_statements_by_ids(
-                    ids=[statement_id], target=current_user.target
-                )
-            )
-        else:
-            existing_statements = [
-                x
-                async for x in BACKEND_CLIENT.query_statements_by_ids(
-                    ids=[statement_id], target=current_user.target
-                )
-            ]
-    except BackendException as error:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="xAPI statements query failed",
-        ) from error
+    existing_statements = await get_statements_by_ids(
+        statements_ids=[statement_id], target=current_user.target
+    )
 
     if existing_statements:
         # The LRS specification calls for deep comparison of duplicate statement ids.
@@ -577,20 +627,11 @@ async def put(
         return
 
     # For valid requests, perform the bulk indexing of all incoming statements
-    try:
-        success_count = await await_if_coroutine(
-            BACKEND_CLIENT.write(
-                data=[statement_as_dict],
-                target=current_user.target,
-                ignore_errors=False,
-            )
-        )
-    except (BackendException, BadFormatException) as exc:
-        logger.error("Failed to index submitted statement")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Statement indexation failed",
-        ) from exc
+    success_count = await write_statements(
+        statements=[statement_as_dict],
+        target=current_user.target,
+        error_message="Statement indexation failed",
+    )
 
     logger.info("Indexed %d statements with success", success_count)
 
@@ -645,25 +686,9 @@ async def post(
             headers=_filter_headers_before_forwarding(headers=request.headers),
         )
 
-    try:
-        if isinstance(BACKEND_CLIENT, BaseLRSBackend):
-            existing_statements = list(
-                BACKEND_CLIENT.query_statements_by_ids(
-                    ids=list(statements_dict), target=current_user.target
-                )
-            )
-        else:
-            existing_statements = [
-                x
-                async for x in BACKEND_CLIENT.query_statements_by_ids(
-                    ids=list(statements_dict), target=current_user.target
-                )
-            ]
-    except BackendException as error:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="xAPI statements query failed",
-        ) from error
+    existing_statements = await get_statements_by_ids(
+        statements_ids=list(statements_dict), target=current_user.target
+    )
 
     # If there are duplicate statements, remove them from our id list and
     # dictionary for insertion. We will return the shortened list of ids below
@@ -695,20 +720,11 @@ async def post(
             return
 
     # For valid requests, perform the bulk indexing of all incoming statements
-    try:
-        success_count = await await_if_coroutine(
-            BACKEND_CLIENT.write(
-                data=statements_dict.values(),
-                target=current_user.target,
-                ignore_errors=False,
-            )
-        )
-    except (BackendException, BadFormatException) as exc:
-        logger.error("Failed to index submitted statements")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Statements bulk indexation failed",
-        ) from exc
+    success_count = await write_statements(
+        statements=statements_dict.values(),
+        target=current_user.target,
+        error_message="Statements bulk indexation failed",
+    )
 
     logger.info("Indexed %d statements with success", success_count)
 
