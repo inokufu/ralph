@@ -178,12 +178,12 @@ async def test_cozystack_client_bulk_operation(
     """Test index, update and delete operation."""
     statements = [
         {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
+            "_id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
             "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
             "value": 0,
         },
         {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
+            "_id": "be67b160-d958-4f51-b8b8-1892002dbac6",
             "timestamp": datetime.now().isoformat(),
             "value": 1,
         },
@@ -209,10 +209,10 @@ async def test_cozystack_client_bulk_operation(
 
     updated_statements = [
         {
-            "id": item["_id"],
+            "_id": item["_id"],
             "_rev": item["_rev"],
-            "timestamp": item["source"]["timestamp"],
-            "value": item["source"]["value"] + 10,
+            "timestamp": item["timestamp"],
+            "value": item["value"] + 10,
         }
         for item in response["docs"]
     ]
@@ -227,17 +227,16 @@ async def test_cozystack_client_bulk_operation(
     response = client.find(target=cozy_auth_target, query={"selector": {}})
 
     for idx in range(2):
-        assert response["docs"][idx]["_id"] == statements[idx]["id"]
-        assert (
-            response["docs"][idx]["source"]["timestamp"] == statements[idx]["timestamp"]
-        )
-        assert response["docs"][idx]["source"]["value"] == statements[idx]["value"] + 10
+        assert response["docs"][idx]["_id"] == statements[idx]["_id"]
+        assert response["docs"][idx]["timestamp"] == statements[idx]["timestamp"]
+        assert response["docs"][idx]["value"] == statements[idx]["value"] + 10
 
     # delete statements
     deleted_statements = [
         {
-            "id": response["docs"][1]["_id"],
+            "_id": response["docs"][1]["_id"],
             "_rev": response["docs"][1]["_rev"],
+            "_deleted": True,
         }
     ]
 
@@ -250,7 +249,7 @@ async def test_cozystack_client_bulk_operation(
 
     response = client.find(target=cozy_auth_target, query={"selector": {}})
     assert len(response["docs"]) == 1
-    assert response["docs"][0]["_id"] == statements[0]["id"]
+    assert response["docs"][0]["_id"] == statements[0]["_id"]
 
 
 @pytest.mark.anyio
@@ -260,12 +259,12 @@ async def test_cozystack_client_bulk_operation_bad_param(
     """Test index, update and delete operation."""
     statements = [
         {
-            "id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
+            "_id": "72c81e98-1763-4730-8cfc-f5ab34f1bad2",
             "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
             "value": 0,
         },
         {
-            "id": "be67b160-d958-4f51-b8b8-1892002dbac6",
+            "_id": "be67b160-d958-4f51-b8b8-1892002dbac6",
             "timestamp": datetime.now().isoformat(),
             "value": 1,
         },
