@@ -136,6 +136,13 @@ def set_dict_value_from_path(dict_: Mapping, path: Sequence[str], value: Any) ->
     dict_[path[-1]] = value
 
 
+def check_dict_keys(dict_: Mapping, keys: Sequence[str]):
+    """Raise ValueError if one of the keys is missing in dict_."""
+    for key in keys:
+        if key not in dict_:
+            raise ValueError(f"Missing `{key}` key in dict")
+
+
 async def gather_with_limited_concurrency(num_tasks: int | None, *tasks: Any) -> Any:
     """Gather no more than `num_tasks` tasks at time.
 
