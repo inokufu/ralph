@@ -373,7 +373,7 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
     @staticmethod
     def to_documents(
         data: Iterable[Mapping],
-        target: str,
+        target: str | None,
         operation_type: BaseOperationType,
     ) -> Iterator[dict]:
         """Convert dictionaries from `data` to ES documents and yield them."""

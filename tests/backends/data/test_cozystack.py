@@ -244,7 +244,9 @@ def test_backends_data_cozystack_read_with_query(
     cozystack_custom()
     backend = CozyStackDataBackend()
 
-    documents = [{"id": idx, "timestamp": now(), "modulo": idx % 2} for idx in range(5)]
+    documents = [
+        {"id": str(idx), "timestamp": now(), "modulo": idx % 2} for idx in range(5)
+    ]
     assert backend.write(documents, target=cozy_auth_target) == 5
 
     # Find every even item.
@@ -365,7 +367,7 @@ def test_backends_data_cozystack_write_with_delete_operation(
     cozystack_custom()
     backend = CozyStackDataBackend()
 
-    data = [{"id": idx, "value": str(idx)} for idx in range(10)]
+    data = [{"id": str(idx), "value": str(idx)} for idx in range(10)]
 
     assert len(list(backend.read(target=cozy_auth_target))) == 0
     assert backend.write(data, target=cozy_auth_target) == 10
@@ -401,7 +403,7 @@ def test_backends_data_cozystack_write_with_update_operation(
 
     data = BytesIO(
         "\n".join(
-            [json.dumps({"id": idx, "value": str(idx)}) for idx in range(10)]
+            [json.dumps({"id": str(idx), "value": str(idx)}) for idx in range(10)]
         ).encode("utf8")
     )
 
