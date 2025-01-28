@@ -120,5 +120,7 @@ services:
       retries: 60
 
 networks:
+  default:
+    name: ralph_default
   cozy-stack:
     driver: bridge

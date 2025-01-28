@@ -51,9 +51,6 @@ WORKDIR /app
 # -- Development --
 FROM core AS development
 
-# Copy all sources, not only runtime-required files
-COPY . /app/
-
 # Only the M1 Mac images need these packages installed
 ARG TARGETPLATFORM
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; \
@@ -69,6 +66,9 @@ RUN apt-get update && \
     apt-get install -y \
         git && \
     rm -rf /var/lib/apt/lists/*;
+
+# Copy all sources, not only runtime-required files
+COPY . /app/
 
 # Install dependencies and project as editable
 RUN uv sync --extra full --extra dev --frozen
