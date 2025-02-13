@@ -18,6 +18,10 @@ from ralph.backends.lrs.base import (
     BaseLRSBackendSettings,
     RalphStatementsQuery,
     StatementQueryResult,
+    ids_adapter,
+    include_extra_adapter,
+    params_adapter,
+    target_adapter,
 )
 from ralph.conf import BASE_SETTINGS_CONFIG
 from ralph.exceptions import BackendException, BackendParameterException
@@ -41,6 +45,9 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
         self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the results of a statements query using xAPI parameters."""
+        params_adapter.validate_python(params)
+        target_adapter.validate_python(target)
+
         query = self.get_query(params)
         try:
             mongo_response = list(
@@ -55,19 +62,30 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
             search_after = mongo_response[-1]["_id"]
 
         return StatementQueryResult(
-            statements=[document["_source"] for document in mongo_response],
+            statements=[
+                document["_source"]["statement"] for document in mongo_response
+            ],
             pit_id=None,
             search_after=search_after,
         )
 
     def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
-        query = self.query_class(filter={"_source.id": {"$in": ids}})
+        ids_adapter.validate_python(ids)
+        target_adapter.validate_python(target)
+        include_extra_adapter.validate_python(include_extra)
+
+        query = self.query_class(filter={"_source.statement.id": {"$in": ids}})
         try:
             mongo_response = self.read(query=query, target=target)
-            yield from (document["_source"] for document in mongo_response)
+
+            for document in mongo_response:
+                if include_extra:
+                    yield document["_source"]
+                else:
+                    yield document["_source"]["statement"]
         except (BackendException, BackendParameterException) as error:
             logger.error("Failed to read from MongoDB")
             raise error
@@ -78,7 +96,20 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
         mongo_query_filters = {}
 
         if params.statement_id:
-            mongo_query_filters.update({"_source.id": params.statement_id})
+            mongo_query_filters.update(
+                {
+                    "_source.statement.id": params.statement_id,
+                    "_source.metadata.voided": False,
+                },
+            )
+
+        elif params.voided_statement_id:
+            mongo_query_filters.update(
+                {
+                    "_source.statement.id": params.voided_statement_id,
+                    "_source.metadata.voided": True,
+                },
+            )
 
         MongoLRSBackend._add_agent_filters(mongo_query_filters, params.agent, "actor")
         MongoLRSBackend._add_agent_filters(
@@ -86,22 +117,26 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
         )
 
         if params.verb:
-            mongo_query_filters.update({"_source.verb.id": params.verb})
+            mongo_query_filters.update({"_source.statement.verb.id": params.verb})
 
         if params.activity:
             mongo_query_filters.update(
                 {
-                    "_source.object.id": params.activity,
+                    "_source.statement.object.id": params.activity,
                 },
             )
 
         if params.since:
-            mongo_query_filters.update({"_source.timestamp": {"$gt": params.since}})
+            mongo_query_filters.update(
+                {"_source.statement.timestamp": {"$gt": params.since}}
+            )
 
         if params.until:
             if not params.since:
-                mongo_query_filters["_source.timestamp"] = {}
-            mongo_query_filters["_source.timestamp"].update({"$lte": params.until})
+                mongo_query_filters["_source.statement.timestamp"] = {}
+            mongo_query_filters["_source.statement.timestamp"].update(
+                {"$lte": params.until}
+            )
 
         if params.search_after:
             search_order = "$gt" if params.ascending else "$lt"
@@ -111,7 +146,7 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
 
         mongo_sort_order = ASCENDING if params.ascending else DESCENDING
         mongo_query_sort = [
-            ("_source.timestamp", mongo_sort_order),
+            ("_source.statement.timestamp", mongo_sort_order),
             ("_id", mongo_sort_order),
         ]
 
@@ -140,19 +175,19 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
             agent_params = agent_params.model_dump()
 
         if agent_params.get("mbox"):
-            key = f"_source.{target_field}.mbox"
+            key = f"_source.statement.{target_field}.mbox"
             mongo_query_filters.update({key: agent_params.get("mbox")})
 
         if agent_params.get("mbox_sha1sum"):
-            key = f"_source.{target_field}.mbox_sha1sum"
+            key = f"_source.statement.{target_field}.mbox_sha1sum"
             mongo_query_filters.update({key: agent_params.get("mbox_sha1sum")})
 
         if agent_params.get("openid"):
-            key = f"_source.{target_field}.openid"
+            key = f"_source.statement.{target_field}.openid"
             mongo_query_filters.update({key: agent_params.get("openid")})
 
         if agent_params.get("account__name"):
-            key = f"_source.{target_field}.account.name"
+            key = f"_source.statement.{target_field}.account.name"
             mongo_query_filters.update({key: agent_params.get("account__name")})
-            key = f"_source.{target_field}.account.homePage"
+            key = f"_source.statement.{target_field}.account.homePage"
             mongo_query_filters.update({key: agent_params.get("account__home_page")})

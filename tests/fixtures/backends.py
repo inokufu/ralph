@@ -56,7 +56,7 @@ MONGO_TEST_DATABASE = os.environ.get(
     "RALPH_BACKENDS__DATA__MONGO__TEST_DATABASE", "statements"
 )
 MONGO_TEST_CONNECTION_URI = os.environ.get(
-    "RALPH_BACKENDS__DATA__MONGO__TEST_CONNECTION_URI", "mongodb://localhost:27017/"
+    "RALPH_BACKENDS__DATA__MONGO__TEST_CONNECTION_URI", "mongodb://mongo:27017/"
 )
 
 # CozyStack backend defaults
