@@ -17,6 +17,10 @@ from ralph.backends.lrs.base import (
     BaseLRSBackendSettings,
     RalphStatementsQuery,
     StatementQueryResult,
+    ids_adapter,
+    include_extra_adapter,
+    params_adapter,
+    target_adapter,
 )
 from ralph.conf import BASE_SETTINGS_CONFIG
 from ralph.exceptions import BackendException, BackendParameterException
@@ -40,12 +44,15 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
         self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
+        params_adapter.validate_python(params)
+        target_adapter.validate_python(target)
+
         query = self.get_query(params=params)
         try:
             es_documents = self.read(
                 query=query, target=target, chunk_size=params.limit
             )
-            statements = [document["_source"] for document in es_documents]
+            statements = [document["_source"]["statement"] for document in es_documents]
         except (BackendException, BackendParameterException) as error:
             logger.error("Failed to read from Elasticsearch")
             raise error
@@ -57,13 +64,23 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
         )
 
     def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
+        ids_adapter.validate_python(ids)
+        target_adapter.validate_python(target)
+        include_extra_adapter.validate_python(include_extra)
+
         query = self.query_class(query={"terms": {"_id": ids}})
+
         try:
             es_response = self.read(query=query, target=target)
-            yield from (document["_source"] for document in es_response)
+
+            for document in es_response:
+                if include_extra:
+                    yield document["_source"]
+                else:
+                    yield document["_source"]["statement"]
         except (BackendException, BackendParameterException) as error:
             logger.error("Failed to read from Elasticsearch")
             raise error
@@ -74,29 +91,48 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
         es_query_filters = []
 
         if params.statement_id:
-            es_query_filters += [{"term": {"_id": params.statement_id}}]
+            es_query_filters += [
+                {"term": {"_id": params.statement_id}},
+                {"term": {"metadata.voided": False}},
+            ]
+
+        elif params.voided_statement_id:
+            es_query_filters += [
+                {"term": {"_id": params.voided_statement_id}},
+                {"term": {"metadata.voided": True}},
+            ]
 
         ESLRSBackend._add_agent_filters(es_query_filters, params.agent, "actor")
         ESLRSBackend._add_agent_filters(es_query_filters, params.authority, "authority")
 
         if params.verb:
-            es_query_filters += [{"term": {"verb.id.keyword": params.verb}}]
+            es_query_filters += [{"term": {"statement.verb.id.keyword": params.verb}}]
 
         if params.activity:
             es_query_filters += [
-                {"term": {"object.id.keyword": params.activity}},
+                {"term": {"statement.object.id.keyword": params.activity}},
             ]
 
         if params.since:
-            es_query_filters += [{"range": {"timestamp": {"gt": params.since}}}]
+            es_query_filters += [
+                {"range": {"statement.timestamp": {"gt": params.since}}}
+            ]
 
         if params.until:
-            es_query_filters += [{"range": {"timestamp": {"lte": params.until}}}]
+            es_query_filters += [
+                {"range": {"statement.timestamp": {"lte": params.until}}}
+            ]
 
         es_query = {
             "pit": ESQueryPit.model_construct(id=params.pit_id),
             "size": params.limit,
-            "sort": [{"timestamp": {"order": "asc" if params.ascending else "desc"}}],
+            "sort": [
+                {
+                    "statement.timestamp": {
+                        "order": "asc" if params.ascending else "desc"
+                    }
+                }
+            ],
         }
         if len(es_query_filters) > 0:
             es_query["query"] = {"bool": {"filter": es_query_filters}}
@@ -124,18 +160,22 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
             agent_params = agent_params.model_dump()
 
         if agent_params.get("mbox"):
-            field = f"{target_field}.mbox.keyword"
+            field = f"statement.{target_field}.mbox.keyword"
             es_query_filters += [{"term": {field: agent_params.get("mbox")}}]
+
         elif agent_params.get("mbox_sha1sum"):
-            field = f"{target_field}.mbox_sha1sum.keyword"
+            field = f"statement.{target_field}.mbox_sha1sum.keyword"
             es_query_filters += [{"term": {field: agent_params.get("mbox_sha1sum")}}]
+
         elif agent_params.get("openid"):
-            field = f"{target_field}.openid.keyword"
+            field = f"statement.{target_field}.openid.keyword"
             es_query_filters += [{"term": {field: agent_params.get("openid")}}]
+
         elif agent_params.get("account__name"):
-            field = f"{target_field}.account.name.keyword"
+            field = f"statement.{target_field}.account.name.keyword"
             es_query_filters += [{"term": {field: agent_params.get("account__name")}}]
-            field = f"{target_field}.account.homePage.keyword"
+
+            field = f"statement.{target_field}.account.homePage.keyword"
             es_query_filters += [
                 {"term": {field: agent_params.get("account__home_page")}}
             ]
