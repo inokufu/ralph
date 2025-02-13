@@ -405,8 +405,10 @@ def cozystack_custom(
     def _cozystack_custom():
         """Create indices and yield client."""
         client.create_index(cozy_auth_target, [])
-        client.create_index(cozy_auth_target, ["source.id"])
-        client.create_index(cozy_auth_target, ["source.timestamp", "source.id"])
+        client.create_index(cozy_auth_target, ["source.statement.id"])
+        client.create_index(
+            cozy_auth_target, ["source.statement.timestamp", "source.statement.id"]
+        )
 
         return client
 

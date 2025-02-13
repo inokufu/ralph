@@ -210,13 +210,15 @@ def test_backends_data_cozystack_read_with_raw_ouput(
     backend = CozyStackDataBackend()
 
     documents = [{"id": str(idx), "timestamp": now()} for idx in range(10)]
-    assert backend.write(documents, target=cozy_auth_target) == 10
+    assert backend.write(documents, {"meta": "data"}, target=cozy_auth_target) == 10
 
     hits = list(backend.read(target=cozy_auth_target, raw_output=True))
 
     for i, hit in enumerate(hits):
         assert isinstance(hit, bytes)
-        assert json.loads(hit).get("source") == documents[i]
+        source = json.loads(hit).get("source")
+        assert source.get("statement") == documents[i]
+        assert source.get("metadata") == {"meta": "data"}
 
 
 def test_backends_data_cozystack_read_without_raw_ouput(
@@ -227,12 +229,14 @@ def test_backends_data_cozystack_read_without_raw_ouput(
     backend = CozyStackDataBackend()
 
     documents = [{"id": str(idx), "timestamp": now()} for idx in range(10)]
-    assert backend.write(documents, target=cozy_auth_target) == 10
+    assert backend.write(documents, {"meta": "data"}, target=cozy_auth_target) == 10
 
     hits = backend.read(target=cozy_auth_target)
     for i, hit in enumerate(hits):
         assert isinstance(hit, dict)
-        assert hit.get("source") == documents[i]
+        source = hit.get("source")
+        assert source.get("statement") == documents[i]
+        assert source.get("metadata") == {"meta": "data"}
 
 
 def test_backends_data_cozystack_read_with_query(
@@ -247,49 +251,66 @@ def test_backends_data_cozystack_read_with_query(
     documents = [
         {"id": str(idx), "timestamp": now(), "modulo": idx % 2} for idx in range(5)
     ]
-    assert backend.write(documents, target=cozy_auth_target) == 5
+
+    assert (
+        backend.write(documents[:3], {"is_tested": True}, target=cozy_auth_target) == 3
+    )
+    assert (
+        backend.write(documents[3:], {"is_tested": False}, target=cozy_auth_target) == 2
+    )
 
     # Find every even item.
-    query = CozyStackQuery(selector={"source.modulo": 0})
+    query = CozyStackQuery(selector={"source.statement.modulo": 0})
     results = list(backend.read(query=query, target=cozy_auth_target))
 
     assert len(results) == 3
-    assert results[0]["source"]["id"] == "0"
-    assert results[1]["source"]["id"] == "2"
-    assert results[2]["source"]["id"] == "4"
+    assert results[0]["source"]["statement"]["id"] == "0"
+    assert results[1]["source"]["statement"]["id"] == "2"
+    assert results[2]["source"]["statement"]["id"] == "4"
 
     # Find the first two even items.
-    query = CozyStackQuery(selector={"source.modulo": 0}, limit=2)
+    query = CozyStackQuery(selector={"source.statement.modulo": 0}, limit=2)
     results = list(backend.read(query=query, target=cozy_auth_target))
 
     assert len(results) == 2
-    assert results[0]["source"]["id"] == "0"
-    assert results[1]["source"]["id"] == "2"
+    assert results[0]["source"]["statement"]["id"] == "0"
+    assert results[1]["source"]["statement"]["id"] == "2"
 
     # Find the first ten even items although there are only three available.
-    query = CozyStackQuery(selector={"source.modulo": 0}, limit=10)
+    query = CozyStackQuery(selector={"source.statement.modulo": 0}, limit=10)
     results = list(backend.read(query=query, target=cozy_auth_target))
 
     assert len(results) == 3
-    assert results[0]["source"]["id"] == "0"
-    assert results[1]["source"]["id"] == "2"
-    assert results[2]["source"]["id"] == "4"
+    assert results[0]["source"]["statement"]["id"] == "0"
+    assert results[1]["source"]["statement"]["id"] == "2"
+    assert results[2]["source"]["statement"]["id"] == "4"
 
     # Find every odd item.
-    query = CozyStackQuery(selector={"source.modulo": 1})
+    query = CozyStackQuery(selector={"source.statement.modulo": 1})
     results = list(backend.read(query=query, target=cozy_auth_target))
 
     assert len(results) == 2
-    assert results[0]["source"]["id"] == "1"
-    assert results[1]["source"]["id"] == "3"
+    assert results[0]["source"]["statement"]["id"] == "1"
+    assert results[1]["source"]["statement"]["id"] == "3"
+
+    # Find every is_tested item
+    query = CozyStackQuery(selector={"source.metadata.is_tested": True})
+    results = list(backend.read(query=query, target=cozy_auth_target))
+
+    assert len(results) == 3
+    assert results[0]["source"]["statement"]["id"] == "0"
+    assert results[1]["source"]["statement"]["id"] == "1"
+    assert results[2]["source"]["statement"]["id"] == "2"
 
     # Find every odd item with a json query string.
-    query = CozyStackQuery.from_string(json.dumps({"selector": {"source.modulo": 1}}))
+    query = CozyStackQuery.from_string(
+        json.dumps({"selector": {"source.statement.modulo": 1}})
+    )
     results = list(backend.read(query=query, target=cozy_auth_target))
 
     assert len(results) == 2
-    assert results[0]["source"]["id"] == "1"
-    assert results[1]["source"]["id"] == "3"
+    assert results[0]["source"]["statement"]["id"] == "1"
+    assert results[1]["source"]["statement"]["id"] == "3"
 
     # Check query argument type
     with pytest.raises(
@@ -325,7 +346,10 @@ def test_backends_data_cozystack_write_with_create_operation(
     with caplog.at_level(logging.INFO):
         assert (
             backend.write(
-                data, target=cozy_auth_target, operation_type=BaseOperationType.CREATE
+                data,
+                {"meta": "data"},
+                target=cozy_auth_target,
+                operation_type=BaseOperationType.CREATE,
             )
             == 0
         )
@@ -341,6 +365,7 @@ def test_backends_data_cozystack_write_with_create_operation(
         assert (
             backend.write(
                 data,
+                {"meta": "data"},
                 target=cozy_auth_target,
                 operation_type=BaseOperationType.CREATE,
             )
@@ -354,7 +379,11 @@ def test_backends_data_cozystack_write_with_create_operation(
     ) in caplog.record_tuples
 
     hits = list(backend.read(target=cozy_auth_target))
-    assert [hit["source"] for hit in hits] == [{"value": str(idx)} for idx in range(9)]
+
+    assert [hit["source"] for hit in hits] == [
+        {"statement": {"value": str(idx)}, "metadata": {"meta": "data"}}
+        for idx in range(9)
+    ]
 
 
 def test_backends_data_cozystack_write_with_delete_operation(
@@ -370,7 +399,7 @@ def test_backends_data_cozystack_write_with_delete_operation(
     data = [{"id": str(idx), "value": str(idx)} for idx in range(10)]
 
     assert len(list(backend.read(target=cozy_auth_target))) == 0
-    assert backend.write(data, target=cozy_auth_target) == 10
+    assert backend.write(data, {"meta": "data"}, target=cozy_auth_target) == 10
 
     results = list(backend.read(target=cozy_auth_target))
     assert len(results) == 10
@@ -386,7 +415,7 @@ def test_backends_data_cozystack_write_with_delete_operation(
 
     hits = list(backend.read(target=cozy_auth_target))
     assert len(hits) == 7
-    assert sorted([hit["source"]["id"] for hit in hits]) == [
+    assert sorted([hit["source"]["statement"]["id"] for hit in hits]) == [
         str(x) for x in range(3, 10)
     ]
 
@@ -408,12 +437,17 @@ def test_backends_data_cozystack_write_with_update_operation(
     )
 
     assert len(list(backend.read(target=cozy_auth_target))) == 0
-    assert backend.write(data, target=cozy_auth_target) == 10
+    assert backend.write(data, {"meta": "data"}, target=cozy_auth_target) == 10
 
     hits = list(backend.read(target=cozy_auth_target))
     assert len(hits) == 10
-    assert sorted([hit["source"]["id"] for hit in hits]) == [str(x) for x in range(10)]
-    assert sorted([hit["source"]["value"] for hit in hits]) == list(map(str, range(10)))
+    assert sorted([hit["source"]["statement"]["id"] for hit in hits]) == [
+        str(x) for x in range(10)
+    ]
+    assert sorted([hit["source"]["statement"]["value"] for hit in hits]) == list(
+        map(str, range(10))
+    )
+    assert [hit["source"]["metadata"] for hit in hits] == [{"meta": "data"}] * 10
 
     data = BytesIO(
         "\n".join(
@@ -428,17 +462,25 @@ def test_backends_data_cozystack_write_with_update_operation(
 
     assert (
         backend.write(
-            data, target=cozy_auth_target, operation_type=BaseOperationType.UPDATE
+            data,
+            {"meta": "abc", "moto": "vroom"},
+            target=cozy_auth_target,
+            operation_type=BaseOperationType.UPDATE,
         )
         == 10
     )
 
     hits = list(backend.read(target=cozy_auth_target))
     assert len(hits) == 10
-    assert sorted([hit["source"]["id"] for hit in hits]) == [str(x) for x in range(10)]
-    assert sorted([hit["source"]["value"] for hit in hits]) == [
+    assert sorted([hit["source"]["statement"]["id"] for hit in hits]) == [
+        str(x) for x in range(10)
+    ]
+    assert sorted([hit["source"]["statement"]["value"] for hit in hits]) == [
         str(x + 10) for x in range(10)
     ]
+    assert [hit["source"]["metadata"] for hit in hits] == [
+        {"meta": "abc", "moto": "vroom"}
+    ] * 10
 
 
 def test_backends_data_cozystack_write_with_append_operation(

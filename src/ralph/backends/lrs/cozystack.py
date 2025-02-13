@@ -17,6 +17,10 @@ from ralph.backends.lrs.base import (
     BaseLRSBackendSettings,
     RalphStatementsQuery,
     StatementQueryResult,
+    ids_adapter,
+    include_extra_adapter,
+    params_adapter,
+    target_adapter,
 )
 from ralph.conf import BASE_SETTINGS_CONFIG
 from ralph.exceptions import BackendException, BackendParameterException
@@ -61,7 +65,7 @@ class CozyStackLRSBackend(
         if not agent_params:
             return
 
-        prefix = f"source.{target_field}"
+        prefix = f"source.statement.{target_field}"
 
         for agent_field in ["mbox", "mbox_sha1sum", "openid"]:
             if agent_params.get(agent_field):
@@ -74,12 +78,17 @@ class CozyStackLRSBackend(
             )
 
     @staticmethod
-    def get_query(params: RalphStatementsQuery) -> CozyStackQuery:
+    def _get_query(params: RalphStatementsQuery) -> CozyStackQuery:
         """Construct query from statement parameters."""
         cozystack_query_filters = {}
 
         if params.statement_id:
-            cozystack_query_filters["source.id"] = params.statement_id
+            cozystack_query_filters["source.statement.id"] = params.statement_id
+            cozystack_query_filters["source.metadata.voided"] = False
+
+        elif params.voided_statement_id:
+            cozystack_query_filters["source.statement.id"] = params.voided_statement_id
+            cozystack_query_filters["source.metadata.voided"] = True
 
         CozyStackLRSBackend._add_agent_filters(
             cozystack_query_filters, params.agent, "actor"
@@ -90,27 +99,29 @@ class CozyStackLRSBackend(
         )
 
         if params.verb:
-            cozystack_query_filters["source.verb.id"] = params.verb
+            cozystack_query_filters["source.statement.verb.id"] = params.verb
 
         if params.activity:
-            cozystack_query_filters["source.object.id"] = params.activity
+            cozystack_query_filters["source.statement.object.id"] = params.activity
 
         if params.since:
-            cozystack_query_filters["source.timestamp"] = {"$gt": params.since}
+            cozystack_query_filters["source.statement.timestamp"] = {
+                "$gt": params.since
+            }
 
         if params.until:
-            if "source.timestamp" not in cozystack_query_filters:
-                cozystack_query_filters["source.timestamp"] = {}
+            if "source.statement.timestamp" not in cozystack_query_filters:
+                cozystack_query_filters["source.statement.timestamp"] = {}
 
-            cozystack_query_filters["source.timestamp"]["$lte"] = params.until
+            cozystack_query_filters["source.statement.timestamp"]["$lte"] = params.until
 
         cozystack_sort_order = (
             SortDirectionEnum.ASC if params.ascending else SortDirectionEnum.DESC
         )
 
         cozystack_query_sort = [
-            {"source.timestamp": cozystack_sort_order},
-            {"source.id": cozystack_sort_order},
+            {"source.statement.timestamp": cozystack_sort_order},
+            {"source.statement.id": cozystack_sort_order},
         ]
 
         # Note: `params` fields are validated thus we skip CozyStackQuery validation.
@@ -126,7 +137,10 @@ class CozyStackLRSBackend(
         self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the results of a statements query using xAPI parameters."""
-        query = self.get_query(params)
+        params_adapter.validate_python(params)
+        target_adapter.validate_python(target)
+
+        query = self._get_query(params)
 
         try:
             response = list(
@@ -140,19 +154,34 @@ class CozyStackLRSBackend(
         search_after = query.bookmark if query.next else None
 
         return StatementQueryResult(
-            statements=[document["source"] for document in response],
+            statements=[document["source"]["statement"] for document in response],
             search_after=search_after,
         )
 
     def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
-        query = self.query_class(selector={"source.id": {"$in": ids}})
+        ids_adapter.validate_python(ids)
+        target_adapter.validate_python(target)
+        include_extra_adapter.validate_python(include_extra)
+
+        query = self.query_class(selector={"source.statement.id": {"$in": ids}})
 
         try:
             response = self.read(query=query, target=target)
-            yield from (document["source"] for document in response)
+
+            for document in response:
+                if include_extra:
+                    yield {
+                        "statement": {
+                            **document["source"]["statement"],
+                            "_rev": document.pop("_rev"),
+                        },
+                        "metadata": document["source"]["metadata"],
+                    }
+                else:
+                    yield document["source"]["statement"]
 
         except (BackendException, BackendParameterException) as error:
             logger.error("Failed to read from CozyStack")
