@@ -10,9 +10,9 @@ class CozyStackError(Exception):
 
     message = ""
 
-    def __init__(self):
+    def __init__(self, message: str | None = None):
         """Init CozyStackError."""
-        super().__init__(self.message)
+        super().__init__(message if message else self.message)
 
 
 # --- 400 --- #

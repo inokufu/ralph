@@ -3,13 +3,14 @@
 import pytest
 import responses
 from fastapi import HTTPException
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 
 from ralph.api.auth.cozy import (
     decode_auth_token,
     model_validate_cozy_id_token,
     validate_auth_against_cozystack,
 )
+from ralph.models.cozy import CozyAuthData
 from ralph.models.xapi.base.agents import BaseXapiAgentWithOpenId
 
 from tests.fixtures.auth import mock_oidc_user
@@ -22,6 +23,7 @@ from tests.fixtures.backends import (
     get_mongo_test_backend,
 )
 from tests.helpers import (
+    configure_env_for_mock_cozy_auth,
     configure_env_for_mock_oidc_auth,
     mock_statement,
 )
@@ -42,6 +44,17 @@ TEST_DECODED_TOKEN = {
 }
 
 TEST_COZY_ID_TOKEN = model_validate_cozy_id_token(TEST_DECODED_TOKEN)
+
+
+@pytest.mark.anyio
+async def test_cozy_auth_data():
+    with pytest.raises(ValidationError, match="Input should be a valid URL"):
+        CozyAuthData(instance_url="abcd", token=TEST_AUTH_TOKEN)
+
+    with pytest.raises(ValidationError, match="token must contain 'Bearer'"):
+        CozyAuthData(instance_url="http://cozy.fr", token="abcd")
+
+    CozyAuthData(instance_url="http://cozy.fr", token=TEST_AUTH_TOKEN)
 
 
 @pytest.mark.anyio
@@ -134,6 +147,7 @@ async def test_api_auth_cozy_get_whoami_valid(
     client, backend, monkeypatch, cozy_auth_token
 ):
     """Test a valid CozyStack authentication."""
+    configure_env_for_mock_cozy_auth(monkeypatch)
     monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend())
 
     headers = {"X-Auth-Token": f"Bearer {cozy_auth_token}"}
@@ -171,6 +185,7 @@ async def test_api_auth_cozy_get_whoami_valid(
 )
 async def test_api_auth_cozy_get_whoami_invalid_header(client, backend, monkeypatch):
     """Test CozyStack authentication with invalid request header."""
+    configure_env_for_mock_cozy_auth(monkeypatch)
     monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend())
 
     headers = {"X-Auth-Token": "Bearer abcd"}

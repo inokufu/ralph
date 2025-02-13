@@ -17,7 +17,10 @@ from ralph.api.auth.basic import (
 from ralph.api.auth.user import AuthenticatedUser, UserScopes
 from ralph.conf import AuthBackend, Settings, settings
 
-from tests.helpers import configure_env_for_mock_oidc_auth
+from tests.helpers import (
+    configure_env_for_mock_basic_auth,
+    configure_env_for_mock_oidc_auth,
+)
 
 STORED_CREDENTIALS = json.dumps(
     [
@@ -147,17 +150,23 @@ def test_api_auth_basic_no_credential_file_found(fs, monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_api_auth_basic_get_whoami_no_credentials(client):
+async def test_api_auth_basic_get_whoami_no_credentials(client, monkeypatch):
     """Whoami route returns a 401 error when no credentials are sent."""
+    configure_env_for_mock_basic_auth(monkeypatch)
+
     response = await client.get("/whoami")
     assert response.status_code == 401
-    assert response.headers["www-authenticate"] == "Basic,Bearer,Bearer"
+    assert response.headers["www-authenticate"] == "Basic"
     assert response.json() == {"detail": "Invalid authentication credentials"}
 
 
 @pytest.mark.anyio
-async def test_api_auth_basic_get_whoami_credentials_encoding_error(client):
+async def test_api_auth_basic_get_whoami_credentials_encoding_error(
+    client, monkeypatch
+):
     """Whoami route returns a 401 error when the credentials encoding is broken."""
+    configure_env_for_mock_basic_auth(monkeypatch)
+
     response = await client.get(
         "/whoami", headers={"Authorization": "Basic not-base64"}
     )
@@ -167,8 +176,10 @@ async def test_api_auth_basic_get_whoami_credentials_encoding_error(client):
 
 
 @pytest.mark.anyio
-async def test_api_auth_basic_get_whoami_username_not_found(fs, client):
+async def test_api_auth_basic_get_whoami_username_not_found(fs, client, monkeypatch):
     """Whoami route returns a 401 error when the username cannot be found."""
+    configure_env_for_mock_basic_auth(monkeypatch)
+
     credential_bytes = base64.b64encode("john:admin".encode("utf-8"))
     credentials = str(credential_bytes, "utf-8")
     get_basic_auth_user.cache_clear()
@@ -186,8 +197,10 @@ async def test_api_auth_basic_get_whoami_username_not_found(fs, client):
 
 
 @pytest.mark.anyio
-async def test_api_auth_basic_get_whoami_wrong_password(fs, client):
+async def test_api_auth_basic_get_whoami_wrong_password(fs, client, monkeypatch):
     """Whoami route returns a 401 error when the password is wrong."""
+    configure_env_for_mock_basic_auth(monkeypatch)
+
     credential_bytes = base64.b64encode("john:not-admin".encode("utf-8"))
     credentials = str(credential_bytes, "utf-8")
 

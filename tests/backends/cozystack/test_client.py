@@ -4,14 +4,19 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+from httpx import Request, Response
 from pydantic import ValidationError
 
 from ralph.backends.cozystack import (
     CozyStackClient,
+    CozyStackError,
     DatabaseDoesNotExistError,
+    ExecutionError,
+    ExpiredTokenError,
     ForbiddenError,
     InvalidRequestError,
+    NotFoundError,
 )
 from ralph.backends.data.base import BaseOperationType
 
@@ -325,3 +330,85 @@ async def test_cozystack_client_bad_target(
         HTTPException, match="400: Can't validate Cozy authentication data"
     ):
         client.list_all_doctypes(target="abc")
+
+
+@pytest.mark.anyio
+def test_check_error():
+    request = Request("GET", "http://cozy.fr")
+
+    for ok_status in [
+        status.HTTP_200_OK,
+        status.HTTP_201_CREATED,
+        status.HTTP_204_NO_CONTENT,
+    ]:
+        CozyStackClient.check_error(
+            response=Response(request=request, status_code=ok_status)
+        )
+
+    response = Response(
+        request=request,
+        json={"error": "code=400, message=Expired token"},
+        status_code=status.HTTP_400_BAD_REQUEST,
+    )
+
+    with pytest.raises(ExpiredTokenError):
+        CozyStackClient.check_error(response=response)
+
+    response = Response(
+        request=request,
+        json={"abc": "def"},
+        status_code=status.HTTP_400_BAD_REQUEST,
+    )
+
+    with pytest.raises(InvalidRequestError):
+        CozyStackClient.check_error(response=response)
+
+    response = Response(
+        request=request,
+        json={"abc": "def"},
+        status_code=status.HTTP_403_FORBIDDEN,
+    )
+
+    with pytest.raises(ForbiddenError):
+        CozyStackClient.check_error(response=response)
+
+    response = Response(
+        request=request,
+        json={"abc": "def", "reason": "Database does not exist."},
+        status_code=status.HTTP_404_NOT_FOUND,
+    )
+
+    with pytest.raises(DatabaseDoesNotExistError):
+        CozyStackClient.check_error(response=response)
+
+    response = Response(
+        request=request,
+        json={"abc": "def"},
+        status_code=status.HTTP_404_NOT_FOUND,
+    )
+
+    with pytest.raises(NotFoundError):
+        CozyStackClient.check_error(response=response)
+
+    response = Response(
+        request=request,
+        json={"abc": "def"},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
+    with pytest.raises(ExecutionError):
+        CozyStackClient.check_error(response=response)
+
+    for ko_status in [
+        status.HTTP_405_METHOD_NOT_ALLOWED,
+        status.HTTP_406_NOT_ACCEPTABLE,
+        status.HTTP_502_BAD_GATEWAY,
+    ]:
+        response = Response(
+            request=request,
+            json={"abc": "def"},
+            status_code=ko_status,
+        )
+
+        with pytest.raises(CozyStackError):
+            CozyStackClient.check_error(response=response)

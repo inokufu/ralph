@@ -179,7 +179,7 @@ class CozyStackDataBackend(
             count = self.client.bulk_operation(target, data, operation_type)
             logger.info("Finished writing %d documents with success", count)
             return count
-        except CozyStackError as exc:
+        except (CozyStackError, ValueError) as exc:
             msg = "Failed to insert data: %s"
             logger.error(msg, exc)
             raise BackendException(msg % exc) from exc

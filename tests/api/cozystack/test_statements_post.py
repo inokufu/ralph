@@ -17,6 +17,7 @@ from tests.fixtures.backends import (
 )
 from tests.helpers import (
     assert_statement_get_responses_are_equivalent,
+    configure_env_for_mock_cozy_auth,
     mock_statement,
     statements_are_equivalent,
     string_is_date,
@@ -397,6 +398,7 @@ async def test_api_statements_post_with_failure_during_storage(
     cozy_auth_token: str,
 ):
     """Test the post statements API route with a failure happening during storage."""
+    configure_env_for_mock_cozy_auth(monkeypatch)
 
     async def write_mock(*args, **kwargs):
         """Raise an exception. Mocks the database.write method."""
@@ -427,6 +429,7 @@ async def test_api_statements_post_with_failure_during_id_query(
     cozy_auth_token: str,
 ):
     """Test the post statements API route with a failure during query execution."""
+    configure_env_for_mock_cozy_auth(monkeypatch)
 
     def query_statements_by_ids_mock(*args, **kwargs):
         """Raise an exception. Mock the database.query_statements_by_ids method."""
@@ -455,14 +458,13 @@ async def test_api_statements_post_with_failure_during_id_query(
 async def test_api_statements_post_list_without_forwarding(
     client: AsyncClient,
     monkeypatch: MonkeyPatch,
-    cozystack_custom: Callable[[], CozyStackClient],
+    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
     cozy_auth_token: str,
 ):
     """Test the post statements API route, given an empty forwarding configuration,
     should not start the forwarding background task.
     """
-    # set up a fresh database
-    cozystack_custom()
+    init_cozystack_db_and_monkeypatch_backend()
 
     spy = {}
 

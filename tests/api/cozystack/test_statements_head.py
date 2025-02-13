@@ -11,7 +11,7 @@ from pytest import MonkeyPatch
 
 from ralph.exceptions import BackendException
 
-from tests.helpers import mock_activity, mock_agent
+from tests.helpers import configure_env_for_mock_cozy_auth, mock_activity, mock_agent
 
 TEST_STATEMENTS = [
     {
@@ -88,6 +88,7 @@ async def test_api_statements_head_with_database_query_failure(
     client: AsyncClient, monkeypatch: MonkeyPatch, cozy_auth_token: str
 ):
     """Test the head statements API route, given a query raising a BackendException."""
+    configure_env_for_mock_cozy_auth(monkeypatch)
 
     def mock_query_statements(*_, **__):
         """Mocks the BACKEND_CLIENT.query_statements method."""

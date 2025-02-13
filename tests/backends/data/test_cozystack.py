@@ -11,6 +11,7 @@ from pytest import LogCaptureFixture, MonkeyPatch
 
 from ralph.backends.cozystack import (
     CozyStackClient,
+    CozyStackError,
     DatabaseDoesNotExistError,
     ExpiredTokenError,
     ForbiddenError,
@@ -456,4 +457,44 @@ def test_backends_data_cozystack_write_with_append_operation(
         "ralph.backends.data.base",
         logging.ERROR,
         "Append operation_type is not allowed",
+    ) in caplog.record_tuples
+
+
+@pytest.mark.parametrize(
+    "exception_class",
+    [
+        ValueError,
+        CozyStackError,
+    ],
+)
+def test_backends_data_cozystack_write_with_failure(
+    caplog: LogCaptureFixture,
+    monkeypatch: MonkeyPatch,
+    exception_class: type[Exception],
+    cozy_auth_target: str,
+):
+    """
+    Test the `CozyStackDataBackend.write` method, given a request failure,
+    should raise a `BackendException`.
+    """
+
+    def mock_bulk_operation(target, data, operation_type):
+        raise exception_class("abc")
+
+    backend = CozyStackDataBackend()
+
+    monkeypatch.setattr(backend.client, "bulk_operation", mock_bulk_operation)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(BackendException):
+            backend.write(
+                data=[{}],
+                target=cozy_auth_target,
+                operation_type=BaseOperationType.CREATE,
+            )
+
+    assert (
+        "ralph.backends.data.cozystack",
+        logging.ERROR,
+        "Failed to insert data: abc",
     ) in caplog.record_tuples

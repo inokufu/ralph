@@ -10,6 +10,8 @@ COMPOSE              = DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_RUN          = $(COMPOSE) run --rm
 COMPOSE_TEST_RUN     = $(COMPOSE_RUN)
 COMPOSE_TEST_RUN_APP = $(COMPOSE_TEST_RUN) app
+COMPOSE_EXEC         = $(COMPOSE) exec
+COMPOSE_EXEC_APP     = $(COMPOSE) exec app
 
 
 # -- Documentation
@@ -119,7 +121,6 @@ bootstrap: ## bootstrap the project for development
 bootstrap: \
   .env \
   build \
-  dev \
   .ralph/auth.json \
   es-index
 .PHONY: bootstrap
@@ -132,9 +133,6 @@ build: .env
 	  $(COMPOSE) build app
 .PHONY: build
 
-dev: ## perform editable install from mounted project sources
-	DOCKER_USER=0 docker compose run --rm app pip install -e ".[dev]"
-.PHONY: dev
 
 docker-hub:  ## Publish locally built image
 docker-hub: build
@@ -279,6 +277,9 @@ test: ## run back-end tests
 test: run
 	bin/pytest
 .PHONY: test
+
+diff-cover: coverage.xml 
+	@$(COMPOSE_EXEC_APP) diff-cover coverage.xml --fail-under 100 
 
 # -- Misc
 help:

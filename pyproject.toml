@@ -110,6 +110,7 @@ dev = [
     "types-python-jose~=3.3",
     "types-requests~=2.32",
     "types-cachetools~=5.5",
+    "diff-cover>=9.2.0",
 ]
 lrs = [
     "bcrypt~=4.2",
@@ -253,7 +254,7 @@ init_typed = true
 warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
-addopts = "-v --cov-report term-missing --cov-config=.coveragerc --cov=ralph"
+addopts = "-v --cov-report term-missing --cov=ralph --cov-report xml"
 python_files = [
     "test_*.py",
     "tests.py",
