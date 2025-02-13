@@ -63,7 +63,7 @@ def test_backends_data_es_default_instantiation(monkeypatch, fs):
     assert backend.settings.LOCALE_ENCODING == "utf8"
     assert backend.settings.POINT_IN_TIME_KEEP_ALIVE == "1m"
     assert backend.settings.READ_CHUNK_SIZE == 500
-    assert not backend.settings.REFRESH_AFTER_WRITE
+    assert backend.settings.REFRESH_AFTER_WRITE == "wait_for"
     assert backend.settings.WRITE_CHUNK_SIZE == 500
     assert isinstance(backend.client, Elasticsearch)
     elasticsearch_node = backend.client.transport.node_pool.get()
@@ -363,11 +363,14 @@ def test_backends_data_es_read_with_raw_ouput(es, es_backend):
 
     backend = es_backend()
     documents = [{"id": idx, "timestamp": now()} for idx in range(10)]
-    assert backend.write(documents) == 10
+    assert backend.write(documents, {"meta": "data"}) == 10
     hits = list(backend.read(raw_output=True))
     for i, hit in enumerate(hits):
         assert isinstance(hit, bytes)
-        assert json.loads(hit).get("_source") == documents[i]
+
+        source = json.loads(hit).get("_source")
+        assert source.get("statement") == documents[i]
+        assert source.get("metadata") == {"meta": "data"}
 
     backend.close()
 
@@ -377,11 +380,13 @@ def test_backends_data_es_read_without_raw_ouput(es, es_backend):
 
     backend = es_backend()
     documents = [{"id": idx, "timestamp": now()} for idx in range(10)]
-    assert backend.write(documents) == 10
+    assert backend.write(documents, {"meta": "data"}) == 10
     hits = backend.read()
     for i, hit in enumerate(hits):
         assert isinstance(hit, dict)
-        assert hit.get("_source") == documents[i]
+        source = hit.get("_source")
+        assert source.get("statement") == documents[i]
+        assert source.get("metadata") == {"meta": "data"}
 
     backend.close()
 
@@ -390,56 +395,76 @@ def test_backends_data_es_read_with_query(es, es_backend, caplog):
     """Test the `ESDataBackend.read` method with a query."""
 
     backend = es_backend()
-    documents = [{"id": idx, "timestamp": now(), "modulo": idx % 2} for idx in range(5)]
-    assert backend.write(documents) == 5
+
+    documents = [
+        {"id": str(idx), "timestamp": now(), "modulo": idx % 2} for idx in range(5)
+    ]
+
+    assert backend.write(documents[:3], {"is_tested": True}) == 3
+    assert backend.write(documents[3:], {"is_tested": False}) == 2
+
     # Find every even item.
-    query = ESQuery(query={"term": {"modulo": 0}})
+    query = ESQuery(query={"term": {"statement.modulo": 0}})
     results = list(backend.read(query=query))
     assert len(results) == 3
-    assert results[0]["_source"]["id"] == 0
-    assert results[1]["_source"]["id"] == 2
-    assert results[2]["_source"]["id"] == 4
+    assert results[0]["_source"]["statement"]["id"] == "0"
+    assert results[1]["_source"]["statement"]["id"] == "2"
+    assert results[2]["_source"]["statement"]["id"] == "4"
 
     # Find the first two even items.
-    query = ESQuery(query={"term": {"modulo": 0}}, size=2)
+    query = ESQuery(query={"term": {"statement.modulo": 0}}, size=2)
     results = list(backend.read(query=query))
     assert len(results) == 2
-    assert results[0]["_source"]["id"] == 0
-    assert results[1]["_source"]["id"] == 2
+    assert results[0]["_source"]["statement"]["id"] == "0"
+    assert results[1]["_source"]["statement"]["id"] == "2"
 
     # Find the first ten even items although there are only three available.
-    query = ESQuery(query={"term": {"modulo": 0}}, size=10)
+    query = ESQuery(query={"term": {"statement.modulo": 0}}, size=10)
     results = list(backend.read(query=query))
     assert len(results) == 3
-    assert results[0]["_source"]["id"] == 0
-    assert results[1]["_source"]["id"] == 2
-    assert results[2]["_source"]["id"] == 4
+    assert results[0]["_source"]["statement"]["id"] == "0"
+    assert results[1]["_source"]["statement"]["id"] == "2"
+    assert results[2]["_source"]["statement"]["id"] == "4"
 
     # Find every odd item.
-    query = ESQuery(query={"term": {"modulo": 1}})
+    query = ESQuery(query={"term": {"statement.modulo": 1}})
     results = list(backend.read(query=query))
     assert len(results) == 2
-    assert results[0]["_source"]["id"] == 1
-    assert results[1]["_source"]["id"] == 3
+    assert results[0]["_source"]["statement"]["id"] == "1"
+    assert results[1]["_source"]["statement"]["id"] == "3"
+
+    # Find every is_tested item
+    query = ESQuery(query={"term": {"metadata.is_tested": True}})
+    results = list(backend.read(query=query))
+
+    assert len(results) == 3
+    assert results[0]["_source"]["statement"]["id"] == "0"
+    assert results[1]["_source"]["statement"]["id"] == "1"
+    assert results[2]["_source"]["statement"]["id"] == "2"
 
     # Find every odd item with a json query string.
-    query = ESQuery.from_string(json.dumps({"query": {"term": {"modulo": 1}}}))
+    query = ESQuery.from_string(
+        json.dumps({"query": {"term": {"statement.modulo": 1}}})
+    )
     results = list(backend.read(query=query))
     assert len(results) == 2
-    assert results[0]["_source"]["id"] == 1
-    assert results[1]["_source"]["id"] == 3
+    assert results[0]["_source"]["statement"]["id"] == "1"
+    assert results[1]["_source"]["statement"]["id"] == "3"
 
     # Find documents with ID equal to one or five.
-    query = "id:(1 OR 5)"
+    query = "statement.id:(1 OR 5)"
     with caplog.at_level(logging.INFO):
         query = ESQuery.from_string(query)
         results = list(backend.read(query=query))
     assert len(results) == 1
-    assert results[0]["_source"]["id"] == 1
+    assert results[0]["_source"]["statement"]["id"] == "1"
     assert (
         "ralph.backends.data.es",
         logging.INFO,
-        "Fallback to Lucene Query as the query is not an ESQuery: id:(1 OR 5)",
+        (
+            "Fallback to Lucene Query as the query "
+            "is not an ESQuery: statement.id:(1 OR 5)"
+        ),
     ) in caplog.record_tuples
 
     # Check query argument type
@@ -470,7 +495,12 @@ def test_backends_data_es_write_with_create_operation(es, es_backend, caplog):
     # Given an empty data iterator, the write method should return 0 and log a message.
     data = []
     with caplog.at_level(logging.INFO):
-        assert backend.write(data, operation_type=BaseOperationType.CREATE) == 0
+        assert (
+            backend.write(
+                data, {"meta": "data"}, operation_type=BaseOperationType.CREATE
+            )
+            == 0
+        )
 
     assert (
         "ralph.backends.data.base",
@@ -483,7 +513,12 @@ def test_backends_data_es_write_with_create_operation(es, es_backend, caplog):
     data = ({"value": str(idx)} for idx in range(9))
     with caplog.at_level(logging.DEBUG):
         assert (
-            backend.write(data, chunk_size=5, operation_type=BaseOperationType.CREATE)
+            backend.write(
+                data,
+                {"meta": "data"},
+                chunk_size=5,
+                operation_type=BaseOperationType.CREATE,
+            )
             == 9
         )
 
@@ -500,7 +535,13 @@ def test_backends_data_es_write_with_create_operation(es, es_backend, caplog):
     ) in caplog.record_tuples
 
     hits = list(backend.read())
-    assert [hit["_source"] for hit in hits] == [{"value": str(idx)} for idx in range(9)]
+    assert [hit["_source"] for hit in hits] == [
+        {
+            "statement": {"value": str(idx)},
+            "metadata": {"meta": "data"},
+        }
+        for idx in range(9)
+    ]
 
     backend.close()
 
@@ -521,12 +562,20 @@ def test_backends_data_es_write_with_delete_operation(
 
     data = [{"id": idx} for idx in range(3)]
     assert (
-        backend.write(data, chunk_size=5, operation_type=BaseOperationType.DELETE) == 3
+        backend.write(
+            data,
+            {"meta": "data"},
+            chunk_size=5,
+            operation_type=BaseOperationType.DELETE,
+        )
+        == 3
     )
 
     hits = list(backend.read())
     assert len(hits) == 7
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(3, 10))
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(3, 10)
+    )
 
     backend.close()
 
@@ -547,14 +596,17 @@ def test_backends_data_es_write_with_update_operation(
     )
 
     assert len(list(backend.read())) == 0
-    assert backend.write(data, chunk_size=5) == 10
+    assert backend.write(data, {"meta": "data"}, chunk_size=5) == 10
 
     hits = list(backend.read())
     assert len(hits) == 10
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(10))
-    assert sorted([hit["_source"]["value"] for hit in hits]) == list(
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(10)
+    )
+    assert sorted([hit["_source"]["statement"]["value"] for hit in hits]) == list(
         map(str, range(10))
     )
+    assert [hit["_source"]["metadata"] for hit in hits] == [{"meta": "data"}] * 10
 
     data = BytesIO(
         "\n".join(
@@ -563,15 +615,24 @@ def test_backends_data_es_write_with_update_operation(
     )
 
     assert (
-        backend.write(data, chunk_size=5, operation_type=BaseOperationType.UPDATE) == 10
+        backend.write(
+            data,
+            {"meta": "tada"},
+            chunk_size=5,
+            operation_type=BaseOperationType.UPDATE,
+        )
+        == 10
     )
 
     hits = list(backend.read())
     assert len(hits) == 10
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(10))
-    assert sorted([hit["_source"]["value"] for hit in hits]) == [
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(10)
+    )
+    assert sorted([hit["_source"]["statement"]["value"] for hit in hits]) == [
         str(x + 10) for x in range(10)
     ]
+    assert [hit["_source"]["metadata"] for hit in hits] == [{"meta": "tada"}] * 10
 
     backend.close()
 
@@ -584,7 +645,9 @@ def test_backends_data_es_write_with_append_operation(es_backend, caplog):
     msg = "Append operation_type is not allowed"
     with pytest.raises(BackendParameterException, match=msg):
         with caplog.at_level(logging.ERROR):
-            backend.write(data=[{}], operation_type=BaseOperationType.APPEND)
+            backend.write(
+                data=[{}], metadata={}, operation_type=BaseOperationType.APPEND
+            )
 
     assert (
         "ralph.backends.data.base",
@@ -621,7 +684,7 @@ def test_backends_data_es_write_with_target(es, es_backend):
         # No documents should be inserted into the default index.
         assert not hits
         # Documents should be inserted into the target index.
-        assert [hit["_source"] for hit in hits_with_target] == [
+        assert [hit["_source"]["statement"] for hit in hits_with_target] == [
             {"value": "1"},
             {"value": "2"},
         ]
@@ -645,13 +708,15 @@ def test_backends_data_es_write_without_ignore_errors(es, es_backend, caplog):
     # By default, we should raise an error and stop the importation.
     msg = (
         r"1 document\(s\) failed to index. "
-        r"\[\{'index': \{'_index': 'test-index-foo', '_id': '4', 'status': 400, 'error'"
-        r": \{'type': 'mapper_parsing_exception', 'reason': \"failed to parse field "
-        r"\[count\] of type \[long\] in document with id '4'. Preview of field's value:"
-        r" 'wrong'\", 'caused_by': \{'type': 'illegal_argument_exception', 'reason': "
-        r"'For input string: \"wrong\"'\}\}, 'data': \{'id': 4, 'count': 'wrong'\}\}\}"
-        r"\] Total succeeded writes: 5"
+        r"\[\{'index': \{'_index': 'test-index-foo', '_id': '4', "
+        r"'status': 400, 'error': \{'type': 'mapper_parsing_exception', "
+        r"'reason': \"failed to parse field \[statement.count\] of type \[long\] "
+        r"in document with id '4'. Preview of field's value: 'wrong'\", "
+        r"'caused_by': \{'type': 'illegal_argument_exception', 'reason': "
+        r"'For input string: \"wrong\"'\}\}, 'data': \{'statement': \{'id': 4, "
+        r"'count': 'wrong'\}, 'metadata': \{\}\}\}\}\] Total succeeded writes: 5"
     )
+
     with pytest.raises(BackendException, match=msg):
         with caplog.at_level(logging.ERROR):
             backend.write(data, chunk_size=2)
@@ -665,7 +730,13 @@ def test_backends_data_es_write_without_ignore_errors(es, es_backend, caplog):
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = list(backend.read())
     assert len(hits) == 5
-    assert sorted([hit["_source"]["id"] for hit in hits]) == [0, 1, 2, 3, 5]
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == [
+        0,
+        1,
+        2,
+        3,
+        5,
+    ]
 
     # Given an unparsable binary JSON document, the write method should raise a
     # `BackendException`.
@@ -715,7 +786,7 @@ def test_backends_data_es_write_with_ignore_errors(es, es_backend):
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = list(backend.read())
     assert len(hits) == 9
-    assert sorted([hit["_source"]["id"] for hit in hits]) == [
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == [
         i for i in range(10) if i != 2
     ]
 
@@ -730,7 +801,10 @@ def test_backends_data_es_write_with_ignore_errors(es, es_backend):
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = list(backend.read())
     assert len(hits) == 11
-    assert [hit["_source"] for hit in hits[9:]] == [{"foo": "bar"}, {"foo": "baz"}]
+    assert [hit["_source"]["statement"] for hit in hits[9:]] == [
+        {"foo": "bar"},
+        {"foo": "baz"},
+    ]
 
     backend.close()
 
@@ -747,7 +821,9 @@ def test_backends_data_es_write_with_datastream(es_data_stream, es_backend):
 
     hits = list(backend.read())
     assert len(hits) == 10
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(10))
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(10)
+    )
 
     backend.close()
 
