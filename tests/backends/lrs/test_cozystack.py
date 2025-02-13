@@ -5,6 +5,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 from pyfakefs.fake_filesystem import FakeFilesystem
 from pytest import LogCaptureFixture, MonkeyPatch
 
@@ -42,7 +43,10 @@ def test_backends_lrs_cozystack_default_instantiation(
                 "selector": {},
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
@@ -52,10 +56,16 @@ def test_backends_lrs_cozystack_default_instantiation(
         (
             {"statementId": "statementId"},
             {
-                "selector": {"source.id": "statementId"},
+                "selector": {
+                    "source.statement.id": "statementId",
+                    "source.metadata.voided": False,
+                },
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
@@ -66,12 +76,16 @@ def test_backends_lrs_cozystack_default_instantiation(
             {"statementId": "statementId", "agent": {"mbox": "mailto:foo@bar.baz"}},
             {
                 "selector": {
-                    "source.id": "statementId",
-                    "source.actor.mbox": "mailto:foo@bar.baz",
+                    "source.statement.id": "statementId",
+                    "source.metadata.voided": False,
+                    "source.statement.actor.mbox": "mailto:foo@bar.baz",
                 },
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
@@ -85,14 +99,18 @@ def test_backends_lrs_cozystack_default_instantiation(
             },
             {
                 "selector": {
-                    "source.id": "statementId",
-                    "source.actor.mbox_sha1sum": (
+                    "source.statement.id": "statementId",
+                    "source.metadata.voided": False,
+                    "source.statement.actor.mbox_sha1sum": (
                         "a7a5b7462b862c8c8767d43d43e865ffff754a64"
                     ),
                 },
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
@@ -106,12 +124,16 @@ def test_backends_lrs_cozystack_default_instantiation(
             },
             {
                 "selector": {
-                    "source.id": "statementId",
-                    "source.actor.openid": "http://toby.openid.example.org/",
+                    "source.statement.id": "statementId",
+                    "source.metadata.voided": False,
+                    "source.statement.actor.openid": "http://toby.openid.example.org/",
                 },
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
@@ -128,19 +150,67 @@ def test_backends_lrs_cozystack_default_instantiation(
             },
             {
                 "selector": {
-                    "source.id": "statementId",
-                    "source.actor.account.name": "13936749",
-                    "source.actor.account.homePage": "http://www.example.com",
+                    "source.statement.id": "statementId",
+                    "source.metadata.voided": False,
+                    "source.statement.actor.account.name": "13936749",
+                    "source.statement.actor.account.homePage": "http://www.example.com",
                 },
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
             },
         ),
-        # 6. Query by verb and activity.
+        # 6. Query by voidedStatementId.
+        (
+            {"voidedStatementId": "statementId"},
+            {
+                "selector": {
+                    "source.statement.id": "statementId",
+                    "source.metadata.voided": True,
+                },
+                "limit": 0,
+                "skip": None,
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
+                "fields": ["_id", "source"],
+                "next": None,
+                "bookmark": None,
+            },
+        ),
+        # 7. Query by voidedStatementId, verb and activity
+        (
+            {
+                "voidedStatementId": "statementId",
+                "verb": "http://adlnet.gov/expapi/verbs/attended",
+                "activity": "http://www.example.com/meetings/34534",
+            },
+            {
+                "selector": {
+                    "source.statement.id": "statementId",
+                    "source.metadata.voided": True,
+                    "source.statement.verb.id": "http://adlnet.gov/expapi/verbs/attended",
+                    "source.statement.object.id": "http://www.example.com/meetings/34534",
+                },
+                "limit": 0,
+                "skip": None,
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
+                "fields": ["_id", "source"],
+                "next": None,
+                "bookmark": None,
+            },
+        ),
+        # 8. Query by verb and activity.
         (
             {
                 "verb": "http://adlnet.gov/expapi/verbs/attended",
@@ -148,18 +218,21 @@ def test_backends_lrs_cozystack_default_instantiation(
             },
             {
                 "selector": {
-                    "source.verb.id": "http://adlnet.gov/expapi/verbs/attended",
-                    "source.object.id": "http://www.example.com/meetings/34534",
+                    "source.statement.verb.id": "http://adlnet.gov/expapi/verbs/attended",
+                    "source.statement.object.id": "http://www.example.com/meetings/34534",
                 },
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
             },
         ),
-        # 7. Query by timerange (with since/until).
+        # 9. Query by timerange (with since/until).
         (
             {
                 "since": "2021-06-24T00:00:20.194929+00:00",
@@ -167,27 +240,33 @@ def test_backends_lrs_cozystack_default_instantiation(
             },
             {
                 "selector": {
-                    "source.timestamp": {
+                    "source.statement.timestamp": {
                         "$gt": "2021-06-24T00:00:20.194929+00:00",
                         "$lte": "2023-06-24T00:00:20.194929+00:00",
                     }
                 },
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": None,
             },
         ),
-        # 8. Query with pagination and pit_id.
+        # 10. Query with pagination and pit_id.
         (
             {"search_after": "1686557542970|0"},
             {
                 "selector": {},
                 "limit": 0,
                 "skip": None,
-                "sort": [{"source.timestamp": "desc"}, {"source.id": "desc"}],
+                "sort": [
+                    {"source.statement.timestamp": "desc"},
+                    {"source.statement.id": "desc"},
+                ],
                 "fields": ["_id", "source"],
                 "next": None,
                 "bookmark": "1686557542970|0",
@@ -230,7 +309,10 @@ def test_backends_lrs_cozystack_query_statements(
         {"id": "0", "timestamp": "2023-06-24T00:00:20.194929+00:00"},
         {"id": "1", "timestamp": "2023-05-25T00:00:20.194929+00:00"},
     ]
-    assert backend.write(documents_default, target=cozy_auth_target) == 2
+    assert (
+        backend.write(documents_default, {"voided": False}, target=cozy_auth_target)
+        == 2
+    )
 
     # Check the expected search query results.
     result = backend.query_statements(
@@ -238,6 +320,43 @@ def test_backends_lrs_cozystack_query_statements(
         target=cozy_auth_target,
     )
     assert result.statements == documents_default[1:]
+
+    result = backend.query_statements(
+        RalphStatementsQuery.model_construct(voided_statement_id="1", limit=10),
+        target=cozy_auth_target,
+    )
+    assert len(result.statements) == 0
+
+
+def test_backends_lrs_cozystack_query_statements_voided(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test the `CozyStackLRSBackend.query_statements` method, given a query,
+    should return matching voided statements.
+    """
+    cozystack_custom()
+    backend = CozyStackLRSBackend()
+
+    documents_default = [
+        {"id": "0", "timestamp": "2023-06-24T00:00:20.194929+00:00"},
+        {"id": "1", "timestamp": "2023-05-25T00:00:20.194929+00:00"},
+    ]
+    assert (
+        backend.write(documents_default, {"voided": True}, target=cozy_auth_target) == 2
+    )
+
+    # Check the expected search query results.
+    result = backend.query_statements(
+        RalphStatementsQuery.model_construct(voided_statement_id="0", limit=10),
+        target=cozy_auth_target,
+    )
+    assert result.statements == documents_default[:1]
+
+    result = backend.query_statements(
+        RalphStatementsQuery.model_construct(statement_id="0", limit=10),
+        target=cozy_auth_target,
+    )
+    assert len(result.statements) == 0
 
 
 def test_backends_lrs_cozystack_query_statements_with_search_query_failure(
@@ -273,6 +392,70 @@ def test_backends_lrs_cozystack_query_statements_with_search_query_failure(
     ) in caplog.record_tuples
 
 
+def test_backends_lrs_cozystack_query_statements_by_ids(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test the `CozyStackLRSBackend.query_statements_by_ids` method."""
+    cozystack_custom()
+    backend = CozyStackLRSBackend()
+
+    documents = [
+        {"id": "0", "timestamp": "2023-06-24T00:00:20.194929+00:00"},
+        {"id": "1", "timestamp": "2023-05-25T00:00:20.194929+00:00"},
+        {"id": "2", "timestamp": "2023-04-26T00:00:20.194929+00:00"},
+        {"id": "3", "timestamp": "2023-03-27T00:00:20.194929+00:00"},
+    ]
+
+    assert backend.write(documents[:2], {"voided": False}, target=cozy_auth_target) == 2
+    assert backend.write(documents[2:], {"voided": True}, target=cozy_auth_target) == 2
+
+    result = backend.query_statements_by_ids(
+        ids=["0", "2"],
+        target=cozy_auth_target,
+    )
+
+    assert list(result) == [documents[0], documents[2]]
+
+
+def test_backends_lrs_cozystack_query_statements_by_ids_include_extra(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """
+    Test the `CozyStackLRSBackend.query_statements_by_ids` method with include_extra.
+    """
+    cozystack_custom()
+    backend = CozyStackLRSBackend()
+
+    documents = [
+        {"id": "0", "timestamp": "2023-06-24T00:00:20.194929+00:00"},
+        {"id": "1", "timestamp": "2023-05-25T00:00:20.194929+00:00"},
+        {"id": "2", "timestamp": "2023-04-26T00:00:20.194929+00:00"},
+        {"id": "3", "timestamp": "2023-03-27T00:00:20.194929+00:00"},
+    ]
+
+    assert backend.write(documents[:2], {"voided": False}, target=cozy_auth_target) == 2
+    assert backend.write(documents[2:], {"voided": True}, target=cozy_auth_target) == 2
+
+    result = backend.query_statements_by_ids(
+        ids=["0", "2"], target=cozy_auth_target, include_extra=True
+    )
+
+    item = next(result)
+
+    assert item["statement"] == documents[0]
+    assert item["metadata"] == {"voided": False}
+    assert "_rev" in item
+
+    item = next(result)
+
+    assert item["statement"] == documents[2]
+    assert item["metadata"] == {"voided": True}
+    assert "_rev" in item
+
+    with pytest.raises(StopIteration):
+        next(result)
+
+
 def test_backends_lrs_cozystack_query_statements_by_ids_with_search_query_failure(
     monkeypatch: MonkeyPatch,
     caplog: LogCaptureFixture,
@@ -306,3 +489,63 @@ def test_backends_lrs_cozystack_query_statements_by_ids_with_search_query_failur
         logging.ERROR,
         "Failed to read from CozyStack",
     ) in caplog.record_tuples
+
+
+def test_backends_lrs_cozystack_query_statements_bad_args(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test the `CozyStackLRSBackend.query_statements` method with bad args."""
+    cozystack_custom()
+    backend = CozyStackLRSBackend()
+
+    for params in [0, "abc", {"a": "b"}, [1, 2, 3], True]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements(
+                    params=params,
+                    target=cozy_auth_target,
+                )
+            )
+
+    for target in [0, [0], True]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements(
+                    params=RalphStatementsQuery.model_construct(statement_id="1"),
+                    target=target,
+                )
+            )
+
+
+def test_backends_lrs_cozystack_query_statements_by_ids_bad_args(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """Test the `CozyStackLRSBackend.query_statements_by_ids` method with bad args."""
+    cozystack_custom()
+    backend = CozyStackLRSBackend()
+
+    for ids in [[0], 0, "0", "abc", True]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements_by_ids(
+                    ids=ids,
+                    target=cozy_auth_target,
+                )
+            )
+
+    for target in [0, [0], True]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements_by_ids(
+                    ids=["0"],
+                    target=target,
+                )
+            )
+
+    for include_extra in [0, "abc", [True]]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements_by_ids(
+                    ids=["0"], target=cozy_auth_target, include_extra=include_extra
+                )
+            )
