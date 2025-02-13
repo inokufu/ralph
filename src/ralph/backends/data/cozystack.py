@@ -170,12 +170,13 @@ class CozyStackDataBackend(
     @staticmethod
     def to_documents(
         data: Iterable[Mapping],
+        metadata: Mapping,
         operation_type: BaseOperationType,
     ) -> Iterator[dict]:
         """Convert dictionaries from to documents ready to insert and yield them."""
         if operation_type in (BaseOperationType.CREATE, BaseOperationType.INDEX):
             for item in data:
-                document = {"source": item}
+                document = {"source": {"statement": item, "metadata": metadata}}
 
                 if "id" in item:
                     document["_id"] = item["id"]
@@ -189,7 +190,7 @@ class CozyStackDataBackend(
                 yield {
                     "_id": item.get("id"),
                     "_rev": item.pop("_rev"),
-                    "source": item,
+                    "source": {"statement": item, "metadata": metadata},
                 }
 
         elif operation_type == BaseOperationType.DELETE:
@@ -202,9 +203,10 @@ class CozyStackDataBackend(
                     "_deleted": True,
                 }
 
-    def _write_dicts(
+    def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,  # noqa: ARG002
         ignore_errors: bool,  # noqa: ARG002
@@ -212,7 +214,7 @@ class CozyStackDataBackend(
     ) -> int:
         """Method called by `self.write` writing dictionaries. See `self.write`."""
         try:
-            documents = self.to_documents(data, operation_type)
+            documents = self.to_documents(data, metadata, operation_type)
             count = self.client.bulk_operation(target, documents, operation_type)
             logger.info("Finished writing %d documents with success", count)
             return count
