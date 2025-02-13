@@ -1,5 +1,6 @@
 """Base LRS backend for Ralph."""
 
+import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -12,19 +13,34 @@ from typing import (
 )
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, Field, NonNegativeInt
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    NonNegativeInt,
+    StrictBool,
+    TypeAdapter,
+    constr,
+)
 from pydantic_settings import SettingsConfigDict
 
 from ralph.backends.data.base import (
+    AsyncWritable,
     BaseAsyncDataBackend,
     BaseDataBackend,
     BaseDataBackendSettings,
+    BaseOperationType,
     BaseQuery,
+    Writable,
 )
 from ralph.conf import BASE_SETTINGS_CONFIG
+from ralph.exceptions import BackendException
 from ralph.models.xapi.base.agents import BaseXapiAgent
 from ralph.models.xapi.base.common import IRI
 from ralph.models.xapi.base.groups import BaseXapiGroup
+from ralph.models.xapi.base.statements import check_statement_is_voiding
+
+logger = logging.getLogger(__name__)
 
 
 class BaseLRSBackendSettings(BaseDataBackendSettings):
@@ -115,8 +131,14 @@ class RalphStatementsQuery(LRSStatementsQuery):
 
 Settings = TypeVar("Settings", bound=BaseLRSBackendSettings)
 
+NonEmptyStr = constr(strict=True, min_length=1)
+params_adapter = TypeAdapter(RalphStatementsQuery)
+ids_adapter = TypeAdapter(Sequence[NonEmptyStr])
+target_adapter = TypeAdapter(NonEmptyStr | None)
+include_extra_adapter = TypeAdapter(StrictBool)
 
-class BaseLRSBackend(BaseDataBackend[Settings, Any]):
+
+class BaseLRSBackend(BaseDataBackend[Settings, Any], Writable):
     """Base LRS backend interface."""
 
     @abstractmethod
@@ -127,12 +149,89 @@ class BaseLRSBackend(BaseDataBackend[Settings, Any]):
 
     @abstractmethod
     def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
 
+    def index_statements(
+        self, statements: Sequence[Mapping], target: str | None = None
+    ) -> int:
+        """Index statements as not voided on given target.
 
-class BaseAsyncLRSBackend(BaseAsyncDataBackend[Settings, Any]):
+        Raise:
+            BackendException: If any failure occurs during the write operation or
+                if an inescapable failure occurs and `ignore_errors` is set to `True`.
+            BackendParameterException: If a backend argument value is not valid.
+        """
+        return self.write(
+            data=statements,
+            metadata={"voided": False},
+            target=target,
+            ignore_errors=False,
+            operation_type=BaseOperationType.INDEX,
+        )
+
+    def void_statements(
+        self, voided_statements_ids: Sequence[str], target: str | None = None
+    ) -> int:
+        """Void statements corresponding to voided_statements_ids on given target.
+
+        Raise:
+            BackendException: If any failure occurs during the write operation or
+                if an inescapable failure occurs and `ignore_errors` is set to `True`.
+            BackendParameterException: If a backend argument value is not valid.
+        """
+        voided_extra_statements = self.query_statements_by_ids(
+            ids=voided_statements_ids,
+            target=target,
+            include_extra=True,
+        )
+
+        statements = []
+
+        for extra_statement in voided_extra_statements:
+            statement = extra_statement["statement"]
+            metadata = extra_statement["metadata"]
+
+            if statement["id"] not in voided_statements_ids:
+                msg = (
+                    f"StatementRef '{statement['id']}' doesn't match "
+                    "with any existing statement"
+                )
+
+                logger.error(msg)
+                raise BackendException(msg)
+
+            if check_statement_is_voiding(statement):
+                msg = (
+                    f"StatementRef '{statement['id']}' of voiding Statement "
+                    "references another voiding Statement"
+                )
+
+                logger.error(msg)
+                raise BackendException(msg)
+
+            if metadata["voided"]:
+                msg = (
+                    f"StatementRef '{statement['id']}' of voiding Statement "
+                    "references a Statement that has already been voided"
+                )
+
+                logger.error(msg)
+                raise BackendException(msg)
+
+            statements.append(statement)
+
+        return self.write(
+            data=statements,
+            metadata={"voided": True},
+            target=target,
+            ignore_errors=False,
+            operation_type=BaseOperationType.UPDATE,
+        )
+
+
+class BaseAsyncLRSBackend(BaseAsyncDataBackend[Settings, Any], AsyncWritable):
     """Base async LRS backend interface."""
 
     @abstractmethod
@@ -143,6 +242,6 @@ class BaseAsyncLRSBackend(BaseAsyncDataBackend[Settings, Any]):
 
     @abstractmethod
     async def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> AsyncIterator[dict]:
         """Return the list of matching statement IDs from the database."""
