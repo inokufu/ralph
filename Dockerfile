@@ -2,18 +2,16 @@
 FROM python:3.12.8-slim AS base
 
 # Set pip specific var env to reduce docker image size
-ENV PIP_NO_CACHE_DIR=1 PYTHONDONTWRITEBYTECODE=1
+ENV PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_PROJECT_ENVIRONMENT=/venv \
+    PATH="/venv/bin:$PATH"
 
 # Upgrade pip to its latest release to speed up dependencies installation and install uv
-RUN pip install --upgrade pip && pip install uv 
-
-# set venv environment variables
-ENV UV_PROJECT_ENVIRONMENT=/venv
-ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
-
-# Upgrade system packages to install security updates
 RUN apt-get update && \
     apt-get -y upgrade && \
+    pip install --upgrade pip && \
+    pip install uv && \
     rm -rf /var/lib/apt/lists/*
 
 
@@ -21,8 +19,6 @@ RUN apt-get update && \
 FROM base AS builder
 
 WORKDIR /build
-
-COPY . /build/
 
 RUN apt-get update && \
     apt-get install -y \
@@ -67,11 +63,16 @@ RUN apt-get update && \
         git && \
     rm -rf /var/lib/apt/lists/*;
 
-# Copy all sources, not only runtime-required files
+COPY pyproject.toml uv.lock /app/
+
+# Install dependencies without project
+RUN uv sync --extra full --extra dev --frozen --no-install-project
+
+# Copy all sources after dependencies installation
 COPY . /app/
 
-# Install dependencies and project as editable
-RUN uv sync --extra full --extra dev --frozen
+# Install dependencies with project as editable
+RUN uv sync --extra full --extra dev --frozen 
 
 # Un-privileged user running the application
 ARG DOCKER_USER=1000
@@ -81,8 +82,16 @@ USER ${DOCKER_USER}
 # -- Production --
 FROM core AS production
 
-# Install dependencies and project as not editable
-RUN uv sync --extra full --no-editable --frozen
+COPY pyproject.toml uv.lock /app/
+
+# Install dependencies without project
+RUN uv sync --extra full --frozen --no-install-project
+
+# Copy all sources after dependencies installation
+COPY . /app/
+
+# Install dependencies with project as editable
+RUN uv sync --extra full --frozen 
 
 # Un-privileged user running the application
 ARG DOCKER_USER=1000
