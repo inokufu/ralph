@@ -4,6 +4,7 @@ import logging
 
 import pytest
 from bson.objectid import ObjectId
+from pydantic import ValidationError
 from pymongo import ASCENDING, DESCENDING
 
 from ralph.backends.lrs.base import AgentParameters, RalphStatementsQuery
@@ -40,7 +41,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
@@ -49,11 +50,14 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
         (
             {"statementId": "statementId"},
             {
-                "filter": {"_source.id": "statementId"},
+                "filter": {
+                    "_source.statement.id": "statementId",
+                    "_source.metadata.voided": False,
+                },
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
@@ -63,13 +67,14 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             {"statementId": "statementId", "agent": {"mbox": "mailto:foo@bar.baz"}},
             {
                 "filter": {
-                    "_source.id": "statementId",
-                    "_source.actor.mbox": "mailto:foo@bar.baz",
+                    "_source.statement.id": "statementId",
+                    "_source.metadata.voided": False,
+                    "_source.statement.actor.mbox": "mailto:foo@bar.baz",
                 },
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
@@ -82,15 +87,16 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
-                    "_source.id": "statementId",
-                    "_source.actor.mbox_sha1sum": (
+                    "_source.statement.id": "statementId",
+                    "_source.metadata.voided": False,
+                    "_source.statement.actor.mbox_sha1sum": (
                         "a7a5b7462b862c8c8767d43d43e865ffff754a64"
                     ),
                 },
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
@@ -103,13 +109,14 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
-                    "_source.id": "statementId",
-                    "_source.actor.openid": "http://toby.openid.example.org/",
+                    "_source.statement.id": "statementId",
+                    "_source.metadata.voided": False,
+                    "_source.statement.actor.openid": "http://toby.openid.example.org/",
                 },
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
@@ -125,19 +132,58 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
-                    "_source.id": "statementId",
-                    "_source.actor.account.name": "13936749",
-                    "_source.actor.account.homePage": "http://www.example.com",
+                    "_source.statement.id": "statementId",
+                    "_source.metadata.voided": False,
+                    "_source.statement.actor.account.name": "13936749",
+                    "_source.statement.actor.account.homePage": "http://www.example.com",
                 },
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
         ),
-        # 6. Query by verb and activity.
+        # 6. Query by voidedStatementId.
+        (
+            {"voidedStatementId": "statementId"},
+            {
+                "filter": {
+                    "_source.statement.id": "statementId",
+                    "_source.metadata.voided": True,
+                },
+                "limit": 0,
+                "projection": None,
+                "sort": [
+                    ("_source.statement.timestamp", DESCENDING),
+                    ("_id", DESCENDING),
+                ],
+            },
+        ),
+        # 7. Query by voidedStatementId and verb and activity.
+        (
+            {
+                "voidedStatementId": "statementId",
+                "verb": "http://adlnet.gov/expapi/verbs/attended",
+                "activity": "http://www.example.com/meetings/34534",
+            },
+            {
+                "filter": {
+                    "_source.statement.id": "statementId",
+                    "_source.metadata.voided": True,
+                    "_source.statement.verb.id": "http://adlnet.gov/expapi/verbs/attended",
+                    "_source.statement.object.id": "http://www.example.com/meetings/34534",
+                },
+                "limit": 0,
+                "projection": None,
+                "sort": [
+                    ("_source.statement.timestamp", DESCENDING),
+                    ("_id", DESCENDING),
+                ],
+            },
+        ),
+        # 8. Query by verb and activity.
         (
             {
                 "verb": "http://adlnet.gov/expapi/verbs/attended",
@@ -145,18 +191,18 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
-                    "_source.verb.id": "http://adlnet.gov/expapi/verbs/attended",
-                    "_source.object.id": "http://www.example.com/meetings/34534",
+                    "_source.statement.verb.id": "http://adlnet.gov/expapi/verbs/attended",
+                    "_source.statement.object.id": "http://www.example.com/meetings/34534",
                 },
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
         ),
-        # 7. Query by timerange (with since/until).
+        # 9. Query by timerange (with since/until).
         (
             {
                 "since": "2021-06-24T00:00:20.194929+00:00",
@@ -164,7 +210,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
-                    "_source.timestamp": {
+                    "_source.statement.timestamp": {
                         "$gt": "2021-06-24T00:00:20.194929+00:00",
                         "$lte": "2023-06-24T00:00:20.194929+00:00",
                     },
@@ -172,31 +218,31 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
         ),
-        # 8. Query by timerange (with only until).
+        # 10. Query by timerange (with only until).
         (
             {
                 "until": "2023-06-24T00:00:20.194929+00:00",
             },
             {
                 "filter": {
-                    "_source.timestamp": {
+                    "_source.statement.timestamp": {
                         "$lte": "2023-06-24T00:00:20.194929+00:00",
                     },
                 },
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
         ),
-        # 9. Query with pagination.
+        # 11. Query with pagination.
         (
             {"search_after": "666f6f2d6261722d71757578", "pit_id": None},
             {
@@ -206,12 +252,12 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", DESCENDING),
+                    ("_source.statement.timestamp", DESCENDING),
                     ("_id", DESCENDING),
                 ],
             },
         ),
-        # 10. Query with pagination in ascending order.
+        # 12. Query with pagination in ascending order.
         (
             {"search_after": "666f6f2d6261722d71757578", "ascending": True},
             {
@@ -221,7 +267,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
                 "limit": 0,
                 "projection": None,
                 "sort": [
-                    ("_source.timestamp", ASCENDING),
+                    ("_source.statement.timestamp", ASCENDING),
                     ("_id", ASCENDING),
                 ],
             },
@@ -239,7 +285,9 @@ def test_backends_lrs_mongo_query_statements_query(
         """Mock the `MongoLRSBackend.read` method."""
         assert query.model_dump() == expected_query
         assert chunk_size == expected_query.get("limit")
-        return [{"_id": "search_after_id", "_source": {}}]
+        return [
+            {"_id": "search_after_id", "_source": {"statement": {}, "metadata": {}}}
+        ]
 
     backend = mongo_lrs_backend()
     monkeypatch.setattr(backend, "read", mock_read)
@@ -271,14 +319,14 @@ def test_backends_lrs_mongo_query_statements_with_success(mongo, mongo_lrs_backe
         {"id": "62b9ce922c26b46b68ffc68f", **timestamp, **meta},
         {"id": "62b9ce92fcde2b2edba56bf4", **timestamp, **meta},
     ]
-    assert backend.write(documents) == 2
+    assert backend.write(documents, {"voided": False}) == 2
 
     # Insert documents into the custom collection
     documents = [
         {"id": "12b9ce922c26b46b68ffc234", **timestamp, **meta},
         {"id": "22b9ce92fcde2b2edba56567", **timestamp, **meta},
     ]
-    assert backend.write(documents, target=custom_target) == 2
+    assert backend.write(documents, {"voided": False}, target=custom_target) == 2
 
     statement_parameters = RalphStatementsQuery.model_construct(
         statementId="62b9ce922c26b46b68ffc68f",
@@ -302,7 +350,7 @@ def test_backends_lrs_mongo_query_statements_with_success(mongo, mongo_lrs_backe
 
     # Check that statements in the custom collection can also be queried
     statement_query_result = backend.query_statements(
-        RalphStatementsQuery.construct(), target=custom_target
+        RalphStatementsQuery.model_construct(), target=custom_target
     )
 
     assert statement_query_result.statements == [
@@ -326,7 +374,7 @@ def test_backends_lrs_mongo_query_statements_with_query_failure(
 
     def mock_read(**_):
         """Mock the `MongoDataBackend.read` method always raising an Exception."""
-        yield {"_source": {}}
+        yield {"_source": {"statement": {}, "metadata": {}}}
         raise BackendException(msg)
 
     backend = mongo_lrs_backend()
@@ -355,7 +403,7 @@ def test_backends_lrs_mongo_query_statements_by_ids_with_query_failure(
 
     def mock_read(**_):
         """Mock the `MongoDataBackend.read` method always raising an Exception."""
-        yield {"_source": {}}
+        yield {"_source": {"statement": {}, "metadata": {}}}
         raise BackendException(msg)
 
     backend = mongo_lrs_backend()
@@ -410,3 +458,83 @@ def test_backends_lrs_mongo_query_statements_by_ids_with_two_collections(
 
     backend_1.close()
     backend_2.close()
+
+
+def test_backends_lrs_es_query_statements_by_ids_include_extra(mongo_lrs_backend):
+    """Test the `MongoLRSBackend.query_statements_by_ids` method with include_extra."""
+    backend = mongo_lrs_backend()
+
+    documents = [
+        {"id": "0", "timestamp": "2023-06-24T00:00:20.194929+00:00"},
+        {"id": "1", "timestamp": "2023-05-25T00:00:20.194929+00:00"},
+        {"id": "2", "timestamp": "2023-04-26T00:00:20.194929+00:00"},
+        {"id": "3", "timestamp": "2023-03-27T00:00:20.194929+00:00"},
+    ]
+
+    assert backend.write(documents[:2], {"voided": False}) == 2
+    assert backend.write(documents[2:], {"voided": True}) == 2
+
+    result = backend.query_statements_by_ids(ids=["0", "2"], include_extra=True)
+
+    item = next(result)
+
+    assert item["statement"] == documents[0]
+    assert item["metadata"] == {"voided": False}
+
+    item = next(result)
+
+    assert item["statement"] == documents[2]
+    assert item["metadata"] == {"voided": True}
+
+    with pytest.raises(StopIteration):
+        next(result)
+
+    backend.close()
+
+
+def test_backends_lrs_mongo_query_statements_bad_args():
+    """Test the `MongoLRSBackend.query_statements` method with bad args."""
+    backend = MongoLRSBackend()
+
+    for params in [0, "abc", {"a": "b"}, [1, 2, 3], True]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements(
+                    params=params,
+                )
+            )
+
+    for target in [0, [0], True]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements(
+                    params=RalphStatementsQuery.model_construct(statement_id="1"),
+                    target=target,
+                )
+            )
+
+
+def test_backends_lrs_mongo_query_statements_by_ids_bad_args():
+    """Test the `MongoLRSBackend.query_statements_by_ids` method with bad args."""
+    backend = MongoLRSBackend()
+
+    for ids in [[0], 0, "0", "abc", True]:
+        with pytest.raises(ValidationError):
+            next(backend.query_statements_by_ids(ids=ids))
+
+    for target in [0, [0], True]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements_by_ids(
+                    ids=["0"],
+                    target=target,
+                )
+            )
+
+    for include_extra in [0, "abc", [True]]:
+        with pytest.raises(ValidationError):
+            next(
+                backend.query_statements_by_ids(
+                    ids=["0"], target="abc", include_extra=include_extra
+                )
+            )

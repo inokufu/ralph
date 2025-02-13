@@ -48,7 +48,7 @@ def test_backends_data_mongo_default_instantiation(monkeypatch, fs):
     assert isinstance(backend.client, MongoClient)
     assert backend.database.name == "statements"
     assert backend.collection.name == "marsha"
-    assert str(backend.settings.CONNECTION_URI) == "mongodb://localhost:27017/"
+    assert str(backend.settings.CONNECTION_URI) == "mongodb://mongo:27017/"
     assert backend.settings.CLIENT_OPTIONS == MongoClientOptions()
     assert backend.settings.LOCALE_ENCODING == "utf8"
     assert backend.settings.READ_CHUNK_SIZE == 500
@@ -472,11 +472,11 @@ def test_backends_data_mongo_write_with_target(mongo, mongo_backend):
     results = backend.read(target="foo_target_collection")
     assert next(results) == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", **timestamp},
+        "_source": {"statement": {"id": "foo", **timestamp}, "metadata": {}},
     }
     assert next(results) == {
         "_id": "62b9ce92fcde2b2edba56bf4",
-        "_source": {"id": "bar", **timestamp},
+        "_source": {"statement": {"id": "bar", **timestamp}, "metadata": {}},
     }
     backend.close()
 
@@ -523,11 +523,11 @@ def test_backends_data_mongo_write_without_target(mongo, mongo_backend):
     results = backend.read()
     assert next(results) == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", **timestamp},
+        "_source": {"statement": {"id": "foo", **timestamp}, "metadata": {}},
     }
     assert next(results) == {
         "_id": "62b9ce92fcde2b2edba56bf4",
-        "_source": {"id": "bar", **timestamp},
+        "_source": {"statement": {"id": "bar", **timestamp}, "metadata": {}},
     }
     backend.close()
 
@@ -561,8 +561,14 @@ def test_backends_data_mongo_write_with_duplicated_key_error(
         == 0
     )
     assert list(backend.read()) == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {"statement": {"id": "foo", **timestamp}, "metadata": {}},
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {"statement": {"id": "bar", **timestamp}, "metadata": {}},
+        },
     ]
 
     # Given `ignore_errors` argument set to `False`, the `write` method should raise
@@ -574,8 +580,14 @@ def test_backends_data_mongo_write_with_duplicated_key_error(
         with pytest.raises(BackendException, match=msg) as exception_info:
             backend.write(documents, operation_type=BaseOperationType.CREATE)
         assert list(backend.read()) == [
-            {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-            {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
+            {
+                "_id": "62b9ce922c26b46b68ffc68f",
+                "_source": {"statement": {"id": "foo", **timestamp}, "metadata": {}},
+            },
+            {
+                "_id": "62b9ce92fcde2b2edba56bf4",
+                "_source": {"statement": {"id": "bar", **timestamp}, "metadata": {}},
+            },
         ]
 
     assert (
@@ -602,7 +614,10 @@ def test_backends_data_mongo_write_with_delete_operation(mongo, mongo_backend):
     assert len(list(backend.read())) == 3
     assert backend.write(documents[:2], operation_type=BaseOperationType.DELETE) == 2
     assert list(backend.read()) == [
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": documents[2]}
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {"statement": documents[2], "metadata": {}},
+        }
     ]
 
     # Given binary data, the `write` method should have the same behaviour.
@@ -663,11 +678,11 @@ def test_backends_data_mongo_write_with_update_operation(mongo, mongo_backend):
     results = backend.read()
     assert next(results) == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", **new_timestamp},
+        "_source": {"statement": {"id": "foo", **new_timestamp}, "metadata": {}},
     }
     assert next(results) == {
         "_id": "62b9ce92fcde2b2edba56bf4",
-        "_source": {"id": "bar", **new_timestamp},
+        "_source": {"statement": {"id": "bar", **new_timestamp}, "metadata": {}},
     }
 
     # Given binary data, the `write` method should have the same behaviour.
@@ -676,7 +691,7 @@ def test_backends_data_mongo_write_with_update_operation(mongo, mongo_backend):
     results = backend.read()
     assert next(results) == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", "new_field": "bar"},
+        "_source": {"statement": {"id": "foo", "new_field": "bar"}, "metadata": {}},
     }
     backend.close()
 
@@ -696,10 +711,10 @@ def test_backends_data_mongo_write_with_update_operation_failure(
             "properties": {
                 "_source": {
                     "bsonType": "object",
-                    "required": ["timestamp"],
+                    "required": ["statement.timestamp"],
                     "description": "must be an object",
                     "properties": {
-                        "timestamp": {
+                        "statement.timestamp": {
                             "bsonType": "string",
                             "description": "must be a string and is required",
                         }
@@ -724,7 +739,7 @@ def test_backends_data_mongo_write_with_update_operation_failure(
         )
         == 1
     )
-    assert next(backend.read())["_source"]["new"] == "field"
+    assert next(backend.read())["_source"]["statement"]["new"] == "field"
 
     msg = "Failed to update document chunk: batch op errors occurred"
     with caplog.at_level(logging.ERROR):
@@ -765,8 +780,12 @@ def test_backends_data_mongo_write_with_create_operation(mongo, mongo_backend):
     ]
     assert backend.write(documents, operation_type=BaseOperationType.CREATE) == 2
     results = backend.read()
-    assert next(results)["_source"]["timestamp"] == documents[0]["timestamp"]
-    assert next(results)["_source"]["timestamp"] == documents[1]["timestamp"]
+    assert (
+        next(results)["_source"]["statement"]["timestamp"] == documents[0]["timestamp"]
+    )
+    assert (
+        next(results)["_source"]["statement"]["timestamp"] == documents[1]["timestamp"]
+    )
     backend.close()
 
 
@@ -862,9 +881,18 @@ def test_backends_data_mongo_write_with_custom_chunk_size(mongo, mongo_backend):
     # Index operation type.
     assert backend.write(documents, chunk_size=2) == 3
     assert list(backend.read()) == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": {"id": "baz", **timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {"statement": {"id": "foo", **timestamp}, "metadata": {}},
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {"statement": {"id": "bar", **timestamp}, "metadata": {}},
+        },
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {"statement": {"id": "baz", **timestamp}, "metadata": {}},
+        },
     ]
     # Delete operation type.
     assert (
@@ -878,9 +906,18 @@ def test_backends_data_mongo_write_with_custom_chunk_size(mongo, mongo_backend):
         == 3
     )
     assert list(backend.read()) == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": {"id": "baz", **timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {"statement": {"id": "foo", **timestamp}, "metadata": {}},
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {"statement": {"id": "bar", **timestamp}, "metadata": {}},
+        },
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {"statement": {"id": "baz", **timestamp}, "metadata": {}},
+        },
     ]
     # Update operation type.
     assert (
@@ -890,9 +927,18 @@ def test_backends_data_mongo_write_with_custom_chunk_size(mongo, mongo_backend):
         == 3
     )
     assert list(backend.read()) == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **new_timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **new_timestamp}},
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": {"id": "baz", **new_timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {"statement": {"id": "foo", **new_timestamp}, "metadata": {}},
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {"statement": {"id": "bar", **new_timestamp}, "metadata": {}},
+        },
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {"statement": {"id": "baz", **new_timestamp}, "metadata": {}},
+        },
     ]
     backend.close()
 
