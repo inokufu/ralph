@@ -18,6 +18,6 @@ class CozyAuthData(BaseModel):
     @classmethod
     def _check_bearer_token(cls, v: str) -> str:
         if "Bearer" not in v:
-            raise ValueError("must contain 'Bearer'")
+            raise ValueError("token must contain 'Bearer'")
 
         return v

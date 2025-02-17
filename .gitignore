@@ -48,6 +48,7 @@ venv.bak/
 
 # Test & lint
 .coverage
+coverage.xml
 .pytest_cache
 
 # Documentation site
