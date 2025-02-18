@@ -63,7 +63,7 @@ async def test_backends_data_async_es_default_instantiation(monkeypatch, fs):
     assert backend.settings.LOCALE_ENCODING == "utf8"
     assert backend.settings.POINT_IN_TIME_KEEP_ALIVE == "1m"
     assert backend.settings.READ_CHUNK_SIZE == 500
-    assert not backend.settings.REFRESH_AFTER_WRITE
+    assert backend.settings.REFRESH_AFTER_WRITE == "wait_for"
     assert backend.settings.WRITE_CHUNK_SIZE == 500
     assert isinstance(backend.client, AsyncElasticsearch)
     elasticsearch_node = backend.client.transport.node_pool.get()
@@ -406,14 +406,18 @@ async def test_backends_data_async_es_read_with_raw_ouput(
 
     backend = async_es_backend()
     documents = [{"id": idx, "timestamp": now()} for idx in range(10)]
-    assert await backend.write(documents) == 10
+    assert await backend.write(documents, {"meta": "data"}) == 10
+
     hits = [
         statement
         async for statement in backend.read(raw_output=True, prefetch=prefetch)
     ]
+
     for i, hit in enumerate(hits):
         assert isinstance(hit, bytes)
-        assert json.loads(hit).get("_source") == documents[i]
+        source = json.loads(hit).get("_source")
+        assert source["statement"] == documents[i]
+        assert source["metadata"] == {"meta": "data"}
 
     await backend.close()
 
@@ -427,11 +431,15 @@ async def test_backends_data_async_es_read_without_raw_ouput(
 
     backend = async_es_backend()
     documents = [{"id": idx, "timestamp": now()} for idx in range(10)]
-    assert await backend.write(documents) == 10
+    assert await backend.write(documents, {"meta": "data"}) == 10
+
     hits = [statement async for statement in backend.read(prefetch=prefetch)]
+
     for i, hit in enumerate(hits):
         assert isinstance(hit, dict)
-        assert hit.get("_source") == documents[i]
+        source = hit.get("_source")
+        assert source["statement"] == documents[i]
+        assert source["metadata"] == {"meta": "data"}
 
     await backend.close()
 
@@ -442,55 +450,63 @@ async def test_backends_data_async_es_read_with_query(es, async_es_backend, capl
 
     backend = async_es_backend()
     documents = [{"id": idx, "timestamp": now(), "modulo": idx % 2} for idx in range(5)]
-    assert await backend.write(documents) == 5
+
+    assert await backend.write(documents, {"meta": "data"}) == 5
+
     # Find every even item.
-    query = ESQuery(query={"term": {"modulo": 0}})
+    query = ESQuery(query={"term": {"statement.modulo": 0}})
     results = [statement async for statement in backend.read(query=query)]
+
     assert len(results) == 3
-    assert results[0]["_source"]["id"] == 0
-    assert results[1]["_source"]["id"] == 2
-    assert results[2]["_source"]["id"] == 4
+    assert results[0]["_source"]["statement"]["id"] == 0
+    assert results[1]["_source"]["statement"]["id"] == 2
+    assert results[2]["_source"]["statement"]["id"] == 4
 
     # Find the first two even items.
-    query = ESQuery(query={"term": {"modulo": 0}}, size=2)
+    query = ESQuery(query={"term": {"statement.modulo": 0}}, size=2)
     results = [statement async for statement in backend.read(query=query)]
     assert len(results) == 2
-    assert results[0]["_source"]["id"] == 0
-    assert results[1]["_source"]["id"] == 2
+    assert results[0]["_source"]["statement"]["id"] == 0
+    assert results[1]["_source"]["statement"]["id"] == 2
 
     # Find the first ten even items although there are only three available.
-    query = ESQuery(query={"term": {"modulo": 0}}, size=10)
+    query = ESQuery(query={"term": {"statement.modulo": 0}}, size=10)
     results = [statement async for statement in backend.read(query=query)]
     assert len(results) == 3
-    assert results[0]["_source"]["id"] == 0
-    assert results[1]["_source"]["id"] == 2
-    assert results[2]["_source"]["id"] == 4
+    assert results[0]["_source"]["statement"]["id"] == 0
+    assert results[1]["_source"]["statement"]["id"] == 2
+    assert results[2]["_source"]["statement"]["id"] == 4
 
     # Find every odd item.
-    query = ESQuery(query={"term": {"modulo": 1}})
+    query = ESQuery(query={"term": {"statement.modulo": 1}})
     results = [statement async for statement in backend.read(query=query)]
     assert len(results) == 2
-    assert results[0]["_source"]["id"] == 1
-    assert results[1]["_source"]["id"] == 3
+    assert results[0]["_source"]["statement"]["id"] == 1
+    assert results[1]["_source"]["statement"]["id"] == 3
 
     # Find every odd item with a json query string.
-    query = ESQuery.from_string(json.dumps({"query": {"term": {"modulo": 1}}}))
+    query = ESQuery.from_string(
+        json.dumps({"query": {"term": {"statement.modulo": 1}}})
+    )
     results = [statement async for statement in backend.read(query=query)]
     assert len(results) == 2
-    assert results[0]["_source"]["id"] == 1
-    assert results[1]["_source"]["id"] == 3
+    assert results[0]["_source"]["statement"]["id"] == 1
+    assert results[1]["_source"]["statement"]["id"] == 3
 
     # Find documents with ID equal to one or five.
-    query = "id:(1 OR 5)"
+    query = "statement.id:(1 OR 5)"
     with caplog.at_level(logging.INFO):
         query = ESQuery.from_string(query)
         results = [statement async for statement in backend.read(query=query)]
     assert len(results) == 1
-    assert results[0]["_source"]["id"] == 1
+    assert results[0]["_source"]["statement"]["id"] == 1
     assert (
         "ralph.backends.data.es",
         logging.INFO,
-        "Fallback to Lucene Query as the query is not an ESQuery: id:(1 OR 5)",
+        (
+            "Fallback to Lucene Query as the query "
+            "is not an ESQuery: statement.id:(1 OR 5)"
+        ),
     ) in caplog.record_tuples
 
     # Check query argument type
@@ -522,7 +538,14 @@ async def test_backends_data_async_es_write_with_concurrency(
     """
 
     async def mock_write(  # noqa: PLR0913
-        self, data, target, chunk_size, ignore_errors, operation_type, concurrency
+        self,
+        data,
+        metadata,
+        target,
+        chunk_size,
+        ignore_errors,
+        operation_type,
+        concurrency,
     ):
         """Mock the AsyncWritable `write` method."""
         assert concurrency == 4
@@ -547,7 +570,12 @@ async def test_backends_data_async_es_write_with_create_operation(
     # Given an empty data iterator, the write method should return 0 and log a message.
     data = []
     with caplog.at_level(logging.INFO):
-        assert await backend.write(data, operation_type=BaseOperationType.CREATE) == 0
+        assert (
+            await backend.write(
+                data, {"meta": "data"}, operation_type=BaseOperationType.CREATE
+            )
+            == 0
+        )
 
     assert (
         "ralph.backends.data.base",
@@ -558,10 +586,14 @@ async def test_backends_data_async_es_write_with_create_operation(
     # Given an iterator with multiple documents, the write method should write the
     # documents to the default target index.
     data = ({"value": str(idx)} for idx in range(9))
+
     with caplog.at_level(logging.DEBUG):
         assert (
             await backend.write(
-                data, chunk_size=5, operation_type=BaseOperationType.CREATE
+                data,
+                {"meta": "data"},
+                chunk_size=5,
+                operation_type=BaseOperationType.CREATE,
             )
             == 9
         )
@@ -579,7 +611,11 @@ async def test_backends_data_async_es_write_with_create_operation(
     ) in caplog.record_tuples
 
     hits = [statement async for statement in backend.read()]
-    assert [hit["_source"] for hit in hits] == [{"value": str(idx)} for idx in range(9)]
+
+    for idx, hit in enumerate(hits):
+        source = hit["_source"]
+        assert source["statement"] == {"value": str(idx)}
+        assert source["metadata"] == {"meta": "data"}
 
     await backend.close()
 
@@ -597,18 +633,25 @@ async def test_backends_data_async_es_write_with_delete_operation(
     data = [{"id": idx, "value": str(idx)} for idx in range(10)]
 
     assert len([statement async for statement in backend.read()]) == 0
-    assert await backend.write(data, chunk_size=5) == 10
+    assert await backend.write(data, {"meta": "data"}, chunk_size=5) == 10
 
     data = [{"id": idx} for idx in range(3)]
 
     assert (
-        await backend.write(data, chunk_size=5, operation_type=BaseOperationType.DELETE)
+        await backend.write(
+            data,
+            {"meta": "data"},
+            chunk_size=5,
+            operation_type=BaseOperationType.DELETE,
+        )
         == 3
     )
 
     hits = [statement async for statement in backend.read()]
     assert len(hits) == 7
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(3, 10))
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(3, 10)
+    )
 
     await backend.close()
 
@@ -623,6 +666,7 @@ async def test_backends_data_async_es_write_with_update_operation(
     """
 
     backend = async_es_backend()
+
     data = BytesIO(
         "\n".join(
             [json.dumps({"id": idx, "value": str(idx)}) for idx in range(10)]
@@ -630,14 +674,19 @@ async def test_backends_data_async_es_write_with_update_operation(
     )
 
     assert len([statement async for statement in backend.read()]) == 0
-    assert await backend.write(data, chunk_size=5) == 10
+
+    assert await backend.write(data, {"meta": "data"}, chunk_size=5) == 10
 
     hits = [statement async for statement in backend.read()]
     assert len(hits) == 10
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(10))
-    assert sorted([hit["_source"]["value"] for hit in hits]) == list(
+
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(10)
+    )
+    assert sorted([hit["_source"]["statement"]["value"] for hit in hits]) == list(
         map(str, range(10))
     )
+    assert [hit["_source"]["metadata"] for hit in hits] == [{"meta": "data"}] * 10
 
     data = BytesIO(
         "\n".join(
@@ -646,16 +695,25 @@ async def test_backends_data_async_es_write_with_update_operation(
     )
 
     assert (
-        await backend.write(data, chunk_size=5, operation_type=BaseOperationType.UPDATE)
+        await backend.write(
+            data,
+            {"meta": "tada"},
+            chunk_size=5,
+            operation_type=BaseOperationType.UPDATE,
+        )
         == 10
     )
 
     hits = [statement async for statement in backend.read()]
     assert len(hits) == 10
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(10))
-    assert sorted([hit["_source"]["value"] for hit in hits]) == [
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(10)
+    )
+    assert sorted([hit["_source"]["statement"]["value"] for hit in hits]) == [
         str(x + 10) for x in range(10)
     ]
+    # {"mate": "tada", "meta": "data"}
+    assert [hit["_source"]["metadata"] for hit in hits] == [{"meta": "tada"}] * 10
 
     await backend.close()
 
@@ -720,7 +778,7 @@ async def test_backends_data_async_es_write_with_target(es, async_es_backend):
         # No documents should be inserted into the default index.
         assert not hits
         # Documents should be inserted into the target index.
-        assert [hit["_source"] for hit in hits_with_target] == [
+        assert [hit["_source"]["statement"] for hit in hits_with_target] == [
             {"value": "1"},
             {"value": "2"},
         ]
@@ -747,13 +805,15 @@ async def test_backends_data_async_es_write_without_ignore_errors(
     # By default, we should raise an error and stop the importation.
     msg = (
         r"1 document\(s\) failed to index. "
-        r"\[\{'index': \{'_index': 'test-index-foo', '_id': '4', 'status': 400, 'error'"
-        r": \{'type': 'mapper_parsing_exception', 'reason': \"failed to parse field "
-        r"\[count\] of type \[long\] in document with id '4'. Preview of field's value:"
-        r" 'wrong'\", 'caused_by': \{'type': 'illegal_argument_exception', 'reason': "
-        r"'For input string: \"wrong\"'\}\}, 'data': \{'id': 4, 'count': 'wrong'\}\}\}"
-        r"\] Total succeeded writes: 5"
+        r"\[\{'index': \{'_index': 'test-index-foo', '_id': '4', "
+        r"'status': 400, 'error': \{'type': 'mapper_parsing_exception', "
+        r"'reason': \"failed to parse field \[statement.count\] of type \[long\] "
+        r"in document with id '4'. Preview of field's value: 'wrong'\", "
+        r"'caused_by': \{'type': 'illegal_argument_exception', 'reason': "
+        r"'For input string: \"wrong\"'\}\}, 'data': \{'statement': \{'id': 4, "
+        r"'count': 'wrong'\}, 'metadata': \{\}\}\}\}\] Total succeeded writes: 5"
     )
+
     with pytest.raises(BackendException, match=msg):
         with caplog.at_level(logging.ERROR):
             await backend.write(data, chunk_size=2)
@@ -767,7 +827,13 @@ async def test_backends_data_async_es_write_without_ignore_errors(
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = [statement async for statement in backend.read()]
     assert len(hits) == 5
-    assert sorted([hit["_source"]["id"] for hit in hits]) == [0, 1, 2, 3, 5]
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == [
+        0,
+        1,
+        2,
+        3,
+        5,
+    ]
 
     # Given an unparsable binary JSON document, the write method should raise a
     # `BackendException`.
@@ -824,7 +890,7 @@ async def test_backends_data_async_es_write_with_ignore_errors(
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = [statement async for statement in backend.read()]
     assert len(hits) == 9
-    assert sorted([hit["_source"]["id"] for hit in hits]) == [
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == [
         i for i in range(10) if i != 2
     ]
 
@@ -840,7 +906,10 @@ async def test_backends_data_async_es_write_with_ignore_errors(
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = [statement async for statement in backend.read()]
     assert len(hits) == 11
-    assert [hit["_source"] for hit in hits[9:]] == [{"foo": "bar"}, {"foo": "baz"}]
+    assert [hit["_source"]["statement"] for hit in hits[9:]] == [
+        {"foo": "bar"},
+        {"foo": "baz"},
+    ]
 
     assert (
         "ralph.utils",
@@ -867,7 +936,9 @@ async def test_backends_data_async_es_write_with_datastream(
 
     hits = [statement async for statement in backend.read()]
     assert len(hits) == 10
-    assert sorted([hit["_source"]["id"] for hit in hits]) == list(range(10))
+    assert sorted([hit["_source"]["statement"]["id"] for hit in hits]) == list(
+        range(10)
+    )
 
     await backend.close()
 

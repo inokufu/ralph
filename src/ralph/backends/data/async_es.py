@@ -206,6 +206,7 @@ class AsyncESDataBackend(
     async def write(  # noqa: PLR0913
         self,
         data: IOBase | Iterable[bytes] | Iterable[dict],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -216,6 +217,7 @@ class AsyncESDataBackend(
 
         Args:
             data (Iterable or IOBase): The data containing documents to write.
+            metadata (Mapping): The metadata related to the documents.
             target (str or None): The target Elasticsearch index name.
                 If target is `None`, the `DEFAULT_INDEX` is used instead.
             chunk_size (int or None): The number of documents to write in one batch.
@@ -239,12 +241,19 @@ class AsyncESDataBackend(
                 supported.
         """
         return await super().write(
-            data, target, chunk_size, ignore_errors, operation_type, concurrency
+            data,
+            metadata,
+            target,
+            chunk_size,
+            ignore_errors,
+            operation_type,
+            concurrency,
         )
 
-    async def _write_dicts(
+    async def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -258,7 +267,9 @@ class AsyncESDataBackend(
         try:
             async for success, action in async_streaming_bulk(
                 client=self.client,
-                actions=ESDataBackend.to_documents(data, target, operation_type),
+                actions=ESDataBackend.to_documents(
+                    data, metadata, target, operation_type
+                ),
                 chunk_size=chunk_size,
                 raise_on_error=(not ignore_errors),
                 refresh=self.settings.REFRESH_AFTER_WRITE,
