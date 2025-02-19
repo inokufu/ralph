@@ -168,6 +168,14 @@ class Writable(Configurable, ABC):
         chunk_size = chunk_size if chunk_size else self.settings.WRITE_CHUNK_SIZE
         is_bytes = isinstance(first_record, bytes)
         writer = self._write_bytes if is_bytes else self._write_dicts
+
+        if is_bytes and not isinstance(metadata, bytes):
+            metadata = next(
+                parse_dict_to_bytes(
+                    [metadata], self.settings.LOCALE_ENCODING, ignore_errors
+                )
+            )
+
         return writer(data, metadata, target, chunk_size, ignore_errors, operation_type)
 
     def _write_bytes(  # noqa: PLR0913
@@ -181,6 +189,8 @@ class Writable(Configurable, ABC):
     ) -> int:
         """Method called by `self.write` writing bytes. See `self.write`."""
         statements = parse_iterable_to_dict(data, ignore_errors)
+        metadata = next(parse_iterable_to_dict([metadata], ignore_errors))
+
         return self._write_dicts(
             statements, metadata, target, chunk_size, ignore_errors, operation_type
         )

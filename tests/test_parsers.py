@@ -7,6 +7,7 @@ from io import StringIO
 
 import pytest
 
+from ralph import parsers
 from ralph.conf import settings
 from ralph.parsers import GELFParser
 
@@ -61,8 +62,13 @@ def test_parsers_gelfparser_parse_gzipped_file(fs, gelf_logger):
     assert events[1] == '{"username": "bar"}'
 
 
-def test_parsers_gelfparser_parse_partially_invalid_file(caplog):
+def test_parsers_gelfparser_parse_partially_invalid_file(monkeypatch, caplog):
     """Test the GELFParser with a file containing invalid JSON strings."""
+    parsers.logger.setLevel(logging.DEBUG)
+
+    for handler in parsers.logger.handlers:
+        handler.setLevel(logging.DEBUG)
+
     with StringIO() as file:
         file.writelines(
             [

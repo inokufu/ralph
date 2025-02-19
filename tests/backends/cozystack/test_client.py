@@ -99,7 +99,7 @@ async def test_cozystack_client_find(
 
     # find w/ selector
     response = client.find(
-        target=cozy_auth_target, query={"selector": {"source.value": 0}}
+        target=cozy_auth_target, query={"selector": {"source.statement.value": 0}}
     )
     assert len(response["docs"]) == 1
     assert not response["next"]

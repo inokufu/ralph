@@ -443,7 +443,7 @@ def es_data_stream():
             # the Elasticsearch database to be queried even if no document has
             # been inserted before.
             "properties": {
-                "timestamp": {
+                "statement.timestamp": {
                     "type": "date",
                     "index": True,
                 }
