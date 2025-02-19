@@ -29,7 +29,6 @@ from tests.fixtures.backends import (
     RUNSERVER_TEST_PORT,
     get_async_es_test_backend,
     get_async_mongo_test_backend,
-    get_clickhouse_test_backend,
     get_es_test_backend,
     get_mongo_test_backend,
 )
@@ -66,13 +65,12 @@ async def test_api_statements_put_invalid_parameters(client, basic_auth_credenti
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 @pytest.mark.anyio
 async def test_api_statements_put_single_statement_directly(  # noqa: PLR0913
-    client, backend, monkeypatch, basic_auth_credentials, es, mongo, clickhouse
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
 ):
     """Test the put statements API route with one statement."""
 
@@ -105,7 +103,6 @@ async def test_api_statements_put_single_statement_directly(  # noqa: PLR0913
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
@@ -117,7 +114,6 @@ async def test_api_statements_put_single_statement_to_target(  # noqa: PLR0913
     monkeypatch,
     es_custom,
     mongo_custom,
-    clickhouse_custom,
 ):
     """Test the put statements API route with one statement to a custom target."""
 
@@ -136,7 +132,6 @@ async def test_api_statements_put_single_statement_to_target(  # noqa: PLR0913
     # Create custom target
     es_client = es_custom(index=target)
     mongo_custom(collection=target)
-    clickhouse_custom(event_table_name=target)
 
     monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend())
     statement = mock_statement()
@@ -267,12 +262,11 @@ async def test_api_statements_put_enriching_with_existing_values(  # noqa: PLR09
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 async def test_api_statements_put_single_statement_no_trailing_slash(  # noqa: PLR0913
-    client, backend, monkeypatch, basic_auth_credentials, es, mongo, clickhouse
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
 ):
     """Test that the statements endpoint also works without the trailing slash."""
 
@@ -295,12 +289,11 @@ async def test_api_statements_put_single_statement_no_trailing_slash(  # noqa: P
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 async def test_api_statements_put_id_mismatch(  # noqa: PLR0913
-    client, backend, monkeypatch, basic_auth_credentials, es, mongo, clickhouse
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
 ):
     """Test the put statements API route when the statementId doesn't match."""
     monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend())
@@ -326,12 +319,11 @@ async def test_api_statements_put_id_mismatch(  # noqa: PLR0913
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 async def test_api_statements_put_list_of_one(  # noqa: PLR0913
-    client, backend, monkeypatch, basic_auth_credentials, es, mongo, clickhouse
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
 ):
     """Test that we fail on PUTs with a list, even if it's one statement."""
     monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend())
@@ -353,12 +345,11 @@ async def test_api_statements_put_list_of_one(  # noqa: PLR0913
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 async def test_api_statements_put_duplicate_of_existing_statement(  # noqa: PLR0913
-    client, backend, monkeypatch, basic_auth_credentials, es, mongo, clickhouse
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
 ):
     """Test the put statements API route, given a statement that already exist in the
     database (has the same ID), should fail.
@@ -404,12 +395,11 @@ async def test_api_statements_put_duplicate_of_existing_statement(  # noqa: PLR0
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 async def test_api_statements_put_with_failure_during_storage(  # noqa: PLR0913
-    client, backend, monkeypatch, basic_auth_credentials, es, mongo, clickhouse
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
 ):
     """Test the put statements API route with a failure happening during storage."""
 
@@ -439,12 +429,11 @@ async def test_api_statements_put_with_failure_during_storage(  # noqa: PLR0913
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 async def test_api_statements_put_with_a_failure_during_id_query(  # noqa: PLR0913
-    client, backend, monkeypatch, basic_auth_credentials, es, mongo, clickhouse
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
 ):
     """Test the put statements API route with a failure during query execution."""
 
@@ -476,12 +465,11 @@ async def test_api_statements_put_with_a_failure_during_id_query(  # noqa: PLR09
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
 async def test_api_statements_put_without_forwarding(  # noqa: PLR0913
-    client, backend, basic_auth_credentials, monkeypatch, es, mongo, clickhouse
+    client, backend, basic_auth_credentials, monkeypatch, es, mongo
 ):
     """Test the put statements API route, given an empty forwarding configuration,
     should not start the forwarding background task.

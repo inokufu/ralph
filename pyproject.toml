@@ -41,37 +41,15 @@ dynamic = ["version"]
 "Repository" = "https://github.com/openfun/ralph"
 
 [project.optional-dependencies]
-backend-clickhouse = [
-    "clickhouse-connect[numpy,pandas]~=0.8",
-]
 backend-es = [
     "elasticsearch[async]~=8.16",
-]
-backend-ldp = [
-    "ovh~=1.2",
-    "requests~=2.0",
-]
-backend-lrs = [
-    "httpx~=0.28",
 ]
 backend-mongo = [
     "motor~=3.6",
     "pymongo~=4.9",
 ]
-backend-s3 = [
-    "boto3~=1.35",
-    "botocore~=1.35",
-    "requests-toolbelt~=1.0",
-]
-backend-swift = [
-    "python-keystoneclient~=5.5",
-    "python-swiftclient~=4.6",
-]
-backend-ws = [
-    "websockets~=14.1",
-]
 backends = [
-    "ralph-malph[backend-clickhouse,backend-es,backend-ldp,backend-lrs,backend-mongo,backend-s3,backend-swift]",
+    "ralph-malph[backend-es,backend-mongo]",
 ]
 ci = [
     "twine==5.1.1",
@@ -131,26 +109,18 @@ ralph = "ralph.__main__:cli.cli"
 
 [project.entry-points."ralph.backends.data"]
 async_es = "ralph.backends.data.async_es:AsyncESDataBackend"
-async_lrs = "ralph.backends.data.async_lrs:AsyncLRSDataBackend"
 async_mongo = "ralph.backends.data.async_mongo:AsyncMongoDataBackend"
-async_ws = "ralph.backends.data.async_ws:AsyncWSDataBackend"
-clickhouse = "ralph.backends.data.clickhouse:ClickHouseDataBackend"
 es = "ralph.backends.data.es:ESDataBackend"
 fs = "ralph.backends.data.fs:FSDataBackend"
-ldp = "ralph.backends.data.ldp:LDPDataBackend"
-lrs = "ralph.backends.data.lrs:LRSDataBackend"
 mongo = "ralph.backends.data.mongo:MongoDataBackend"
-s3 = "ralph.backends.data.s3:S3DataBackend"
-swift = "ralph.backends.data.swift:SwiftDataBackend"
 cozystack = "ralph.backends.data.cozystack:CozyStackDataBackend"
 
 [project.entry-points."ralph.backends.lrs"]
 async_es = "ralph.backends.lrs.async_es:AsyncESLRSBackend"
 async_mongo = "ralph.backends.lrs.async_mongo:AsyncMongoLRSBackend"
-clickhouse = "ralph.backends.lrs.clickhouse:ClickHouseLRSBackend"
 es = "ralph.backends.lrs.es:ESLRSBackend"
-fs = "ralph.backends.lrs.fs:FSLRSBackend"
 mongo = "ralph.backends.lrs.mongo:MongoLRSBackend"
+fs = "ralph.backends.lrs.fs:FSLRSBackend"
 cozystack = "ralph.backends.lrs.cozystack:CozyStackLRSBackend"
 
 [tool.setuptools]
@@ -240,11 +210,6 @@ plugins = "pydantic.mypy"
 module = [
     "rfc3987.*",
     "requests_toolbelt.*",
-    "botocore.*",
-    "boto3.*",
-    "clickhouse_connect.*",
-    "ovh.*",
-    "swiftclient.service.*",
 ]
 ignore_missing_imports = true
 

@@ -47,38 +47,6 @@ services:
       interval: 1s
       retries: 60
 
-  clickhouse:
-      image: clickhouse/clickhouse-server:23.1.1.3077-alpine
-      environment:
-          CLICKHOUSE_DB: xapi
-          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-      ports:
-          - 8123:8123
-          - 9000:9000
-      # ClickHouse needs to maintain a lot of open files, so they
-      # suggest running the container with increased limits:
-      # https://hub.docker.com/r/clickhouse/clickhouse-server/#!
-      ulimits:
-          nofile:
-              soft: 262144
-              hard: 262144
-      healthcheck:
-        test:  wget --no-verbose --tries=1 --spider http://0.0.0.0:8123/ping || exit 1
-        interval: 1s
-        retries: 60
-
-  swift:
-    image: kklopfenstein/openstack-swift-keystone-docker
-    ports:
-      - "49177:8080"
-      - "49178:35357"
-    environment:
-      KS_SWIFT_PUBLIC_URL: http://127.0.0.1:49177
-    healthcheck:
-        test: curl -s http://127.0.0.1:35357 || exit 1
-        interval: 1s
-        retries: 60
-
   # -- cozystack backend for testing
   cozy-stack:
     image: cozy/cozy-stack:latest

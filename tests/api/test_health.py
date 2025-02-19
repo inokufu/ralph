@@ -10,7 +10,6 @@ from ralph.backends.data.base import DataBackendStatus
 from tests.fixtures.backends import (
     get_async_es_test_backend,
     get_async_mongo_test_backend,
-    get_clickhouse_test_backend,
     get_cozystack_test_backend,
     get_es_test_backend,
     get_mongo_test_backend,
@@ -23,7 +22,6 @@ from tests.fixtures.backends import (
     [
         get_async_es_test_backend,
         get_async_mongo_test_backend,
-        get_clickhouse_test_backend,
         get_es_test_backend,
         get_mongo_test_backend,
         get_cozystack_test_backend,
@@ -44,13 +42,12 @@ async def test_api_health_lbheartbeat(client, backend, monkeypatch):
     [
         get_async_es_test_backend,
         get_async_mongo_test_backend,
-        get_clickhouse_test_backend,
         get_es_test_backend,
         get_mongo_test_backend,
         get_cozystack_test_backend,
     ],
 )
-async def test_api_health_heartbeat(client, backend, monkeypatch, clickhouse):
+async def test_api_health_heartbeat(client, backend, monkeypatch):
     """Test the heartbeat healthcheck."""
     monkeypatch.setattr(health, "BACKEND_CLIENT", backend())
 

@@ -12,21 +12,6 @@ ralph_es_ca_secret_name: "ralph-es-ca-{{ ralph_vault_checksum | default('undefin
 ralph_mount_es_ca_secret: false
 
 # Cronjob pipelines
-#
-# ralph_cronjobs:
-#   - name: daily-ldp-to-es
-#     schedule: "30 2 * * *"
-#     command:
-#       - bash
-#       - "-c"
-#       - ralph list --backend ldp --new |
-#           xargs -I {} -n 1 bash -c "
-#             ralph read --backend ldp {} |
-#             gunzip |
-#             ralph extract -p gelf |
-#             ralph write \
-#               --backend es \
-#               --es-client-options ca_certs=/usr/local/share/ca-certificates/es-cluster.pem"
 ralph_cronjobs: []
 
 # LRS
