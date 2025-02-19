@@ -3,7 +3,6 @@
 import json
 import logging
 from collections.abc import Mapping, Sequence
-from contextlib import contextmanager
 from importlib import reload
 from pathlib import Path
 
@@ -15,7 +14,6 @@ from pydantic import ValidationError
 
 from ralph import cli as cli_module
 from ralph.backends.data.fs import FSDataBackend
-from ralph.backends.data.ldp import LDPDataBackend
 from ralph.cli import (
     CommaSeparatedKeyValueParamType,
     CommaSeparatedTupleParamType,
@@ -27,14 +25,11 @@ from ralph.conf import settings
 from ralph.exceptions import BackendParameterException, ConfigurationException
 from ralph.models.edx.navigational.statements import UIPageClose
 from ralph.models.xapi.navigation.statements import PageTerminated
-from ralph.utils import iter_over_async
 
 from tests.factories import mock_instance
 from tests.fixtures.backends import (
     ES_TEST_HOSTS,
     ES_TEST_INDEX,
-    WS_TEST_HOST,
-    WS_TEST_PORT,
 )
 
 test_logger = logging.getLogger("ralph")
@@ -558,25 +553,6 @@ def test_cli_verbosity_option_should_impact_logging_behaviour(verbosity):
     assert verbosity in result.output
 
 
-def test_cli_read_command_with_ldp_backend(monkeypatch):
-    """Test ralph read command using the LDP backend."""
-    archive_content = {"foo": "bar"}
-
-    def mock_read(*_, **__):
-        """Always return the same archive."""
-
-        yield bytes(json.dumps(archive_content), encoding="utf-8")
-
-    monkeypatch.setattr(LDPDataBackend, "read", mock_read)
-
-    runner = CliRunner()
-    command = "read -b ldp --ldp-endpoint ovh-eu a547d9b3-6f2f-4913-a872-cf4efe699a66"
-    result = runner.invoke(cli, command.split())
-
-    assert result.exit_code == 0
-    assert '{"foo": "bar"}' in result.output
-
-
 def test_cli_read_command_with_fs_backend(fs, monkeypatch):
     """Test ralph read command using the FS backend."""
     archive_content = {"foo": "bar"}
@@ -759,98 +735,8 @@ def test_cli_read_command_with_es_backend_query(es):
     assert str(result.exception) == msg
 
 
-def test_cli_read_command_with_ws_backend(events, ws):
-    """Test ralph read command using the ws backend."""
-
-    # The ws fixture is async, however the `CliRunner` does not support running in an
-    # async context, thus we wrap it into a sync contextmanager.
-    @contextmanager
-    def websocket():
-        yield from iter_over_async(ws)
-
-    with websocket():
-        runner = CliRunner()
-        uri = f"ws://{WS_TEST_HOST}:{WS_TEST_PORT}"
-        result = runner.invoke(
-            cli,
-            ["read", "-b", "async_ws", "--async-ws-uri", uri],
-            catch_exceptions=False,
-        )
-        assert result.exit_code == 0
-        assert "\n".join([json.dumps(event) for event in events]) in result.output
-
-
-def test_cli_list_command_with_ldp_backend(monkeypatch):
-    """Test ralph list command using the LDP backend."""
-    archive_list = [
-        "5d5c4c93-04a4-42c5-9860-f51fa4044aa1",
-        "997db3eb-b9ca-485d-810f-b530a6cef7c6",
-    ]
-    archive_list_details = [
-        {
-            "archiveId": "5d5c4c93-04a4-42c5-9860-f51fa4044aa1",
-            "createdAt": "2020-06-18T04:38:59.436634+02:00",
-            "filename": "2020-06-16.gz",
-            "md5": "01585b394be0495e38dbb60b20cb40a9",
-            "retrievalDelay": 0,
-            "retrievalState": "sealed",
-            "sha256": "645d8e21e6fdb8aa7ffc5c[...]9ce612d06df8dcf67cb29a45ca",
-            "size": 67906662,
-        },
-        {
-            "archiveId": "997db3eb-b9ca-485d-810f-b530a6cef7c6",
-            "createdAt": "2020-06-18T04:38:59.436634+02:00",
-            "filename": "2020-06-17.gz",
-            "md5": "01585b394be0495e38dbb60b20cb40a9",
-            "retrievalDelay": 0,
-            "retrievalState": "sealed",
-            "sha256": "645d8e21e6fdb8aa7ffc5c[...]9ce612d06df8dcf67cb29a45ca",
-            "size": 67906662,
-        },
-    ]
-
-    def mock_list(this, target=None, details=False, new=False):
-        """Mock LDP backend list method."""
-
-        response = archive_list
-        if details:
-            response = archive_list_details
-        if new:
-            response = response[1:]
-        return response
-
-    monkeypatch.setattr(LDPDataBackend, "list", mock_list)
-
-    runner = CliRunner()
-
-    # List documents with default options
-    result = runner.invoke(cli, ["list", "-b", "ldp", "--ldp-endpoint", "ovh-eu"])
-    assert result.exit_code == 0
-    assert "\n".join(archive_list) in result.output
-
-    # List documents with detailed output
-    result = runner.invoke(cli, ["list", "-b", "ldp", "--ldp-endpoint", "ovh-eu", "-D"])
-    assert result.exit_code == 0
-    assert (
-        "\n".join(json.dumps(detail) for detail in archive_list_details)
-        in result.output
-    )
-
-    # List new documents only
-    result = runner.invoke(cli, ["list", "-b", "ldp", "--ldp-endpoint", "ovh-eu", "-n"])
-    assert result.exit_code == 0
-    assert "997db3eb-b9ca-485d-810f-b530a6cef7c6" in result.output
-    assert "5d5c4c93-04a4-42c5-9860-f51fa4044aa1" not in result.output
-
-    # Edge case: stream contains no document
-    monkeypatch.setattr(LDPDataBackend, "list", lambda this, target, details, new: ())
-    result = runner.invoke(cli, ["list", "-b", "ldp", "--ldp-endpoint", "ovh-eu"])
-    assert result.exit_code == 0
-    assert "Configured ldp backend contains no document" in result.output
-
-
 def test_cli_list_command_with_fs_backend(fs, monkeypatch):
-    """Test ralph list command using the LDP backend."""
+    """Test ralph list command using the FS backend."""
     archive_list = [
         "file1",
         "file2",
@@ -869,7 +755,7 @@ def test_cli_list_command_with_fs_backend(fs, monkeypatch):
     ]
 
     def mock_list(this, target=None, details=False, new=False):
-        """Mock LDP backend list method."""
+        """Mock FS backend list method."""
 
         response = archive_list
         if details:

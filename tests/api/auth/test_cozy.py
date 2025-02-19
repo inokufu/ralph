@@ -17,7 +17,6 @@ from tests.fixtures.auth import mock_oidc_user
 from tests.fixtures.backends import (
     get_async_es_test_backend,
     get_async_mongo_test_backend,
-    get_clickhouse_test_backend,
     get_cozystack_test_backend,
     get_es_test_backend,
     get_mongo_test_backend,
@@ -139,7 +138,6 @@ async def test_validate_auth_against_cozystack(cozy_auth_token):
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )
@@ -179,7 +177,6 @@ async def test_api_auth_cozy_get_whoami_valid(
         get_async_es_test_backend,
         get_async_mongo_test_backend,
         get_es_test_backend,
-        get_clickhouse_test_backend,
         get_mongo_test_backend,
     ],
 )

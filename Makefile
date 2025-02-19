@@ -227,21 +227,13 @@ run: \
 .PHONY: run
 
 run-all: ## start all supported local backends
-run-all: \
-	run-databases \
-	run-swift
+run-all: run-databases 
 .PHONY: run-all
-
-run-clickhouse: ## start clickhouse backend
-	@echo "Waiting for clickhouse to be up and running..."
-	@$(COMPOSE) up -d --wait clickhouse
-.PHONY: run-clickhouse
 
 run-databases: ## alias for running databases services
 run-databases: \
 	run-es \
 	run-mongo \
-	run-clickhouse \
 	run-cozy-stack
 .PHONY: run-databases
 
@@ -254,11 +246,6 @@ run-mongo: ## start mongodb backend
 	@echo "Waiting for mongo to be up and running..."
 	@$(COMPOSE) up -d --wait mongo
 .PHONY: run-mongo
-
-run-swift: ## start swift backend
-	@echo "Waiting for swift to be up and running..."
-	@$(COMPOSE) up -d --wait swift
-.PHONY: run-swift
 
 run-cozy-stack: ## start cozystack backend
 	@echo "Waiting for cozy-stack to be up and running..."

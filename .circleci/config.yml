@@ -205,10 +205,6 @@ jobs:
         auth:
           username: $DOCKER_HUB_USER
           password: $DOCKER_HUB_PASSWORD
-      - image: clickhouse/clickhouse-server:23.1.1.3077-alpine
-        auth:
-          username: $DOCKER_HUB_USER
-          password: $DOCKER_HUB_PASSWORD
     working_directory: ~/fun
     resource_class: large
     steps:

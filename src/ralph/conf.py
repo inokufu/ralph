@@ -188,10 +188,6 @@ class Settings(BaseSettings):
                 "handlers": ["console"],
                 "level": "INFO",
             },
-            "swiftclient": {
-                "handlers": ["console"],
-                "level": "ERROR",
-            },
             "uvicorn": {
                 "handlers": ["console"],
                 "level": "INFO",
