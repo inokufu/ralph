@@ -898,7 +898,9 @@ def test_cli_write_command_with_es_backend(es):
     documents = list(scan(es, index=ES_TEST_INDEX, size=10))
 
     assert len(documents) == 10
-    assert [document.get("_source") for document in documents] == records
+    assert [
+        document.get("_source").get("statement") for document in documents
+    ] == records
 
 
 @pytest.mark.parametrize("host_,port_", [("0.0.0.0", "8000"), ("127.0.0.1", "80")])
