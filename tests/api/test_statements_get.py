@@ -539,14 +539,8 @@ async def test_api_statements_get_with_no_matching_statement(
     should return an empty list.
     """
     statements = [
-        mock_statement(
-            id_="be67b160-d958-4f51-b8b8-1892002dbac6",
-            timestamp=(datetime.now() - timedelta(hours=1)).isoformat(),
-        ),
-        mock_statement(
-            id_="72c81e98-1763-4730-8cfc-f5ab34f1bad2",
-            timestamp=(datetime.now()).isoformat(),
-        ),
+        mock_statement(),
+        mock_statement(),
     ]
 
     insert_statements_and_monkeypatch_backend(statements)
