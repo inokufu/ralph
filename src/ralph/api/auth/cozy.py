@@ -6,7 +6,8 @@ from collections.abc import Mapping
 from typing import Annotated
 
 import httpx
-from fastapi import Header, HTTPException, status
+from fastapi import HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 from jose import ExpiredSignatureError, JWTError, jwt
 from jose.exceptions import JWTClaimsError
 from pydantic import ValidationError
@@ -18,6 +19,10 @@ from ralph.conf import AuthBackend, settings
 from ralph.models.cozy import CozyAuthData
 
 logger = logging.getLogger(__name__)
+
+api_key_header = APIKeyHeader(
+    name="X-Auth-Token", scheme_name="Cozy Authentication", auto_error=False
+)
 
 unauthorized_http_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -140,7 +145,7 @@ def validate_auth_against_cozystack(
 
 
 def get_cozy_user(
-    x_auth_token: Annotated[str | None, Header()] = None
+    x_auth_token: Annotated[str | None, Security(api_key_header)]
 ) -> AuthenticatedUser | None:
     """Decode and validate Cozy ID token against Cozy-Stack server.
 

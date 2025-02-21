@@ -6,6 +6,8 @@
 from datetime import datetime
 from typing import Literal
 
+from pydantic import Field
+
 from ..config import BaseModelWithConfig
 from .agents import BaseXapiAgent
 from .attachments import BaseXapiAttachment
@@ -17,23 +19,26 @@ from .verbs import BaseXapiVerb
 
 
 class BaseXapiSubStatement(BaseModelWithConfig):
-    """Pydantic model for `SubStatement` type property.
+    """Pydantic model for `SubStatement` type property."""
 
-    Attributes:
-        actor (dict): See BaseXapiAgent and BaseXapiGroup.
-        verb (dict): See BaseXapiVerb.
-        object (dict): See BaseXapiUnnestedObject.
-        objectType (dict): Consists of the value `SubStatement`.
-    """
-
-    actor: BaseXapiAgent | BaseXapiGroup
-    verb: BaseXapiVerb
-    object: BaseXapiUnnestedObject
-    objectType: Literal["SubStatement"]
-    result: BaseXapiResult | None = None
-    context: BaseXapiContext | None = None
-    timestamp: datetime | None = None
-    attachments: list[BaseXapiAttachment] | None = None
+    actor: BaseXapiAgent | BaseXapiGroup = Field(
+        description="See BaseXapiAgent and BaseXapiGroup"
+    )
+    verb: BaseXapiVerb = Field(description="See BaseXapiVerb")
+    object: BaseXapiUnnestedObject = Field(description="See BaseXapiUnnestedObject")
+    objectType: Literal["SubStatement"] = Field(description="Value `SubStatement`")
+    result: BaseXapiResult | None = Field(
+        None, description="Outcome related to the SubStatement"
+    )
+    context: BaseXapiContext | None = Field(
+        None, description="Contextual information for the SubStatement"
+    )
+    timestamp: datetime | None = Field(
+        None, description="Timestamp of when the event occurred"
+    )
+    attachments: list[BaseXapiAttachment] | None = Field(
+        None, description="List of attachments"
+    )
 
 
 BaseXapiObject = (

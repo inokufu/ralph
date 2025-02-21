@@ -2,6 +2,8 @@
 
 from uuid import UUID
 
+from pydantic import Field
+
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
@@ -12,45 +14,60 @@ from .unnested_objects import BaseXapiActivity, BaseXapiStatementRef
 
 
 class BaseXapiContextContextActivities(BaseModelWithConfig):
-    """Pydantic model for context `contextActivities` property.
+    """Pydantic model for context `contextActivities` property."""
 
-    Attributes:
-        parent (dict or list): An Activity with a direct relation to the statement's
-            Activity.
-        grouping (dict or list): An Activity with an indirect relation to the
-            statement's Activity.
-        category (dict or list): An Activity used to categorize the Statement.
-        other (dict or list): A contextActivity that doesn't fit one of the other
-            properties.
-    """
-
-    parent: BaseXapiActivity | list[BaseXapiActivity] | None = None
-    grouping: BaseXapiActivity | list[BaseXapiActivity] | None = None
-    category: BaseXapiActivity | list[BaseXapiActivity] | None = None
-    other: BaseXapiActivity | list[BaseXapiActivity] | None = None
+    parent: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
+        None,
+        description="An Activity with a direct relation to the statement's Activity",
+    )
+    grouping: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
+        None,
+        description="An Activity with an indirect relation to the statement's Activity",
+    )
+    category: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
+        None, description="An Activity used to categorize the Statement"
+    )
+    other: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
+        None,
+        description="A contextActivity that doesn't fit one of the other properties",
+    )
 
 
 class BaseXapiContext(BaseModelWithConfig):
-    """Pydantic model for `context` property.
+    """Pydantic model for `context` property."""
 
-    Attributes:
-        registration (UUID): The registration that the Statement is associated with.
-        instructor (dict): The instructor that the Statement relates to.
-        team (dict): The team that this Statement relates to.
-        contextActivities (dict): See BaseXapiContextContextActivities.
-        revision (str): The revision of the activity associated with this Statement.
-        platform (str): The platform where the learning activity took place.
-        language (dict): The language in which the experience occurred.
-        statement (dict): Another Statement giving context for this Statement.
-        extensions (dict): Consists of a dictionary of other properties as needed.
-    """
-
-    registration: UUID | None = None
-    instructor: BaseXapiAgent | None = None
-    team: BaseXapiGroup | None = None
-    contextActivities: BaseXapiContextContextActivities | None = None
-    revision: NonEmptyStrictStr | None = None
-    platform: NonEmptyStrictStr | None = None
-    language: LanguageTag | None = None
-    statement: BaseXapiStatementRef | None = None
-    extensions: dict[IRI, str | int | bool | list | dict | None] | None = None
+    registration: UUID | None = Field(
+        None, description="Registration that the Statement is associated with"
+    )
+    instructor: BaseXapiAgent | None = Field(
+        None, description="Instructor that the Statement relates to"
+    )
+    team: BaseXapiGroup | None = Field(
+        None, description="Team that this Statement relates to"
+    )
+    contextActivities: BaseXapiContextContextActivities | None = Field(
+        None, description="See BaseXapiContextContextActivities"
+    )
+    revision: NonEmptyStrictStr | None = Field(
+        None,
+        description="Revision of the activity associated with this Statement",
+        examples=["revision_of_the_learning_activity"],
+    )
+    platform: NonEmptyStrictStr | None = Field(
+        None,
+        description="Platform where the learning activity took place",
+        examples=["platform_of_the_learning_activity"],
+    )
+    language: LanguageTag | None = Field(
+        None,
+        description="Language in which the experience occurred",
+        examples=["en-US"],
+    )
+    statement: BaseXapiStatementRef | None = Field(
+        None, description="Another Statement giving context for this Statement"
+    )
+    extensions: dict[IRI, str | int | bool | list | dict | None] | None = Field(
+        None,
+        description="Dictionary of other properties as needed",
+        examples=[{"http://example.com/extensions/example-ext": 0}],
+    )
