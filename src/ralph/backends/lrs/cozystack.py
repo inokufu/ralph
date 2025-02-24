@@ -90,6 +90,9 @@ class CozyStackLRSBackend(
             cozystack_query_filters["source.statement.id"] = params.voided_statement_id
             cozystack_query_filters["source.metadata.voided"] = True
 
+        else:
+            cozystack_query_filters["source.metadata.voided"] = False
+
         CozyStackLRSBackend._add_agent_filters(
             cozystack_query_filters, params.agent, "actor"
         )

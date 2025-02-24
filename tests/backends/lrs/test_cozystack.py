@@ -13,7 +13,7 @@ from ralph.backends.cozystack import CozyStackClient
 from ralph.backends.cozystack.exceptions import ExpiredTokenError
 from ralph.backends.lrs.base import RalphStatementsQuery
 from ralph.backends.lrs.cozystack import CozyStackLRSBackend
-from ralph.exceptions import BackendException
+from ralph.exceptions import BackendException, BackendParameterException
 from ralph.models.xapi.base.statements import VOIDED_VERB_ID
 
 
@@ -41,7 +41,9 @@ def test_backends_lrs_cozystack_default_instantiation(
         (
             {},
             {
-                "selector": {},
+                "selector": {
+                    "source.metadata.voided": False,
+                },
                 "limit": 0,
                 "skip": None,
                 "sort": [
@@ -219,6 +221,7 @@ def test_backends_lrs_cozystack_default_instantiation(
             },
             {
                 "selector": {
+                    "source.metadata.voided": False,
                     "source.statement.verb.id": "http://adlnet.gov/expapi/verbs/attended",
                     "source.statement.object.id": "http://www.example.com/meetings/34534",
                 },
@@ -241,10 +244,11 @@ def test_backends_lrs_cozystack_default_instantiation(
             },
             {
                 "selector": {
+                    "source.metadata.voided": False,
                     "source.statement.timestamp": {
                         "$gt": "2021-06-24T00:00:20.194929+00:00",
                         "$lte": "2023-06-24T00:00:20.194929+00:00",
-                    }
+                    },
                 },
                 "limit": 0,
                 "skip": None,
@@ -261,7 +265,9 @@ def test_backends_lrs_cozystack_default_instantiation(
         (
             {"search_after": "1686557542970|0"},
             {
-                "selector": {},
+                "selector": {
+                    "source.metadata.voided": False,
+                },
                 "limit": 0,
                 "skip": None,
                 "sort": [
@@ -579,7 +585,7 @@ def test_backends_lrs_cozystack_void_statements_error(
 
     # voided statement does not exist
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '0' of voiding Statement "
             "references a Statement that does not exist"
@@ -603,7 +609,7 @@ def test_backends_lrs_cozystack_void_statements_error(
     )
 
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '0' of voiding Statement "
             "references another voiding Statement"
@@ -629,7 +635,7 @@ def test_backends_lrs_cozystack_void_statements_error(
     backend.void_statements(voided_statements_ids=["1"], target=cozy_auth_target)
 
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '1' of voiding Statement "
             "references a Statement that has already been voided"

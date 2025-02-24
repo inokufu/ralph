@@ -606,7 +606,12 @@ async def put(
                     target=current_user.target,
                 )
             )
-        except (BackendException, BackendParameterException) as exc:
+        except BackendParameterException as exc:
+            logger.error("Bad voiding request")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
+        except BackendException as exc:
             logger.error("Failed to update statement")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -734,7 +739,12 @@ async def post(
                     target=current_user.target,
                 )
             )
-        except (BackendException, BackendParameterException) as exc:
+        except BackendParameterException as exc:
+            logger.error("Bad voiding request")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
+        except BackendException as exc:
             logger.error("Failed to bulk update statements")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

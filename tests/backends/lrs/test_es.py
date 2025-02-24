@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from ralph.backends.lrs.base import RalphStatementsQuery
 from ralph.backends.lrs.es import ESLRSBackend
-from ralph.exceptions import BackendException
+from ralph.exceptions import BackendException, BackendParameterException
 from ralph.models.xapi.base.statements import VOIDED_VERB_ID
 
 from tests.fixtures.backends import ES_TEST_FORWARDING_INDEX, ES_TEST_INDEX
@@ -38,7 +38,13 @@ def test_backends_lrs_es_default_instantiation(monkeypatch, fs):
             {
                 "pit": {"id": None, "keep_alive": None},
                 "q": None,
-                "query": {"match_all": {}},
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"metadata.voided": False}},
+                        ]
+                    }
+                },
                 "search_after": None,
                 "size": 0,
                 "sort": [{"statement.timestamp": {"order": "desc"}}],
@@ -258,6 +264,7 @@ def test_backends_lrs_es_default_instantiation(monkeypatch, fs):
                 "query": {
                     "bool": {
                         "filter": [
+                            {"term": {"metadata.voided": False}},
                             {
                                 "term": {
                                     "statement.verb.id.keyword": (
@@ -293,6 +300,7 @@ def test_backends_lrs_es_default_instantiation(monkeypatch, fs):
                 "query": {
                     "bool": {
                         "filter": [
+                            {"term": {"metadata.voided": False}},
                             {
                                 "range": {
                                     "statement.timestamp": {
@@ -322,7 +330,13 @@ def test_backends_lrs_es_default_instantiation(monkeypatch, fs):
             {
                 "pit": {"id": "46ToAwMDaWR5BXV1a", "keep_alive": None},
                 "q": None,
-                "query": {"match_all": {}},
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"metadata.voided": False}},
+                        ]
+                    }
+                },
                 "search_after": ["1686557542970", "0"],
                 "size": 0,
                 "sort": [{"statement.timestamp": {"order": "desc"}}],
@@ -335,7 +349,13 @@ def test_backends_lrs_es_default_instantiation(monkeypatch, fs):
             {
                 "pit": {"id": None, "keep_alive": None},
                 "q": None,
-                "query": {"match_all": {}},
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"metadata.voided": False}},
+                        ]
+                    }
+                },
                 "search_after": None,
                 "size": 0,
                 "sort": "_shard_doc",
@@ -369,23 +389,24 @@ def test_backends_lrs_es_query_statements_query(
     backend.close()
 
 
-def test_backends_lrs_es_query_statements(es, es_lrs_backend):
+def test_backends_lrs_es_query_statements(es_custom, es_lrs_backend):
     """Test the `ESLRSBackend.query_statements` method, given a query,
     should return matching statements.
     """
     # Create a custom index
     custom_target = "custom-target"
-
-    es.indices.create(index=custom_target)
+    es_custom(index=custom_target)
 
     # Instantiate ESLRSBackend.
     backend = es_lrs_backend()
     # Insert documents into default target.
     documents_default = [{"id": "2", "timestamp": "2023-06-24T00:00:20.194929+00:00"}]
-    assert backend.write(documents_default, {"meta": "data"}) == 1
+    assert backend.write(documents_default, {"voided": "False"}) == 1
     # Insert documents into custom target.
     documents_custom = [{"id": "3", "timestamp": "2023-05-25T00:00:20.194929+00:00"}]
-    assert backend.write(documents_custom, target=custom_target) == 1
+    assert (
+        backend.write(documents_custom, {"voided": "False"}, target=custom_target) == 1
+    )
 
     # Check the expected search query results.
     result = backend.query_statements(RalphStatementsQuery.model_construct(limit=10))
@@ -394,12 +415,11 @@ def test_backends_lrs_es_query_statements(es, es_lrs_backend):
 
     # Check the expected search query results on custom target.
     result = backend.query_statements(
-        RalphStatementsQuery.construct(limit=10), target=custom_target
+        RalphStatementsQuery.model_construct(limit=10), target=custom_target
     )
     assert result.statements == documents_custom
     assert re.match(r"[0-9]+\|0", result.search_after)
 
-    es.indices.delete(index=custom_target)
     backend.close()
 
 
@@ -644,7 +664,7 @@ def test_backends_lrs_es_void_statements_error(es, es_lrs_backend):
 
     # voided statement does not exist
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '0' of voiding Statement "
             "references a Statement that does not exist"
@@ -667,7 +687,7 @@ def test_backends_lrs_es_void_statements_error(es, es_lrs_backend):
     )
 
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '0' of voiding Statement "
             "references another voiding Statement"
@@ -692,7 +712,7 @@ def test_backends_lrs_es_void_statements_error(es, es_lrs_backend):
     backend.void_statements(voided_statements_ids=["1"])
 
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '1' of voiding Statement "
             "references a Statement that has already been voided"

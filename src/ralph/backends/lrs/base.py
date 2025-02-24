@@ -35,7 +35,7 @@ from ralph.backends.data.base import (
     Writable,
 )
 from ralph.conf import BASE_SETTINGS_CONFIG
-from ralph.exceptions import BackendException
+from ralph.exceptions import BackendParameterException
 from ralph.models.xapi.base.agents import BaseXapiAgent
 from ralph.models.xapi.base.common import IRI
 from ralph.models.xapi.base.groups import BaseXapiGroup
@@ -158,7 +158,7 @@ def _check_voided_statements(
         List of statements safe to void.
 
     Raises:
-        BackendException: When some voided statements are not valid:
+        BackendParameterException: When some voided statements are not valid:
             - a voiding Statement references a Statement that does not exist,
             - a voiding Statement references another voiding Statement,
             - a voiding Statement references a Statement that has already been voided.
@@ -178,7 +178,7 @@ def _check_voided_statements(
             )
 
             logger.error(msg)
-            raise BackendException(msg)
+            raise BackendParameterException(msg)
 
         extra_statement = voided_statements_with_extra_as_dict[statement_id]
         statement = extra_statement["statement"]
@@ -191,7 +191,7 @@ def _check_voided_statements(
             )
 
             logger.error(msg)
-            raise BackendException(msg)
+            raise BackendParameterException(msg)
 
         if metadata["voided"]:
             msg = (
@@ -200,7 +200,7 @@ def _check_voided_statements(
             )
 
             logger.error(msg)
-            raise BackendException(msg)
+            raise BackendParameterException(msg)
 
         statements.append(statement)
 

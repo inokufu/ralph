@@ -9,7 +9,7 @@ from pymongo import ASCENDING, DESCENDING
 
 from ralph.backends.lrs.base import AgentParameters, RalphStatementsQuery
 from ralph.backends.lrs.mongo import MongoLRSBackend
-from ralph.exceptions import BackendException
+from ralph.exceptions import BackendException, BackendParameterException
 from ralph.models.xapi.base.statements import VOIDED_VERB_ID
 
 from tests.fixtures.backends import (
@@ -38,7 +38,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
         (
             {},
             {
-                "filter": {},
+                "filter": {"_source.metadata.voided": False},
                 "limit": 0,
                 "projection": None,
                 "sort": [
@@ -192,6 +192,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
+                    "_source.metadata.voided": False,
                     "_source.statement.verb.id": "http://adlnet.gov/expapi/verbs/attended",
                     "_source.statement.object.id": "http://www.example.com/meetings/34534",
                 },
@@ -211,6 +212,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
+                    "_source.metadata.voided": False,
                     "_source.statement.timestamp": {
                         "$gt": "2021-06-24T00:00:20.194929+00:00",
                         "$lte": "2023-06-24T00:00:20.194929+00:00",
@@ -231,6 +233,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             },
             {
                 "filter": {
+                    "_source.metadata.voided": False,
                     "_source.statement.timestamp": {
                         "$lte": "2023-06-24T00:00:20.194929+00:00",
                     },
@@ -248,6 +251,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             {"search_after": "666f6f2d6261722d71757578", "pit_id": None},
             {
                 "filter": {
+                    "_source.metadata.voided": False,
                     "_id": {"$lt": ObjectId("666f6f2d6261722d71757578")},
                 },
                 "limit": 0,
@@ -263,6 +267,7 @@ def test_backends_lrs_mongo_default_instantiation(monkeypatch, fs):
             {"search_after": "666f6f2d6261722d71757578", "ascending": True},
             {
                 "filter": {
+                    "_source.metadata.voided": False,
                     "_id": {"$gt": ObjectId("666f6f2d6261722d71757578")},
                 },
                 "limit": 0,
@@ -621,7 +626,7 @@ def test_backends_lrs_mongo_void_statements_error(mongo, mongo_lrs_backend):
 
     # voided statement does not exist
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '0' of voiding Statement "
             "references a Statement that does not exist"
@@ -644,7 +649,7 @@ def test_backends_lrs_mongo_void_statements_error(mongo, mongo_lrs_backend):
     )
 
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '0' of voiding Statement "
             "references another voiding Statement"
@@ -669,7 +674,7 @@ def test_backends_lrs_mongo_void_statements_error(mongo, mongo_lrs_backend):
     backend.void_statements(voided_statements_ids=["1"])
 
     with pytest.raises(
-        BackendException,
+        BackendParameterException,
         match=(
             "StatementRef '1' of voiding Statement "
             "references a Statement that has already been voided"

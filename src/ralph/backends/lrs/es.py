@@ -101,6 +101,8 @@ class ESLRSBackend(BaseLRSBackend[ESLRSBackendSettings], ESDataBackend):
                 {"term": {"_id": params.voided_statement_id}},
                 {"term": {"metadata.voided": True}},
             ]
+        else:
+            es_query_filters += [{"term": {"metadata.voided": False}}]
 
         ESLRSBackend._add_agent_filters(es_query_filters, params.agent, "actor")
         ESLRSBackend._add_agent_filters(es_query_filters, params.authority, "authority")

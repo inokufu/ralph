@@ -110,6 +110,12 @@ class MongoLRSBackend(BaseLRSBackend[MongoLRSBackendSettings], MongoDataBackend)
                     "_source.metadata.voided": True,
                 },
             )
+        else:
+            mongo_query_filters.update(
+                {
+                    "_source.metadata.voided": False,
+                },
+            )
 
         MongoLRSBackend._add_agent_filters(mongo_query_filters, params.agent, "actor")
         MongoLRSBackend._add_agent_filters(
