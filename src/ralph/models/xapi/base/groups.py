@@ -3,6 +3,8 @@
 from abc import ABC
 from typing import Literal
 
+from pydantic import Field
+
 from ralph.conf import NonEmptyStrictStr
 
 from ..config import BaseModelWithConfig
@@ -19,38 +21,32 @@ class BaseXapiGroupCommonProperties(BaseModelWithConfig, ABC):
     """Pydantic model for core `Group` type property.
 
     It is defined for the Group which performed the action.
-
-    Attributes:
-        objectType (str): Consists of the value `Group`.
-        name (str): Consists of the full name of the Group.
     """
 
-    objectType: Literal["Group"]
-    name: NonEmptyStrictStr | None = None
+    objectType: Literal["Group"] = Field(description="Value `Group`")
+    name: NonEmptyStrictStr | None = Field(
+        None, description="Full name of the Group", examples=["Team Example"]
+    )
 
 
 class BaseXapiAnonymousGroup(BaseXapiGroupCommonProperties):
     """Pydantic model for `Group` type property.
 
     It is defined for Anonymous Group type.
-
-    Attributes:
-        member (list): Consist of a list of the members of this Group.
     """
 
-    member: list[BaseXapiAgent]
+    member: list[BaseXapiAgent] = Field(description="List of the members of this Group")
 
 
 class BaseXapiIdentifiedGroup(BaseXapiGroupCommonProperties):
     """Pydantic model for `Group` type property.
 
     It is defined for Identified Group type.
-
-    Attributes:
-        member (list): Consist of a list of the members of this Group.
     """
 
-    member: list[BaseXapiAgent] | None = None
+    member: list[BaseXapiAgent] | None = Field(
+        None, description="List of the members of this Group"
+    )
 
 
 class BaseXapiIdentifiedGroupWithMbox(BaseXapiIdentifiedGroup, BaseXapiMboxIFI):

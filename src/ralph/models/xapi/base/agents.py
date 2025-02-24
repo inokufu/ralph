@@ -3,6 +3,8 @@
 from abc import ABC
 from typing import Literal
 
+from pydantic import Field
+
 from ralph.conf import NonEmptyStrictStr
 from ralph.models.xapi.config import BaseModelWithConfig
 
@@ -16,29 +18,27 @@ from .ifi import (
 
 
 class BaseXapiAgentAccount(BaseModelWithConfig):
-    """Pydantic model for `Agent` type `account` property.
+    """Pydantic model for `Agent` type `account` property."""
 
-    Attributes:
-        homePage (IRI): Consists of the home page of the account's service provider.
-        name (str): Consists of the unique id or name of the Actor's account.
-    """
-
-    homePage: IRI
-    name: NonEmptyStrictStr
+    homePage: IRI = Field(
+        description="Home page of the account's service provider",
+        examples=["http://www.example.com"],
+    )
+    name: NonEmptyStrictStr = Field(
+        description="Unique id or name of the Actor's account", examples=["John Doe"]
+    )
 
 
 class BaseXapiAgentCommonProperties(BaseModelWithConfig, ABC):
     """Pydantic model for core `Agent` type property.
 
     It defines who performed the action.
-
-    Attributes:
-        objectType (str): Consists of the value `Agent`.
-        name (str): Consists of the full name of the Agent.
     """
 
     objectType: Literal["Agent"] = "Agent"
-    name: NonEmptyStrictStr | None = None
+    name: NonEmptyStrictStr | None = Field(
+        None, description="full name of the Agent", examples=["John Doe"]
+    )
 
 
 class BaseXapiAgentWithMbox(BaseXapiAgentCommonProperties, BaseXapiMboxIFI):

@@ -5,6 +5,7 @@ import logging
 import os
 from collections.abc import Mapping, Sequence
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import ParseResult, urlencode
 from uuid import UUID, uuid4
@@ -22,14 +23,14 @@ from fastapi import (
 )
 from fastapi.dependencies.models import Dependant
 from fastapi.exceptions import RequestValidationError
-from pydantic import TypeAdapter, ValidationError
+from pydantic import Field, TypeAdapter, ValidationError
 from pydantic.types import Json
 from starlette.datastructures import Headers
 
 from ralph.api.auth import get_authenticated_user
 from ralph.api.auth.user import AuthenticatedUser
 from ralph.api.forwarding import forward_xapi_statements, get_active_xapi_forwardings
-from ralph.api.models import ErrorDetail, LaxStatement
+from ralph.api.models import ErrorDetail
 from ralph.backends.loader import get_lrs_backends
 from ralph.backends.lrs.base import (
     AgentParameters,
@@ -47,6 +48,8 @@ from ralph.models.xapi.base.agents import (
     BaseXapiAgentWithOpenId,
 )
 from ralph.models.xapi.base.common import IRI
+from ralph.models.xapi.base.statements import BaseXapiStatement
+from ralph.models.xapi.config import BaseModelWithConfig
 from ralph.utils import (
     await_if_coroutine,
     get_backend_class,
@@ -65,6 +68,17 @@ router = APIRouter(
 BACKEND_CLIENT: BaseLRSBackend | BaseAsyncLRSBackend = get_backend_class(
     backends=get_lrs_backends(), name=settings.RUNSERVER_BACKEND
 )()
+
+
+class GetStatementsResponse(BaseModelWithConfig):
+    """Get statements route response model."""
+
+    statements: list[BaseXapiStatement]
+    more: Path | None = Field(None, examples=["/xAPI/statements/?pit_id=pit_id"])
+
+
+GetResponse = GetStatementsResponse | BaseXapiStatement
+
 
 POST_PUT_RESPONSES = {
     400: {
@@ -151,9 +165,14 @@ def strict_query_params(request: Request) -> None:
             )
 
 
-@router.get("")
-@router.get("/")
-@router.head("")
+@router.get(
+    "",
+    response_model=GetResponse,
+    response_model_exclude_none=True,
+    include_in_schema=False,
+)
+@router.get("/", response_model=GetResponse, response_model_exclude_none=True)
+@router.head("", include_in_schema=False)
 @router.head("/")
 async def get(  # noqa: PLR0912, PLR0913
     request: Request,
@@ -173,6 +192,7 @@ async def get(  # noqa: PLR0912, PLR0913
         Query(
             description="**Not implemented** Id of voided Statement to fetch",
             alias="voidedStatementId",
+            include_in_schema=False,
         ),
     ] = None,
     agent: Annotated[
@@ -206,6 +226,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "**Not implemented** "
                 "Filter, only return Statements matching the specified registration id"
             ),
+            include_in_schema=False,
         ),
     ] = None,
     related_activities: Annotated[
@@ -218,6 +239,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "in a contained SubStatement match the Activity parameter, "
                 "instead of that parameter's normal behaviour"
             ),
+            include_in_schema=False,
         ),
     ] = False,
     related_agents: Annotated[
@@ -230,6 +252,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "properties in a contained SubStatement match the Agent parameter, "
                 "instead of that parameter's normal behaviour."
             ),
+            include_in_schema=False,
         ),
     ] = False,
     since: Annotated[
@@ -278,6 +301,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "language filtering process  defined below, and return the original "
                 'Agent and Group Objects as in "exact" mode.'
             ),
+            include_in_schema=False,
         ),
     ] = "exact",
     attachments: Annotated[  # noqa: ARG001
@@ -290,6 +314,7 @@ async def get(  # noqa: PLR0912, PLR0913
                 "the prescribed response with Content-Type application/json and "
                 "does not send attachment data."
             ),
+            include_in_schema=False,
         ),
     ] = False,
     ascending: Annotated[  # noqa: ARG001
@@ -472,13 +497,18 @@ async def get(  # noqa: PLR0912, PLR0913
 
 
 @router.put("/", responses=POST_PUT_RESPONSES, status_code=status.HTTP_204_NO_CONTENT)
-@router.put("", responses=POST_PUT_RESPONSES, status_code=status.HTTP_204_NO_CONTENT)
+@router.put(
+    "",
+    responses=POST_PUT_RESPONSES,
+    status_code=status.HTTP_204_NO_CONTENT,
+    include_in_schema=False,
+)
 async def put(
     current_user: Annotated[
         AuthenticatedUser,
         Security(get_authenticated_user, scopes=["statements/write"]),
     ],
-    statement: LaxStatement,
+    statement: BaseXapiStatement,
     background_tasks: BackgroundTasks,
     request: Request,
     statement_id: UUID = Query(alias="statementId"),
@@ -566,18 +596,18 @@ async def put(
 
 
 @router.post("/", responses=POST_PUT_RESPONSES)
-@router.post("", responses=POST_PUT_RESPONSES)
+@router.post("", responses=POST_PUT_RESPONSES, include_in_schema=False)
 async def post(
     current_user: Annotated[
         AuthenticatedUser,
         Security(get_authenticated_user, scopes=["statements/write"]),
     ],
-    statements: LaxStatement | Sequence[LaxStatement],
+    statements: BaseXapiStatement | Sequence[BaseXapiStatement],
     background_tasks: BackgroundTasks,
     request: Request,
     response: Response,
     _=Depends(strict_query_params),
-) -> list | None:
+) -> list[UUID] | None:
     """Store a set of statements (or a single statement as a single member of a set).
 
     NB: at this time, using POST to make a GET request, is not supported.
