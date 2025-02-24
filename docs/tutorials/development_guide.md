@@ -69,33 +69,13 @@ make run-[BACKEND]
 You can also start other services with the following commands:
 ```bash
 make run-es
-make run-swift
 make run-mongo
-make run-clickhouse
 # Start all backends
 make run-all
 ```
 
-Now that you have started the `elasticsearch` and `swift` backends,
+Now that you have started the `elasticsearch` backend,
 it's time to play with them with Ralph CLI:
-
-We can store a JSON file in the Swift backend:
-```bash
-echo '{"id": 1, "foo": "bar"}' | \
-    ./bin/ralph write -b swift -t foo.json
-```
-
-We can check that we have created a new JSON file in the Swift backend:
-```bash
-bin/ralph list -b swift
->>> foo.json
-```
-
-Let's read the content of the JSON file and index it in Elasticsearch
-```bash
-bin/ralph read -b swift -t foo.json | \
-    bin/ralph write -b es
-```
 
 We can now check that we have properly indexed the JSON file in Elasticsearch
 ```bash

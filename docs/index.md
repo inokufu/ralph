@@ -93,7 +93,7 @@ pip install ralph-malph
 ```
 
 If you want to use the [Ralph LRS server](./features/api.md), add the `lrs` flavour in your installation. 
-You also have to choose the type of backend you will use for LRS data storage (`backend-clickhouse`,`backend-es`,`backend-mongo`).
+You also have to choose the type of backend you will use for LRS data storage (`backend-es`,`backend-mongo`).
 
 - Install the **core package** with the LRS and the Elasticsearch backend. For example:
 

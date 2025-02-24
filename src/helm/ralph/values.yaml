@@ -202,16 +202,3 @@ loggingConfig:
       propagate: false
 
 cronjobs: []
-# Ralph cronjob should define a name, a cronjob schedule, the schedule suspension 
-# and a command to execute
-#   - name: "daily-ldp-to-es"
-#     schedule: "30 2 * * *"
-#     suspend: false
-#     command:
-#       - ralph list --backend ldp --new |
-#         xargs -I {} -n 1 bash -c "
-#         ralph read --backend ldp {} |
-#         gunzip |
-#         ralph extract -p gelf |
-#         ralph write \
-#         --backend es"

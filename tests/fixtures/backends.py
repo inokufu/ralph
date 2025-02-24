@@ -1,65 +1,34 @@
 """Test fixtures for backends."""
 
 import asyncio
-import json
 import os
-import random
 from collections.abc import Generator, Mapping
 from contextlib import asynccontextmanager
-from functools import lru_cache, wraps
+from functools import lru_cache
 from multiprocessing import Process
 from pathlib import Path
 from typing import Callable
 
-import boto3
-import botocore
-import clickhouse_connect
 import pytest
 import uvicorn
-import websockets
 from elasticsearch import BadRequestError, Elasticsearch
 from httpx import AsyncClient, ConnectError
-from pydantic import AnyHttpUrl, TypeAdapter
 from pymongo import MongoClient
 from pymongo.errors import CollectionInvalid
 
 from ralph.backends import cozystack
 from ralph.backends.data.async_es import AsyncESDataBackend
-from ralph.backends.data.async_lrs import AsyncLRSDataBackend
 from ralph.backends.data.async_mongo import AsyncMongoDataBackend
-from ralph.backends.data.clickhouse import (
-    ClickHouseClientOptions,
-    ClickHouseDataBackend,
-)
 from ralph.backends.data.es import ESDataBackend
 from ralph.backends.data.fs import FSDataBackend
-from ralph.backends.data.ldp import LDPDataBackend
-from ralph.backends.data.lrs import LRSDataBackend, LRSHeaders
 from ralph.backends.data.mongo import MongoDataBackend
-from ralph.backends.data.s3 import S3DataBackend
-from ralph.backends.data.swift import SwiftDataBackend
 from ralph.backends.lrs.async_es import AsyncESLRSBackend
 from ralph.backends.lrs.async_mongo import AsyncMongoLRSBackend
-from ralph.backends.lrs.clickhouse import ClickHouseLRSBackend
 from ralph.backends.lrs.cozystack import CozyStackLRSBackend
 from ralph.backends.lrs.es import ESLRSBackend
 from ralph.backends.lrs.fs import FSLRSBackend
 from ralph.backends.lrs.mongo import MongoLRSBackend
 from ralph.conf import Settings, core_settings
-
-# ClickHouse backend defaults
-CLICKHOUSE_TEST_DATABASE = os.environ.get(
-    "RALPH_BACKENDS__DATA__CLICKHOUSE__TEST_DATABASE", "test_statements"
-)
-CLICKHOUSE_TEST_HOST = os.environ.get(
-    "RALPH_BACKENDS__DATA__CLICKHOUSE__TEST_HOST", "localhost"
-)
-CLICKHOUSE_TEST_PORT = os.environ.get(
-    "RALPH_BACKENDS__DATA__CLICKHOUSE__TEST_PORT", 8123
-)
-CLICKHOUSE_TEST_TABLE_NAME = os.environ.get(
-    "RALPH_BACKENDS__DATA__CLICKHOUSE__TEST_TABLE_NAME", "test_xapi_events_all"
-)
 
 # Elasticsearch backend defaults
 ES_TEST_INDEX = os.environ.get("RALPH_BACKENDS__DATA__ES__TEST_INDEX", "test-index-foo")
@@ -97,23 +66,6 @@ COZYSTACK_TEST_DOCTYPE = os.environ.get(
 
 RUNSERVER_TEST_HOST = os.environ.get("RALPH_RUNSERVER_TEST_HOST", "0.0.0.0")
 RUNSERVER_TEST_PORT = int(os.environ.get("RALPH_RUNSERVER_TEST_PORT", 8101))
-
-# Websocket test backend defaults
-WS_TEST_HOST = "localhost"
-WS_TEST_PORT = 8765
-
-
-@lru_cache()
-def get_clickhouse_test_backend():
-    """Return a ClickHouseLRSBackend backend instance using test defaults."""
-
-    settings = ClickHouseLRSBackend.settings_class(
-        HOST=CLICKHOUSE_TEST_HOST,
-        PORT=CLICKHOUSE_TEST_PORT,
-        DATABASE=CLICKHOUSE_TEST_DATABASE,
-        EVENT_TABLE_NAME=CLICKHOUSE_TEST_TABLE_NAME,
-    )
-    return ClickHouseLRSBackend(settings)
 
 
 @lru_cache
@@ -292,67 +244,6 @@ def flavor(request):
     return request.param
 
 
-@pytest.mark.anyio
-@pytest.fixture
-def lrs_backend(
-    flavor,
-) -> Callable[[str | None], LRSDataBackend | AsyncLRSDataBackend]:
-    """Return the `get_lrs_test_backend` function."""
-    backend_class = LRSDataBackend if flavor == "sync" else AsyncLRSDataBackend
-
-    def make_awaitable(sync_func):
-        """Make a synchronous callable awaitable."""
-
-        @wraps(sync_func)
-        async def async_func(*args, **kwargs):
-            kwargs.pop("concurrency", None)
-            return sync_func(*args, **kwargs)
-
-        return async_func
-
-    def make_awaitable_generator(sync_func):
-        """Make a synchronous generator awaitable."""
-
-        @wraps(sync_func)
-        async def async_func(*args, **kwargs):
-            kwargs.pop("prefetch", None)
-            for item in sync_func(*args, **kwargs):
-                yield item
-
-        return async_func
-
-    def _get_lrs_test_backend(
-        base_url: str | None = "http://fake-lrs.com",
-    ) -> LRSDataBackend | AsyncLRSDataBackend:
-        """Return an (Async)LRSDataBackend backend instance using test defaults."""
-        headers = {
-            "X_EXPERIENCE_API_VERSION": "1.0.3",
-            "CONTENT_TYPE": "application/json",
-        }
-        settings = backend_class.settings_class(
-            BASE_URL=TypeAdapter(AnyHttpUrl).validate_python(base_url),
-            USERNAME="user",
-            PASSWORD="pass",
-            HEADERS=LRSHeaders.model_validate(headers),
-            LOCALE_ENCODING="utf8",
-            STATUS_ENDPOINT="/__heartbeat__",
-            STATEMENTS_ENDPOINT="/xAPI/statements/",
-            READ_CHUNK_SIZE=500,
-            WRITE_CHUNK_SIZE=500,
-        )
-        backend = backend_class(settings)
-
-        if isinstance(backend, LRSDataBackend):
-            backend.status = make_awaitable(backend.status)  # type: ignore
-            backend.read = make_awaitable_generator(backend.read)  # type: ignore
-            backend.write = make_awaitable(backend.write)  # type: ignore
-            backend.close = make_awaitable(backend.close)  # type: ignore
-
-        return backend
-
-    return _get_lrs_test_backend
-
-
 @pytest.fixture
 def async_mongo_backend():
     """Return the `get_mongo_data_backend` function."""
@@ -503,130 +394,6 @@ def mongo_forwarding():
         yield mongo_client
 
 
-def get_clickhouse_fixture(
-    host=CLICKHOUSE_TEST_HOST,
-    port=CLICKHOUSE_TEST_PORT,
-    database=CLICKHOUSE_TEST_DATABASE,
-    event_table_name=CLICKHOUSE_TEST_TABLE_NAME,
-):
-    """Create / delete a ClickHouse test database + table and yield an
-    instantiated client.
-    """
-    client_options = ClickHouseClientOptions(
-        date_time_input_format="best_effort",  # Allows RFC dates
-    ).model_dump()
-
-    client = clickhouse_connect.get_client(
-        host=host,
-        port=port,
-        settings=client_options,
-    )
-
-    sql = f"""CREATE DATABASE IF NOT EXISTS {database}"""
-    client.command(sql)
-
-    # Now get a client with the correct database
-    client = clickhouse_connect.get_client(
-        host=host,
-        port=port,
-        database=database,
-        settings=client_options,
-    )
-
-    sql = f"""DROP TABLE IF EXISTS {event_table_name}"""
-    client.command(sql)
-
-    sql = f"""
-        CREATE TABLE {event_table_name} (
-        event_id UUID NOT NULL,
-        emission_time DateTime64(6) NOT NULL,
-        event String NOT NULL
-        )
-        ENGINE MergeTree ORDER BY (emission_time, event_id)
-        PRIMARY KEY (emission_time, event_id)
-    """
-
-    client.command(sql)
-    yield client
-    client.command(f"DROP DATABASE {database}")
-
-
-@pytest.fixture
-def clickhouse():
-    """Yield a ClickHouse test client.
-
-    See get_clickhouse_fixture above.
-    """
-    for clickhouse_client in get_clickhouse_fixture():
-        yield clickhouse_client
-
-
-@pytest.fixture
-def clickhouse_custom():
-    """Return the `_clickhouse_custom` function."""
-
-    teardown = []
-
-    host = CLICKHOUSE_TEST_HOST
-    port = CLICKHOUSE_TEST_PORT
-    database = CLICKHOUSE_TEST_DATABASE
-
-    client_options = ClickHouseClientOptions(
-        date_time_input_format="best_effort",  # Allows RFC dates
-    ).dict()
-
-    client = clickhouse_connect.get_client(
-        host=host,
-        port=port,
-        settings=client_options,
-    )
-
-    sql = f"""CREATE DATABASE IF NOT EXISTS {database}"""
-    client.command(sql)
-
-    # Now get a client with the correct database
-    client_db = clickhouse_connect.get_client(
-        host=host,
-        port=port,
-        database=database,
-        settings=client_options,
-    )
-
-    def _clickhouse_custom(
-        host=CLICKHOUSE_TEST_HOST,
-        port=CLICKHOUSE_TEST_PORT,
-        database=CLICKHOUSE_TEST_DATABASE,
-        event_table_name=CLICKHOUSE_TEST_TABLE_NAME,
-    ):
-        """Create / delete a ClickHouse test database + table and yield an
-        instantiated client.
-        """
-
-        sql = f"DROP TABLE IF EXISTS {event_table_name}"
-        client_db.command(sql)
-
-        sql = f"""
-            CREATE TABLE {event_table_name} (
-            event_id UUID NOT NULL,
-            emission_time DateTime64(6) NOT NULL,
-            event String NOT NULL
-            )
-            ENGINE MergeTree ORDER BY (emission_time, event_id)
-            PRIMARY KEY (emission_time, event_id)
-        """
-
-        client_db.command(sql)
-        teardown.append((client_db, event_table_name))
-        return client_db
-
-    yield _clickhouse_custom
-
-    for client_db, table in teardown:
-        client_db.command(f"DROP TABLE IF EXISTS {table}")
-
-    client.command(f"DROP DATABASE IF EXISTS {database}")
-
-
 @pytest.fixture
 def cozystack_custom(
     cozy_auth_target,
@@ -714,28 +481,6 @@ def settings_fs(fs, monkeypatch):
 
 
 @pytest.fixture
-def ldp_backend(settings_fs):
-    """Return the `get_ldp_data_backend` function."""
-
-    def get_ldp_data_backend(service_name: str = "foo", stream_id: str = "bar"):
-        """Return an instance of LDPDataBackend."""
-        settings = LDPDataBackend.settings_class(
-            APPLICATION_KEY="fake_key",
-            APPLICATION_SECRET="fake_secret",
-            CONSUMER_KEY="another_fake_key",
-            DEFAULT_STREAM_ID=stream_id,
-            ENDPOINT="ovh-eu",
-            SERVICE_NAME=service_name,
-            REQUEST_TIMEOUT=None,
-            READ_CHUNK_SIZE=500,
-            WRITE_CHUNK_SIZE=499,
-        )
-        return LDPDataBackend(settings)
-
-    return get_ldp_data_backend
-
-
-@pytest.fixture
 def async_es_backend():
     """Return the `get_async_es_data_backend` function."""
 
@@ -763,57 +508,6 @@ def async_es_lrs_backend():
     get_async_es_test_backend.cache_clear()
 
     return get_async_es_test_backend
-
-
-@pytest.fixture
-def clickhouse_backend():
-    """Return the `get_clickhouse_data_backend` function."""
-
-    def get_clickhouse_data_backend():
-        """Return an instance of ClickHouseDataBackend."""
-        settings = ClickHouseDataBackend.settings_class(
-            HOST=CLICKHOUSE_TEST_HOST,
-            PORT=CLICKHOUSE_TEST_PORT,
-            DATABASE=CLICKHOUSE_TEST_DATABASE,
-            EVENT_TABLE_NAME=CLICKHOUSE_TEST_TABLE_NAME,
-            USERNAME="default",
-            PASSWORD="",
-            CLIENT_OPTIONS={
-                "date_time_input_format": "best_effort",
-            },
-            LOCALE_ENCODING="utf8",
-            READ_CHUNK_SIZE=500,
-            WRITE_CHUNK_SIZE=499,
-        )
-        return ClickHouseDataBackend(settings)
-
-    return get_clickhouse_data_backend
-
-
-@pytest.fixture
-def clickhouse_lrs_backend():
-    """Return the `get_clickhouse_lrs_backend` function."""
-
-    def get_clickhouse_lrs_backend():
-        """Return an instance of ClickHouseLRSBackend."""
-        settings = ClickHouseLRSBackend.settings_class(
-            HOST=CLICKHOUSE_TEST_HOST,
-            PORT=CLICKHOUSE_TEST_PORT,
-            DATABASE=CLICKHOUSE_TEST_DATABASE,
-            EVENT_TABLE_NAME=CLICKHOUSE_TEST_TABLE_NAME,
-            USERNAME="default",
-            PASSWORD="",
-            CLIENT_OPTIONS={
-                "date_time_input_format": "best_effort",
-            },
-            LOCALE_ENCODING="utf8",
-            IDS_CHUNK_SIZE=10000,
-            READ_CHUNK_SIZE=500,
-            WRITE_CHUNK_SIZE=499,
-        )
-        return ClickHouseLRSBackend(settings)
-
-    return get_clickhouse_lrs_backend
 
 
 @pytest.fixture
@@ -860,82 +554,9 @@ def es_lrs_backend():
 
 
 @pytest.fixture
-def swift_backend():
-    """Return get_swift_data_backend function."""
-
-    def get_swift_data_backend(container: str = "container_name"):
-        """Return an instance of SwiftDataBackend."""
-        settings = SwiftDataBackend.settings_class(
-            AUTH_URL="https://auth.cloud.ovh.net/",
-            USERNAME="os_username",
-            PASSWORD="os_password",
-            IDENTITY_API_VERSION="3",
-            TENANT_ID="os_tenant_id",
-            TENANT_NAME="os_tenant_name",
-            PROJECT_DOMAIN_NAME="Default",
-            REGION_NAME="os_region_name",
-            OBJECT_STORAGE_URL="os_storage_url/ralph_logs_container",
-            USER_DOMAIN_NAME="Default",
-            DEFAULT_CONTAINER=container,
-            LOCALE_ENCODING="utf8",
-            READ_CHUNK_SIZE=500,
-            WRITE_CHUNK_SIZE=499,
-        )
-        return SwiftDataBackend(settings)
-
-    return get_swift_data_backend
-
-
-@pytest.fixture()
-def moto_fs(fs):
-    """Fix the incompatibility between moto and pyfakefs."""
-
-    for module in [boto3, botocore]:
-        module_dir = Path(module.__file__).parent
-        fs.add_real_directory(module_dir, lazy_read=False)
-
-
-@pytest.fixture
-def s3_backend():
-    """Return the `get_s3_data_backend` function."""
-
-    def get_s3_data_backend(bucket_name: str = "bucket_name"):
-        """Return an instance of S3DataBackend."""
-        settings = S3DataBackend.settings_class(
-            ACCESS_KEY_ID="access_key_id",
-            SECRET_ACCESS_KEY="secret_access_key",
-            SESSION_TOKEN="session_token",
-            ENDPOINT_URL=None,
-            DEFAULT_REGION="default-region",
-            DEFAULT_BUCKET_NAME=bucket_name,
-            LOCALE_ENCODING="utf8",
-            READ_CHUNK_SIZE=4096,
-            WRITE_CHUNK_SIZE=3999,
-        )
-        return S3DataBackend(settings)
-
-    return get_s3_data_backend
-
-
-@pytest.fixture
 def events():
     """Return test events fixture."""
     return [{"id": idx} for idx in range(10)]
-
-
-@pytest.mark.anyio
-@pytest.fixture
-async def ws(events):
-    """Return a websocket server instance."""
-
-    async def forward(websocket):
-        """Stupid test server that sends events."""
-        for event in events:
-            await websocket.send(json.dumps(event))
-            await asyncio.sleep(random.randrange(0, 500) / 10000.0)
-
-    async with websockets.serve(forward, "0.0.0.0", WS_TEST_PORT) as server:
-        yield server
 
 
 @pytest.fixture

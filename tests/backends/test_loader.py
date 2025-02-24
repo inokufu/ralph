@@ -4,19 +4,12 @@ import logging
 from importlib.metadata import EntryPoint, EntryPoints, entry_points
 
 from ralph.backends.data.async_es import AsyncESDataBackend
-from ralph.backends.data.async_lrs import AsyncLRSDataBackend
 from ralph.backends.data.async_mongo import AsyncMongoDataBackend
-from ralph.backends.data.async_ws import AsyncWSDataBackend
 from ralph.backends.data.base import BaseDataBackend
-from ralph.backends.data.clickhouse import ClickHouseDataBackend
 from ralph.backends.data.cozystack import CozyStackDataBackend
 from ralph.backends.data.es import ESDataBackend
 from ralph.backends.data.fs import FSDataBackend
-from ralph.backends.data.ldp import LDPDataBackend
-from ralph.backends.data.lrs import LRSDataBackend
 from ralph.backends.data.mongo import MongoDataBackend
-from ralph.backends.data.s3 import S3DataBackend
-from ralph.backends.data.swift import SwiftDataBackend
 from ralph.backends.loader import (
     get_backends,
     get_cli_backends,
@@ -26,7 +19,6 @@ from ralph.backends.loader import (
 )
 from ralph.backends.lrs.async_es import AsyncESLRSBackend
 from ralph.backends.lrs.async_mongo import AsyncMongoLRSBackend
-from ralph.backends.lrs.clickhouse import ClickHouseLRSBackend
 from ralph.backends.lrs.cozystack import CozyStackLRSBackend
 from ralph.backends.lrs.es import ESLRSBackend
 from ralph.backends.lrs.fs import FSLRSBackend
@@ -62,14 +54,6 @@ def test_backends_loader_get_backends(caplog):
                 name="invalid",
                 value=(
                     "tests.backends.test_utils_backends.invalid_backends:InvalidBackend"
-                ),
-                group="g",
-            ),
-            EntryPoint(
-                name="async_ws_data_backend",
-                value=(
-                    "tests.backends.test_utils_backends.valid_backends"
-                    ":AsyncWSDataBackend"
                 ),
                 group="g",
             ),
@@ -120,18 +104,11 @@ def test_backends_loader_get_cli_backends(monkeypatch):
     assert get_cli_backends() == {
         "test_backend": TestBackend,
         "async_es": AsyncESDataBackend,
-        "async_lrs": AsyncLRSDataBackend,
         "async_mongo": AsyncMongoDataBackend,
-        "async_ws": AsyncWSDataBackend,
-        "clickhouse": ClickHouseDataBackend,
         "cozystack": CozyStackDataBackend,
         "es": ESDataBackend,
         "fs": FSDataBackend,
-        "ldp": LDPDataBackend,
-        "lrs": LRSDataBackend,
         "mongo": MongoDataBackend,
-        "s3": S3DataBackend,
-        "swift": SwiftDataBackend,
     }
 
     monkeypatch.undo()
@@ -143,16 +120,11 @@ def test_backends_loader_get_cli_write_backends():
     get_cli_backends.cache_clear()
     assert get_cli_write_backends() == {
         "async_es": AsyncESDataBackend,
-        "async_lrs": AsyncLRSDataBackend,
         "async_mongo": AsyncMongoDataBackend,
-        "clickhouse": ClickHouseDataBackend,
         "cozystack": CozyStackDataBackend,
         "es": ESDataBackend,
         "fs": FSDataBackend,
-        "lrs": LRSDataBackend,
         "mongo": MongoDataBackend,
-        "s3": S3DataBackend,
-        "swift": SwiftDataBackend,
     }
 
 
@@ -162,14 +134,10 @@ def test_backends_loader_get_cli_list_backends():
     assert get_cli_list_backends() == {
         "async_es": AsyncESDataBackend,
         "async_mongo": AsyncMongoDataBackend,
-        "clickhouse": ClickHouseDataBackend,
         "cozystack": CozyStackDataBackend,
         "es": ESDataBackend,
         "fs": FSDataBackend,
-        "ldp": LDPDataBackend,
         "mongo": MongoDataBackend,
-        "s3": S3DataBackend,
-        "swift": SwiftDataBackend,
     }
 
 
@@ -200,7 +168,6 @@ def test_backends_loader_get_lrs_backends(monkeypatch):
         "test_backend": TestBackend,
         "async_es": AsyncESLRSBackend,
         "async_mongo": AsyncMongoLRSBackend,
-        "clickhouse": ClickHouseLRSBackend,
         "cozystack": CozyStackLRSBackend,
         "es": ESLRSBackend,
         "fs": FSLRSBackend,

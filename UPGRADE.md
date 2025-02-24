@@ -101,11 +101,7 @@ If you are using Ralph's CLI, the following changes may affect you:
     | async_es/es       | RALPH_BACKENDS__DATA__ES__READ_CHUNK_SIZE=500         |
     | async_lrs/lrs     | RALPH_BACKENDS__DATA__LRS__READ_CHUNK_SIZE=500        |
     | async_mongo/mongo | RALPH_BACKENDS__DATA__MONGO__READ_CHUNK_SIZE=500      |
-    | clickhouse        | RALPH_BACKENDS__DATA__CLICKHOUSE__READ_CHUNK_SIZE=500 |
     | fs                | RALPH_BACKENDS__DATA__FS__READ_CHUNK_SIZE=4096        |
-    | ldp               | RALPH_BACKENDS__DATA__LDP__READ_CHUNK_SIZE=4096       |
-    | s3                | RALPH_BACKENDS__DATA__S3__READ_CHUNK_SIZE=4096        |
-    | swift             | RALPH_BACKENDS__DATA__SWIFT__READ_CHUNK_SIZE=4096     |
 
 - The `ralph push` command changed to `ralph write`
   - The `-c --chunk-size` option changed to `-s --chunk-size`
@@ -117,11 +113,7 @@ If you are using Ralph's CLI, the following changes may affect you:
     | async_es/es       | RALPH_BACKENDS__DATA__ES__WRITE_CHUNK_SIZE=500         |
     | async_lrs/lrs     | RALPH_BACKENDS__DATA__LRS__WRITE_CHUNK_SIZE=500        |
     | async_mongo/mongo | RALPH_BACKENDS__DATA__MONGO__WRITE_CHUNK_SIZE=500      |
-    | clickhouse        | RALPH_BACKENDS__DATA__CLICKHOUSE__WRITE_CHUNK_SIZE=500 |
     | fs                | RALPH_BACKENDS__DATA__FS__WRITE_CHUNK_SIZE=4096        |
-    | ldp               | RALPH_BACKENDS__DATA__LDP__WRITE_CHUNK_SIZE=4096       |
-    | s3                | RALPH_BACKENDS__DATA__S3__WRITE_CHUNK_SIZE=4096        |
-    | swift             | RALPH_BACKENDS__DATA__SWIFT__WRITE_CHUNK_SIZE=4096     |
 
 - Environment variables used to configure backend options for CLI usage
   (read/write/list commands) changed their prefix:
@@ -155,16 +147,9 @@ package.
 
 | Ralph v3 (database/http/storage/stream) backends        | Ralph v4 data backends                                 |
 |---------------------------------------------------------|--------------------------------------------------------|
-| `ralph.backends.database.clickhouse.ClickHouseDatabase` | `ralph.backends.data.clickhouse.ClickHouseDataBackend` |
 | `ralph.backends.database.es.ESDatabase`                 | `ralph.backends.data.es.ESDataBackend`                 |
 | `ralph.backends.database.mongo.MongoDatabase`           | `ralph.backends.data.mongo.MongoDataBackend`           |
-| `ralph.backends.http.async_lrs.AsyncLRSHTTP`            | `ralph.backends.data.async_lrs.AsyncLRSDataBackend`    |
-| `ralph.backends.http.lrs.LRSHTTP`                       | `ralph.backends.data.lrs.LRSDataBackend`               |
 | `ralph.backends.storage.fs.FSStorage`                   | `ralph.backends.data.fs.FSDataBackend`                 |
-| `ralph.backends.storage.ldp.LDPStorage`                 | `ralph.backends.data.ldp.LDPDataBackend`               |
-| `ralph.backends.storage.s3.S3Storage`                   | `ralph.backends.data.s3.S3DataBackend`                 |
-| `ralph.backends.storage.swift.SwiftStorage`             | `ralph.backends.data.swift.SwiftDataBackend`           |
-| `ralph.backends.stream.ws.WSStream`                     | `ralph.backends.data.async_ws.AsyncWSDataBackend`      |
 
 LRS-specific `query_statements` and `query_statements_by_ids` database backend methods
 have moved to a dedicated `ralph.backends.lrs.BaseLRSBackend` interface that extends the
@@ -174,7 +159,6 @@ The `query_statements_by_ids` method return type changed to `Iterator[dict]`.
 
 | Ralph v3 database backends for lrs usage                | Ralph v4 LRS data backends                             |
 |---------------------------------------------------------|--------------------------------------------------------|
-| `ralph.backends.database.clickhouse.ClickHouseDatabase` | `ralph.backends.lrs.clickhouse.ClickHouseLRSBackend`   |
 | `ralph.backends.database.es.ESDatabase`                 | `ralph.backends.lrs.es.ESLRSBackend`                   |
 | `ralph.backends.database.mongo.MongoDatabase`           | `ralph.backends.lrs.mongo.MongoLRSBackend`             |
 
@@ -242,21 +226,3 @@ es_statements = list(backend.read(query))
 backend.write([{"id": 1}])
 ```
 
-#### Upgrade ClickHouse schema
-
-If you are using the ClickHouse backend, schema changes have been made
-to drop the existing JSON column in favor of the String version of the 
-same data. See [this issue](https://github.com/openfun/ralph/issues/482) 
-for details. 
-
-Ralph does not manage the ClickHouse schema, so if you have existing 
-data you will need to manually alter it as an admin user. Note: this 
-will rewrite the statements table, which may take a long time if you
-have many rows. The command to run is:
-
-```sql
--- If RALPH_BACKENDS__DATA__CLICKHOUSE__DATABASE is 'xapi'
--- and RALPH_BACKENDS__DATA__CLICKHOUSE__EVENT_TABLE_NAME is 'test'
-
-ALTER TABLE xapi.test DROP COLUMN event, RENAME COLUMN event_str to event;
-```
