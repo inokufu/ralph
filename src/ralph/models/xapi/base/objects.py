@@ -41,6 +41,4 @@ class BaseXapiSubStatement(BaseModelWithConfig):
     )
 
 
-BaseXapiObject = (
-    BaseXapiUnnestedObject | BaseXapiSubStatement | BaseXapiAgent | BaseXapiGroup
-)
+BaseXapiObject = BaseXapiUnnestedObject | BaseXapiSubStatement
