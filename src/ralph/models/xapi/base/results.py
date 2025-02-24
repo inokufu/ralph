@@ -1,10 +1,10 @@
 """Base xAPI `Result` definitions."""
 
+import re
 from datetime import timedelta
-from decimal import Decimal
 from typing import Annotated, Any
 
-from pydantic import Field, StrictBool, model_validator
+from pydantic import BeforeValidator, Field, StrictBool, model_validator
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -12,19 +12,35 @@ from ..config import BaseModelWithConfig
 from .common import IRI
 
 
+def ensure_duration_is_valid(value: Any) -> Any:
+    """Check that duration is valid ISO 8601 format string."""
+    if isinstance(value, timedelta):
+        return value
+
+    if not isinstance(value, str):
+        raise ValueError("Duration must be expressed using ISO 8601 format string.")
+
+    if "W" in value and not re.search(r"^P\d+W$", value):
+        raise ValueError("Combining any other unit with weeks is not allowed.")
+
+    return value
+
+
 class BaseXapiResultScore(BaseModelWithConfig):
     """Pydantic model for result `score` property."""
 
-    scaled: Annotated[Decimal, Field(ge=-1, le=1)] | None = Field(
+    scaled: Annotated[float, Field(ge=-1, le=1, strict=True)] | None = Field(
         None,
         description="Normalized score related to the experience",
         examples=[0],
     )
-    raw: Decimal | None = Field(
+    raw: Annotated[float, Field(strict=True)] | None = Field(
         None, description="Non-normalized score achieved by the Actor", examples=[10]
     )
-    min: Decimal | None = Field(None, description="Lowest possible score", examples=[0])
-    max: Decimal | None = Field(
+    min: Annotated[float, Field(strict=True)] | None = Field(
+        None, description="Lowest possible score", examples=[0]
+    )
+    max: Annotated[float, Field(strict=True)] | None = Field(
         None, description="Highest possible score", examples=[20]
     )
 
@@ -59,10 +75,12 @@ class BaseXapiResult(BaseModelWithConfig):
         description="Response for the given Activity",
         examples=["Wow, nice work!"],
     )
-    duration: timedelta | None = Field(
-        None,
-        description="Duration over which the Statement occurred",
-        examples=["PT1234S"],
+    duration: Annotated[timedelta, BeforeValidator(ensure_duration_is_valid)] | None = (
+        Field(
+            None,
+            description="Duration over which the Statement occurred",
+            examples=["PT1234S"],
+        )
     )
     extensions: dict[IRI, str | int | bool | list | dict | None] | None = Field(
         None,

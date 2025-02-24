@@ -1,8 +1,9 @@
 """Base xAPI `Group` definitions."""
 
 from abc import ABC
-from typing import Literal
+from typing import Annotated, Literal
 
+from annotated_types import Len
 from pydantic import Field
 
 from ralph.conf import NonEmptyStrictStr
@@ -36,6 +37,17 @@ class BaseXapiAnonymousGroup(BaseXapiGroupCommonProperties):
     """
 
     member: list[BaseXapiAgent] = Field(description="List of the members of this Group")
+
+
+class BaseXapiAuthorityAnonymousGroup(BaseXapiGroupCommonProperties):
+    """Pydantic model for `Group` type property.
+
+    It is defined for Authority Anonymous Group type.
+    """
+
+    member: Annotated[list[BaseXapiAgent], Len(min_length=2, max_length=2)] = Field(
+        description="List of the members of this Group"
+    )
 
 
 class BaseXapiIdentifiedGroup(BaseXapiGroupCommonProperties):

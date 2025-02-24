@@ -1,8 +1,9 @@
 """Base xAPI `Context` definitions."""
 
+from typing import Annotated, Any
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 
 from ralph.conf import NonEmptyStrictStr
 
@@ -13,23 +14,44 @@ from .groups import BaseXapiGroup
 from .unnested_objects import BaseXapiActivity, BaseXapiStatementRef
 
 
+def ensure_list(value: Any) -> Any:
+    """Transform single Activity Objects into list."""
+    if not isinstance(value, list):
+        return [value]
+    else:
+        return value
+
+
 class BaseXapiContextContextActivities(BaseModelWithConfig):
     """Pydantic model for context `contextActivities` property."""
 
-    parent: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
-        None,
-        description="An Activity with a direct relation to the statement's Activity",
+    parent: Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)] | None = (
+        Field(
+            None,
+            description=(
+                "An Activity with a direct relation to the statement's Activity"
+            ),
+        )
     )
-    grouping: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
-        None,
-        description="An Activity with an indirect relation to the statement's Activity",
+
+    grouping: Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)] | None = (
+        Field(
+            None,
+            description=(
+                "An Activity with an indirect relation to the statement's Activity"
+            ),
+        )
     )
-    category: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
-        None, description="An Activity used to categorize the Statement"
+    category: Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)] | None = (
+        Field(None, description="An Activity used to categorize the Statement")
     )
-    other: BaseXapiActivity | list[BaseXapiActivity] | None = Field(
-        None,
-        description="A contextActivity that doesn't fit one of the other properties",
+    other: Annotated[list[BaseXapiActivity], BeforeValidator(ensure_list)] | None = (
+        Field(
+            None,
+            description=(
+                "A contextActivity that doesn't fit one of the other properties"
+            ),
+        )
     )
 
 
@@ -39,7 +61,7 @@ class BaseXapiContext(BaseModelWithConfig):
     registration: UUID | None = Field(
         None, description="Registration that the Statement is associated with"
     )
-    instructor: BaseXapiAgent | None = Field(
+    instructor: BaseXapiAgent | BaseXapiGroup | None = Field(
         None, description="Instructor that the Statement relates to"
     )
     team: BaseXapiGroup | None = Field(

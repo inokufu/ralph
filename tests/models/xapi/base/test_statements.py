@@ -44,7 +44,7 @@ def test_models_xapi_base_statement_with_invalid_null_values(path, value):
     statement = statement.model_dump(exclude_none=True)
     set_dict_value_from_path(statement, path.split("__"), value)
 
-    with pytest.raises(ValidationError, match="invalid empty value"):
+    with pytest.raises(ValidationError):
         BaseXapiStatement(**statement)
 
 
@@ -128,6 +128,49 @@ def test_models_xapi_base_statement_must_use_actor_verb_and_object(field):
     del statement["context"]  # Necessary as context leads to another validation error
     del statement[field]
     with pytest.raises(ValidationError, match="Field required"):
+        BaseXapiStatement(**statement)
+
+
+@pytest.mark.parametrize("field", ["timestamp", "stored"])
+@pytest.mark.parametrize(
+    "invalid_timestamp", [123, "abc", "2008-09-15T15:53:00.601-00:00"]
+)
+def test_models_xapi_base_statement_with_invalid_timestamp(field, invalid_timestamp):
+    """Test that the statement does not accept invalid timestamp."""
+    statement = mock_xapi_instance(BaseXapiStatement)
+
+    statement = statement.model_dump(exclude_none=True)
+    statement[field] = invalid_timestamp
+
+    with pytest.raises(ValidationError):
+        BaseXapiStatement(**statement)
+
+
+def test_models_xapi_base_statement_with_valid_voiding():
+    """Test that the statement accept valid voiding."""
+    statement = mock_xapi_instance(BaseXapiStatement)
+
+    statement = statement.model_dump(exclude_none=True)
+
+    statement["verb"] = {"id": "http://adlnet.gov/expapi/verbs/voided"}
+    statement["object"] = {
+        "objectType": "StatementRef",
+        "id": "9e13cefd-53d3-4eac-b5ed-2cf6693903bb",
+    }
+
+    BaseXapiStatement(**statement)
+
+
+def test_models_xapi_base_statement_with_invalid_voiding():
+    """Test that the statement does not accept invalid voiding."""
+    statement = mock_xapi_instance(BaseXapiStatement)
+
+    statement = statement.model_dump(exclude_none=True)
+
+    statement["verb"] = {"id": "http://adlnet.gov/expapi/verbs/voided"}
+    statement["object"] = {"id": "http://example.adlnet.gov/xapi/example/activity"}
+
+    with pytest.raises(ValidationError):
         BaseXapiStatement(**statement)
 
 
