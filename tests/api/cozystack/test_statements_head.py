@@ -29,7 +29,7 @@ TEST_STATEMENTS = [
 @responses.activate
 async def test_api_statements_head(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the head statements API route without any filters set up."""
@@ -48,7 +48,7 @@ async def test_api_statements_head(
 @pytest.mark.anyio
 async def test_api_statements_head_by_statement_id(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the head statements API route given a "statementId" query parameter."""
@@ -66,7 +66,7 @@ async def test_api_statements_head_by_statement_id(
 @pytest.mark.anyio
 async def test_api_statements_head_with_no_matching_statement(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """
@@ -111,7 +111,7 @@ async def test_api_statements_head_with_database_query_failure(
 @pytest.mark.parametrize("id_param", ["statementId", "voidedStatementId"])
 async def test_api_statements_head_invalid_query_parameters(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
     id_param: str,
 ):

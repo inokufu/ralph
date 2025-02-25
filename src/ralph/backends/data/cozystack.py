@@ -22,6 +22,7 @@ from ralph.backends.data.base import (
 )
 from ralph.conf import BASE_SETTINGS_CONFIG, ClientOptions
 from ralph.exceptions import BackendException
+from ralph.utils import check_dict_keys
 
 logger = logging.getLogger(__name__)
 
@@ -166,9 +167,46 @@ class CozyStackDataBackend(
             logger.error(msg, exc)
             raise BackendException(msg % exc) from exc
 
-    def _write_dicts(
+    @staticmethod
+    def to_documents(
+        data: Iterable[Mapping],
+        metadata: Mapping,
+        operation_type: BaseOperationType,
+    ) -> Iterator[dict]:
+        """Convert dictionaries from to documents ready to insert and yield them."""
+        if operation_type in (BaseOperationType.CREATE, BaseOperationType.INDEX):
+            for item in data:
+                document = {"source": {"statement": item, "metadata": metadata}}
+
+                if "id" in item:
+                    document["_id"] = item["id"]
+
+                yield document
+
+        elif operation_type == BaseOperationType.UPDATE:
+            for item in data:
+                check_dict_keys(item, ["id", "_rev"])
+
+                yield {
+                    "_id": item.get("id"),
+                    "_rev": item.pop("_rev"),
+                    "source": {"statement": item, "metadata": metadata},
+                }
+
+        elif operation_type == BaseOperationType.DELETE:
+            for item in data:
+                check_dict_keys(item, ["id", "_rev"])
+
+                yield {
+                    "_id": item.get("id"),
+                    "_rev": item.pop("_rev"),
+                    "_deleted": True,
+                }
+
+    def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,  # noqa: ARG002
         ignore_errors: bool,  # noqa: ARG002
@@ -176,7 +214,8 @@ class CozyStackDataBackend(
     ) -> int:
         """Method called by `self.write` writing dictionaries. See `self.write`."""
         try:
-            count = self.client.bulk_operation(target, data, operation_type)
+            documents = self.to_documents(data, metadata, operation_type)
+            count = self.client.bulk_operation(target, documents, operation_type)
             logger.info("Finished writing %d documents with success", count)
             return count
         except (CozyStackError, ValueError) as exc:

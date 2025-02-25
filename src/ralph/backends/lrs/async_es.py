@@ -8,6 +8,10 @@ from ralph.backends.lrs.base import (
     BaseAsyncLRSBackend,
     RalphStatementsQuery,
     StatementQueryResult,
+    ids_adapter,
+    include_extra_adapter,
+    params_adapter,
+    target_adapter,
 )
 from ralph.backends.lrs.es import ESLRSBackend, ESLRSBackendSettings
 from ralph.exceptions import BackendException, BackendParameterException
@@ -22,10 +26,13 @@ class AsyncESLRSBackend(BaseAsyncLRSBackend[ESLRSBackendSettings], AsyncESDataBa
         self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
+        params_adapter.validate_python(params)
+        target_adapter.validate_python(target)
+
         query = ESLRSBackend.get_query(params=params)
         try:
             statements = [
-                document["_source"]
+                document["_source"]["statement"]
                 async for document in self.read(
                     query=query, target=target, chunk_size=params.limit
                 )
@@ -41,13 +48,20 @@ class AsyncESLRSBackend(BaseAsyncLRSBackend[ESLRSBackendSettings], AsyncESDataBa
         )
 
     async def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> AsyncIterator[dict]:
         """Yield statements with matching ids from the backend."""
+        ids_adapter.validate_python(ids)
+        target_adapter.validate_python(target)
+        include_extra_adapter.validate_python(include_extra)
+
         query = self.query_class(query={"terms": {"_id": ids}})
         try:
             async for document in self.read(query=query, target=target):
-                yield document["_source"]
+                if include_extra:
+                    yield document["_source"]
+                else:
+                    yield document["_source"]["statement"]
         except (BackendException, BackendParameterException) as error:
             logger.error("Failed to read from Elasticsearch")
             raise error

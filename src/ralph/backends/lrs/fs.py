@@ -1,7 +1,7 @@
 """FileSystem LRS backend for Ralph."""
 
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from datetime import datetime
 from io import IOBase
 from pathlib import Path
@@ -18,6 +18,10 @@ from ralph.backends.lrs.base import (
     BaseLRSBackendSettings,
     RalphStatementsQuery,
     StatementQueryResult,
+    ids_adapter,
+    include_extra_adapter,
+    params_adapter,
+    target_adapter,
 )
 from ralph.conf import BASE_SETTINGS_CONFIG
 
@@ -42,9 +46,10 @@ class FSLRSBackendSettings(BaseLRSBackendSettings, FSDataBackendSettings):
 class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     """FileSystem LRS Backend."""
 
-    def write(
+    def write(  # noqa: PLR0913
         self,
         data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -58,14 +63,29 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
             target = str(Path(target) / Path(self.settings.DEFAULT_LRS_FILE))
         else:
             target = self.settings.DEFAULT_LRS_FILE
-        return super().write(data, target, chunk_size, ignore_errors, operation_type)
+
+        return super().write(
+            data, metadata, target, chunk_size, ignore_errors, operation_type
+        )
 
     def query_statements(
         self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
+        params_adapter.validate_python(params)
+        target_adapter.validate_python(target)
+
         filters = []
-        self._add_filter_by_id(filters, params.statement_id)
+
+        if params.statement_id:
+            self._add_filter_by_id(filters, params.statement_id)
+            self._add_filter_by_voided(filters, voided=False)
+        elif params.voided_statement_id:
+            self._add_filter_by_id(filters, params.voided_statement_id)
+            self._add_filter_by_voided(filters, voided=True)
+        else:
+            self._add_filter_by_voided(filters, voided=False)
+
         self._add_filter_by_agent(filters, params.agent, params.related_agents)
         self._add_filter_by_authority(filters, params.authority)
         self._add_filter_by_verb(filters, params.verb)
@@ -81,12 +101,12 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         statements_count = 0
         search_after = None
         statements = []
-        for statement in self.read(query=self.settings.DEFAULT_LRS_FILE, target=target):
+        for item in self.read(query=self.settings.DEFAULT_LRS_FILE, target=target):
             for query_filter in filters:
-                if not query_filter(statement):
+                if not query_filter(item):
                     break
             else:
-                statements.append(statement)
+                statements.append(item.get("statement"))
                 statements_count += 1
                 if limit and statements_count == limit:
                     search_after = statements[-1].get("id")
@@ -101,16 +121,23 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         )
 
     def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
-    ) -> list:
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
+    ) -> Iterator[dict]:
         """Return the list of matching statement IDs from the database."""
-        statement_ids = set(ids)
-        statements = []
-        for statement in self.read(query=self.settings.DEFAULT_LRS_FILE, target=target):
-            if statement.get("id") in statement_ids:
-                statements.append(statement)
+        ids_adapter.validate_python(ids)
+        target_adapter.validate_python(target)
+        include_extra_adapter.validate_python(include_extra)
 
-        return statements
+        statement_ids = set(ids)
+
+        for item in self.read(query=self.settings.DEFAULT_LRS_FILE, target=target):
+            statement = item.get("statement")
+
+            if statement.get("id") in statement_ids:
+                if include_extra:
+                    yield item
+                else:
+                    yield statement
 
     @staticmethod
     def _add_filter_by_agent(
@@ -122,6 +149,7 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
         if not isinstance(agent, Mapping):
             agent = agent.model_dump()
+
         FSLRSBackend._add_filter_by_mbox(filters, agent.get("mbox", None), related)
         FSLRSBackend._add_filter_by_sha1sum(
             filters, agent.get("mbox_sha1sum", None), related
@@ -145,6 +173,7 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
         if not isinstance(authority, Mapping):
             authority = authority.model_dump()
+
         FSLRSBackend._add_filter_by_mbox(
             filters, authority.get("mbox", None), field="authority"
         )
@@ -165,12 +194,22 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     def _add_filter_by_id(filters: Sequence, statement_id: str | None) -> None:
         """Add the `match_statement_id` filter if `statement_id` is set."""
 
-        def match_statement_id(statement: Mapping) -> bool:
+        def match_statement_id(item: Mapping) -> bool:
             """Return `True` if the statement has the given `statement_id`."""
-            return statement.get("id") == statement_id
+            return item.get("statement")["id"] == statement_id
 
         if statement_id:
             filters.append(match_statement_id)
+
+    @staticmethod
+    def _add_filter_by_voided(filters: Sequence, voided: bool) -> None:
+        """Add the `match_statement_id` filter if `voided_statement_id` is set."""
+
+        def match_voided(item: Mapping) -> bool:
+            """Return `True` if the statement voided is the same as voided param."""
+            return item.get("metadata").get("voided", False) == voided
+
+        filters.append(match_voided)
 
     @staticmethod
     def _get_related_agents(statement: Mapping) -> Iterable[Mapping]:
@@ -190,19 +229,27 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     ) -> None:
         """Add the `match_mbox` filter if `mbox` is set."""
 
-        def match_mbox(statement: Mapping) -> bool:
+        def match_mbox(item: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.mbox`."""
-            return statement.get(field, {}).get("mbox") == mbox
+            return item.get("statement").get(field, {}).get("mbox") == mbox
 
-        def match_related_mbox(statement: Mapping) -> bool:
+        def match_related_mbox(item: Mapping) -> bool:
             """Return `True` if the statement has any agent matching `mbox`."""
+            if "statement" in item:
+                statement = item.get("statement")
+
+            elif item.get("objectType") == "SubStatement":
+                statement = item
+
             for agent in FSLRSBackend._get_related_agents(statement):
                 if agent.get("mbox") == mbox:
                     return True
 
             statement_object = statement.get("object", {})
+
             if statement_object.get("objectType") == "SubStatement":
                 return match_related_mbox(statement_object)
+
             return False
 
         if mbox:
@@ -217,19 +264,27 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     ) -> None:
         """Add the `match_sha1sum` filter if `sha1sum` is set."""
 
-        def match_sha1sum(statement: Mapping) -> bool:
+        def match_sha1sum(item: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.sha1sum`."""
-            return statement.get(field, {}).get("mbox_sha1sum") == sha1sum
+            return item.get("statement").get(field, {}).get("mbox_sha1sum") == sha1sum
 
-        def match_related_sha1sum(statement: Mapping) -> bool:
+        def match_related_sha1sum(item: Mapping) -> bool:
             """Return `True` if the statement has any agent matching `sha1sum`."""
+            if "statement" in item:
+                statement = item.get("statement")
+
+            elif item.get("objectType") == "SubStatement":
+                statement = item
+
             for agent in FSLRSBackend._get_related_agents(statement):
                 if agent.get("mbox_sha1sum") == sha1sum:
                     return True
 
             statement_object = statement.get("object", {})
+
             if statement_object.get("objectType") == "SubStatement":
                 return match_related_sha1sum(statement_object)
+
             return False
 
         if sha1sum:
@@ -244,19 +299,27 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     ) -> None:
         """Add the `match_openid` filter if `openid` is set."""
 
-        def match_openid(statement: Mapping) -> bool:
+        def match_openid(item: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.openid`."""
-            return statement.get(field, {}).get("openid") == openid
+            return item.get("statement").get(field, {}).get("openid") == openid
 
-        def match_related_openid(statement: Mapping) -> bool:
+        def match_related_openid(item: Mapping) -> bool:
             """Return `True` if the statement has any agent matching `openid`."""
+            if "statement" in item:
+                statement = item.get("statement")
+
+            elif item.get("objectType") == "SubStatement":
+                statement = item
+
             for agent in FSLRSBackend._get_related_agents(statement):
                 if agent.get("openid") == openid:
                     return True
 
             statement_object = statement.get("object", {})
+
             if statement_object.get("objectType") == "SubStatement":
                 return match_related_openid(statement_object)
+
             return False
 
         if openid:
@@ -272,21 +335,29 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     ) -> None:
         """Add the `match_account` filter if `name` or `home_page` is set."""
 
-        def match_account(statement: Mapping) -> bool:
+        def match_account(item: Mapping) -> bool:
             """Return `True` if the statement has the given `actor.account`."""
-            account = statement.get(field, {}).get("account", {})
+            account = item.get("statement").get(field, {}).get("account", {})
             return account.get("name") == name and account.get("homePage") == home_page
 
-        def match_related_account(statement: Mapping) -> bool:
+        def match_related_account(item: Mapping) -> bool:
             """Return `True` if the statement has any agent matching the account."""
+            if "statement" in item:
+                statement = item.get("statement")
+
+            elif item.get("objectType") == "SubStatement":
+                statement = item
+
             for agent in FSLRSBackend._get_related_agents(statement):
                 account = agent.get("account", {})
                 if account.get("name") == name and account.get("homePage") == home_page:
                     return True
 
             statement_object = statement.get("object", {})
+
             if statement_object.get("objectType") == "SubStatement":
                 return match_related_account(statement_object)
+
             return False
 
         if name and home_page:
@@ -296,9 +367,9 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     def _add_filter_by_verb(filters: Sequence, verb_id: str | None) -> None:
         """Add the `match_verb_id` filter if `verb_id` is set."""
 
-        def match_verb_id(statement: Mapping) -> bool:
+        def match_verb_id(item: Mapping) -> bool:
             """Return `True` if the statement has the given `verb.id`."""
-            return statement.get("verb", {}).get("id") == verb_id
+            return item.get("statement").get("verb", {}).get("id") == verb_id
 
         if verb_id:
             filters.append(match_verb_id)
@@ -309,16 +380,25 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
     ) -> None:
         """Add the `match_object_id` filter if `object_id` is set."""
 
-        def match_object_id(statement: Mapping) -> bool:
+        def match_object_id(item: Mapping) -> bool:
             """Return `True` if the statement has the given `object.id`."""
-            return statement.get("object", {}).get("id") == object_id
+            return item.get("statement").get("object", {}).get("id") == object_id
 
-        def match_related_object_id(statement: Mapping) -> bool:
+        def match_related_object_id(item: Mapping) -> bool:
             """Return `True` if the statement has any object.id matching `object_id`."""
+            if "statement" in item:
+                statement = item.get("statement")
+
+            elif item.get("objectType") == "SubStatement":
+                statement = item
+
             statement_object = statement.get("object", {})
+
             if statement_object.get("id") == object_id:
                 return True
+
             activities = statement.get("context", {}).get("contextActivities", {})
+
             for activity in activities.values():
                 if isinstance(activity, Mapping):
                     if activity.get("id") == object_id:
@@ -327,6 +407,7 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
                     for sub_activity in activity:
                         if sub_activity.get("id") == object_id:
                             return True
+
             if statement_object.get("objectType") == "SubStatement":
                 return match_related_object_id(statement_object)
 
@@ -342,8 +423,10 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
 
-        def match_since(statement: Mapping) -> bool:
+        def match_since(item: Mapping) -> bool:
             """Return `True` if the statement was created after `timestamp`."""
+            statement = item.get("statement")
+
             try:
                 statement_timestamp = datetime.fromisoformat(statement.get("timestamp"))
             except (TypeError, ValueError) as error:
@@ -362,14 +445,17 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
 
-        def match_until(statement: Mapping) -> bool:
+        def match_until(item: Mapping) -> bool:
             """Return `True` if the statement was created before `timestamp`."""
+            statement = item.get("statement")
+
             try:
                 statement_timestamp = datetime.fromisoformat(statement.get("timestamp"))
             except (TypeError, ValueError) as error:
                 msg = "Statement with id=%s contains unparsable timestamp=%s"
                 logger.debug(msg, statement.get("id"), error)
                 return False
+
             return statement_timestamp <= timestamp
 
         if timestamp:
@@ -382,11 +468,11 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         """Add the `match_search_after` filter if `search_after` is set."""
         search_after_state = {"state": False}
 
-        def match_search_after(statement: Mapping) -> bool:
+        def match_search_after(item: Mapping) -> bool:
             """Return `True` if the statement was created after `search_after`."""
             if search_after_state["state"]:
                 return True
-            if statement.get("id") == search_after:
+            if item.get("statement").get("id") == search_after:
                 search_after_state["state"] = True
             return False
 
@@ -400,9 +486,12 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
         """Add the `match_registration` filter if `registration` is set."""
         registration_str = str(registration)
 
-        def match_registration(statement: Mapping) -> bool:
+        def match_registration(item: Mapping) -> bool:
             """Return `True` if the statement has the given `context.registration`."""
-            return statement.get("context", {}).get("registration") == registration_str
+            return (
+                item.get("statement").get("context", {}).get("registration")
+                == registration_str
+            )
 
         if registration:
             filters.append(match_registration)

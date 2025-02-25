@@ -23,7 +23,7 @@ from ralph.backends.data.base import (
 from ralph.backends.data.mixins import HistoryMixin
 from ralph.conf import BASE_SETTINGS_CONFIG
 from ralph.exceptions import BackendException, BackendParameterException
-from ralph.utils import now, parse_iterable_to_dict
+from ralph.utils import now, parse_dict_to_bytes, parse_iterable_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class FSDataBackend(
 
     name = "fs"
     default_operation_type = BaseOperationType.CREATE
-    unsupported_operation_types = {BaseOperationType.DELETE}
+    unsupported_operation_types = {BaseOperationType.APPEND, BaseOperationType.DELETE}
 
     def __init__(self, settings: Settings | None = None):
         """Create the default target directory if it does not exist.
@@ -211,6 +211,7 @@ class FSDataBackend(
         for file, path in self._iter_files_matching_query(target, query):
             while chunk := file.read(chunk_size):
                 yield chunk
+
             # The file has been read, add a new entry to the history.
             self._append_to_history("read", path)
 
@@ -265,9 +266,10 @@ class FSDataBackend(
             with path.open("rb") as file:
                 yield file, path
 
-    def write(
+    def write(  # noqa: PLR0913
         self,
         data: IOBase | Iterable[bytes] | Iterable[dict],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -277,6 +279,7 @@ class FSDataBackend(
 
         Args:
             data (Iterable or IOBase): The data to write.
+            metadata (Mapping): The metadata related to the data.
             target (str or None): The target file path.
                 If target is a relative path, it is considered to be relative to the
                     `default_directory_path`.
@@ -304,27 +307,35 @@ class FSDataBackend(
             BackendParameterException: If the `operation_type` is `DELETE` as it is not
                 supported.
         """
-        return super().write(data, target, chunk_size, ignore_errors, operation_type)
+        return super().write(
+            data, metadata, target, chunk_size, ignore_errors, operation_type
+        )
 
-    def _write_dicts(
+    def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
         operation_type: BaseOperationType,
     ) -> int:
         """Method called by `self.write` writing dictionaries. See `self.write`."""
-        return super()._write_dicts(
-            data, target, chunk_size, ignore_errors, operation_type
+        locale = self.settings.LOCALE_ENCODING
+        statements = parse_dict_to_bytes(data, locale, ignore_errors)
+        metadata = next(parse_dict_to_bytes([metadata], locale, ignore_errors))
+
+        return self._write_bytes(
+            statements, metadata, target, chunk_size, ignore_errors, operation_type
         )
 
-    def _write_bytes(
+    def _write_bytes(  # noqa: PLR0913
         self,
         data: Iterable[bytes],
+        metadata: bytes,
         target: str | None,
         chunk_size: int,  # noqa: ARG002
-        ignore_errors: bool,  # noqa: ARG002
+        ignore_errors: bool,
         operation_type: BaseOperationType,
     ) -> int:
         """Method called by `self.write` writing bytes. See `self.write`."""
@@ -347,14 +358,18 @@ class FSDataBackend(
 
             logger.debug("Creating file: %s", path)
 
-        mode = "wb"
-        if operation_type == BaseOperationType.APPEND:
-            mode = "ab"
-            logger.debug("Appending to file: %s", path)
+        data = list(parse_iterable_to_dict(data, ignore_errors))
+        metadata = next(parse_iterable_to_dict([metadata], ignore_errors))
+        data_with_metadata = [
+            {"statement": chunk, "metadata": metadata} for chunk in data
+        ]
+        data_with_metadata_as_bytes = parse_dict_to_bytes(
+            data_with_metadata, self.settings.LOCALE_ENCODING, ignore_errors
+        )
 
         try:
-            with path.open(mode) as file:
-                for chunk in data:
+            with path.open("wb") as file:
+                for chunk in data_with_metadata_as_bytes:
                     file.write(chunk)
         except OSError as error:
             msg = "Failed to write to %s: %s"
@@ -376,7 +391,7 @@ class FSDataBackend(
             }
         )
         logger.debug("Written %s with success", path.absolute())
-        return 1
+        return len(data)
 
     def close(self) -> None:
         """FS backend has no open connections to close. No action."""

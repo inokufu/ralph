@@ -24,11 +24,13 @@ from tests.helpers import (
     string_is_uuid,
 )
 
+VOIDING_VERB = {"id": "http://adlnet.gov/expapi/verbs/voided"}
+
 
 @pytest.mark.anyio
 async def test_api_statements_post_invalid_parameters(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test that using invalid parameters returns the proper status code."""
@@ -50,7 +52,7 @@ async def test_api_statements_post_invalid_parameters(
 @pytest.mark.anyio
 async def test_api_statements_post_single_statement_directly(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the post statements API route with one statement."""
@@ -88,7 +90,7 @@ async def test_api_statements_post_single_statement_directly(
 @pytest.mark.anyio
 async def test_api_statements_post_bad_statement(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the post statements API route with one statement."""
@@ -106,7 +108,7 @@ async def test_api_statements_post_bad_statement(
 @pytest.mark.anyio
 async def test_api_statements_post_enriching_without_existing_values(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test that statements are properly enriched when statement provides no values."""
@@ -178,7 +180,7 @@ async def test_api_statements_post_enriching_with_existing_values(  # noqa: PLR0
     field: str,
     value: Any,
     status: int,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test that statements are properly enriched when values are provided."""
@@ -216,7 +218,7 @@ async def test_api_statements_post_enriching_with_existing_values(  # noqa: PLR0
 @pytest.mark.anyio
 async def test_api_statements_post_single_statement_no_trailing_slash(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test that the statements endpoint also works without the trailing slash."""
@@ -236,7 +238,7 @@ async def test_api_statements_post_single_statement_no_trailing_slash(
 @pytest.mark.anyio
 async def test_api_statements_post_list_of_one(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the post statements API route with one statement in a list."""
@@ -265,7 +267,7 @@ async def test_api_statements_post_list_of_one(
 @pytest.mark.anyio
 async def test_api_statements_post_list(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the post statements API route with two statements in a list."""
@@ -308,7 +310,7 @@ async def test_api_statements_post_list(
 @pytest.mark.anyio
 async def test_api_statements_post_list_with_duplicates(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the post statements API route with duplicate statement IDs should fail."""
@@ -338,7 +340,7 @@ async def test_api_statements_post_list_with_duplicates(
 @pytest.mark.anyio
 async def test_api_statements_post_list_with_duplicate_of_existing_statement(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the post statements API route, given a statement that already exist in the
@@ -458,7 +460,7 @@ async def test_api_statements_post_with_failure_during_id_query(
 async def test_api_statements_post_list_without_forwarding(
     client: AsyncClient,
     monkeypatch: MonkeyPatch,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the post statements API route, given an empty forwarding configuration,
@@ -493,3 +495,351 @@ async def test_api_statements_post_list_without_forwarding(
 
     assert response.status_code == 200
     assert "error" not in spy
+
+
+@pytest.mark.anyio
+async def test_api_statements_post_voiding(
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable,
+    cozy_auth_token: str,
+):
+    """Test the post statements API route for voiding."""
+    init_cozystack_db_and_monkeypatch_backend()
+
+    # Insert statements
+    statements = [mock_statement() for _ in range(3)]
+    statements_ids = [statement["id"] for statement in statements]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == statements_ids
+
+    # Void statements #0 and #2
+    voided_statements_ids = [statements_ids[0], statements_ids[2]]
+
+    voiding_statements = [
+        mock_statement(
+            verb=VOIDING_VERB,
+            object={"objectType": "StatementRef", "id": voided_statement_id},
+        )
+        for voided_statement_id in voided_statements_ids
+    ]
+    voiding_statements_ids = [
+        voiding_statement["id"] for voiding_statement in voiding_statements
+    ]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == voiding_statements_ids
+
+    # Get all
+    # should not return voided statements
+    # should return voiding statements
+    response = await client.get(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 200
+
+    received_ids = [statement["id"] for statement in response.json().get("statements")]
+
+    assert len(received_ids) == 3
+
+    assert statements_ids[1] in received_ids
+
+    for voided_statement_id in voided_statements_ids:
+        assert voided_statement_id not in received_ids
+
+    for voiding_statement_id in voiding_statements_ids:
+        assert voiding_statement_id in received_ids
+
+    # Get by statementId should not return voided statements
+    response = await client.get(
+        "/xAPI/statements/",
+        params={"statementId": voided_statements_ids[0]},
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 404
+
+    # Get by statementId should return voiding statements
+    response = await client.get(
+        "/xAPI/statements/",
+        params={"statementId": voiding_statements_ids[0]},
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == voiding_statements_ids[0]
+
+    # Get by voidedStatementId should return voided statements
+    response = await client.get(
+        "/xAPI/statements/",
+        params={"voidedStatementId": voided_statements_ids[0]},
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == voided_statements_ids[0]
+
+    # Get by voidedStatementId should not return voiding statements
+    response = await client.get(
+        "/xAPI/statements/",
+        params={"voidedStatementId": voiding_statements_ids[0]},
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_api_statements_post_voiding_does_not_exist(
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable,
+    cozy_auth_token: str,
+):
+    """
+    Test the post statements API route for voiding when voided statement doesn't exist.
+    """
+    init_cozystack_db_and_monkeypatch_backend()
+
+    # Insert statements
+    statements = [mock_statement() for _ in range(3)]
+    statements_ids = [statement["id"] for statement in statements]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == statements_ids
+
+    # Void a statement that does not exist
+    bad_statement_id = str(uuid4())
+
+    voiding_statement = mock_statement(
+        verb=VOIDING_VERB,
+        object={"objectType": "StatementRef", "id": bad_statement_id},
+    )
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statement,
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": (
+            f"StatementRef '{bad_statement_id}' of voiding Statement "
+            "references a Statement that does not exist"
+        )
+    }
+
+
+@pytest.mark.anyio
+async def test_api_statements_post_voiding_another_voiding_statement(
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable,
+    cozy_auth_token: str,
+):
+    """
+    Test the post statements API route for voiding when
+    voided statement is voiding statement.
+    """
+    init_cozystack_db_and_monkeypatch_backend()
+
+    # Insert statements
+    statements = [mock_statement() for _ in range(3)]
+    statements_ids = [statement["id"] for statement in statements]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == statements_ids
+
+    # Void statements #0 and #2
+    voided_statements_ids = [statements_ids[0], statements_ids[2]]
+
+    voiding_statements = [
+        mock_statement(
+            verb=VOIDING_VERB,
+            object={"objectType": "StatementRef", "id": voided_statement_id},
+        )
+        for voided_statement_id in voided_statements_ids
+    ]
+    voiding_statements_ids = [
+        voiding_statement["id"] for voiding_statement in voiding_statements
+    ]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == voiding_statements_ids
+
+    # Try to void one standard statement and one voiding statement
+    bad_statement_id = voiding_statements_ids[0]
+    voided_statements_ids = [statements_ids[1], bad_statement_id]
+
+    voiding_statements = [
+        mock_statement(
+            verb=VOIDING_VERB,
+            object={"objectType": "StatementRef", "id": voided_statement_id},
+        )
+        for voided_statement_id in voided_statements_ids
+    ]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statements,
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": (
+            f"StatementRef '{bad_statement_id}' of voiding Statement "
+            "references another voiding Statement"
+        )
+    }
+
+
+@pytest.mark.anyio
+async def test_api_statements_post_voiding_twice(
+    client: AsyncClient,
+    init_cozystack_db_and_monkeypatch_backend: Callable,
+    cozy_auth_token: str,
+):
+    """
+    Test the post statements API route for voiding when
+    voided statement is already voided.
+    """
+    init_cozystack_db_and_monkeypatch_backend()
+
+    # Insert statements
+    statements = [mock_statement() for _ in range(3)]
+    statements_ids = [statement["id"] for statement in statements]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == statements_ids
+
+    # Void statements #0 and #2
+    voided_statements_ids = [statements_ids[0], statements_ids[2]]
+
+    voiding_statements = [
+        mock_statement(
+            verb=VOIDING_VERB,
+            object={"objectType": "StatementRef", "id": voided_statement_id},
+        )
+        for voided_statement_id in voided_statements_ids
+    ]
+    voiding_statements_ids = [
+        voiding_statement["id"] for voiding_statement in voiding_statements
+    ]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == voiding_statements_ids
+
+    # Try to void one standard statement and one already voided statement
+    bad_statement_id = voided_statements_ids[0]
+    voided_statements_ids = [statements_ids[1], bad_statement_id]
+
+    voiding_statements = [
+        mock_statement(
+            verb=VOIDING_VERB,
+            object={"objectType": "StatementRef", "id": voided_statement_id},
+        )
+        for voided_statement_id in voided_statements_ids
+    ]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statements,
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": (
+            f"StatementRef '{bad_statement_id}' of voiding Statement references "
+            "a Statement that has already been voided"
+        )
+    }
+
+
+@pytest.mark.anyio
+async def test_api_statements_post_voiding_failure(
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    cozystack_custom: Callable,
+    cozy_auth_token: str,
+):
+    """
+    Test the post statements API route for voiding when backend has failure.
+    """
+
+    async def write_mock(*args, **kwargs):
+        """Raise an exception. Mocks the database.write method."""
+        raise BackendException()
+
+    # configure cozy auth
+    configure_env_for_mock_cozy_auth(monkeypatch)
+
+    # set up a fresh database
+    cozystack_custom()
+    backend_instance = get_cozystack_test_backend()
+    monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend_instance)
+
+    # Insert statements
+    statements = [mock_statement() for _ in range(3)]
+    statements_ids = [statement["id"] for statement in statements]
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=statements,
+    )
+    assert response.status_code == 200
+    assert response.json() == statements_ids
+
+    # Mock write method to cause failure
+    monkeypatch.setattr(backend_instance, "write", write_mock)
+
+    voiding_statement = mock_statement(
+        verb=VOIDING_VERB,
+        object={"objectType": "StatementRef", "id": statements_ids[0]},
+    )
+
+    response = await client.post(
+        "/xAPI/statements/",
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statement,
+    )
+
+    assert response.status_code == 500

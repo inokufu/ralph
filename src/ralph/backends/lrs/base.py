@@ -1,5 +1,6 @@
 """Base LRS backend for Ralph."""
 
+import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -12,19 +13,35 @@ from typing import (
 )
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, Field, NonNegativeInt
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    NonNegativeInt,
+    StrictBool,
+    TypeAdapter,
+    conlist,
+    constr,
+)
 from pydantic_settings import SettingsConfigDict
 
 from ralph.backends.data.base import (
+    AsyncWritable,
     BaseAsyncDataBackend,
     BaseDataBackend,
     BaseDataBackendSettings,
+    BaseOperationType,
     BaseQuery,
+    Writable,
 )
 from ralph.conf import BASE_SETTINGS_CONFIG
+from ralph.exceptions import BackendParameterException
 from ralph.models.xapi.base.agents import BaseXapiAgent
 from ralph.models.xapi.base.common import IRI
 from ralph.models.xapi.base.groups import BaseXapiGroup
+from ralph.models.xapi.base.statements import check_statement_is_voiding
+
+logger = logging.getLogger(__name__)
 
 
 class BaseLRSBackendSettings(BaseDataBackendSettings):
@@ -115,8 +132,82 @@ class RalphStatementsQuery(LRSStatementsQuery):
 
 Settings = TypeVar("Settings", bound=BaseLRSBackendSettings)
 
+NonEmptyStr = constr(strict=True, min_length=1)
 
-class BaseLRSBackend(BaseDataBackend[Settings, Any]):
+params_adapter = TypeAdapter(RalphStatementsQuery)
+ids_adapter = TypeAdapter(Sequence[NonEmptyStr])
+target_adapter = TypeAdapter(NonEmptyStr | None)
+include_extra_adapter = TypeAdapter(StrictBool)
+statements_adapter = TypeAdapter(conlist(dict, min_length=1))
+statements_ids_adapter = TypeAdapter(conlist(NonEmptyStr, min_length=1))
+
+
+def _check_voided_statements(
+    voided_statements_with_extra: Sequence[Mapping],
+    voided_statements_ids: Sequence[str],
+) -> list[dict]:
+    """Check if statements can be voided.
+
+    Args:
+        voided_statements_with_extra: List of statements fetched
+            from the database (with extra data).
+        voided_statements_ids: List of statements ids that are
+            supposed to be voided.
+
+    Returns:
+        List of statements safe to void.
+
+    Raises:
+        BackendParameterException: When some voided statements are not valid:
+            - a voiding Statement references a Statement that does not exist,
+            - a voiding Statement references another voiding Statement,
+            - a voiding Statement references a Statement that has already been voided.
+    """
+    voided_statements_with_extra_as_dict = {
+        extra_statement["statement"]["id"]: extra_statement
+        for extra_statement in voided_statements_with_extra
+    }
+
+    statements = []
+
+    for statement_id in voided_statements_ids:
+        if statement_id not in voided_statements_with_extra_as_dict:
+            msg = (
+                f"StatementRef '{statement_id}' of voiding Statement "
+                "references a Statement that does not exist"
+            )
+
+            logger.error(msg)
+            raise BackendParameterException(msg)
+
+        extra_statement = voided_statements_with_extra_as_dict[statement_id]
+        statement = extra_statement["statement"]
+        metadata = extra_statement["metadata"]
+
+        if check_statement_is_voiding(statement):
+            msg = (
+                f"StatementRef '{statement_id}' of voiding Statement "
+                "references another voiding Statement"
+            )
+
+            logger.error(msg)
+            raise BackendParameterException(msg)
+
+        if metadata["voided"]:
+            msg = (
+                f"StatementRef '{statement['id']}' of voiding Statement "
+                "references a Statement that has already been voided"
+            )
+
+            logger.error(msg)
+            raise BackendParameterException(msg)
+
+        statements.append(statement)
+
+    return statements
+
+
+class BaseLRSBackend(BaseDataBackend[Settings, Any], Writable):
     """Base LRS backend interface."""
 
     @abstractmethod
@@ -127,12 +218,66 @@ class BaseLRSBackend(BaseDataBackend[Settings, Any]):
 
     @abstractmethod
     def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> Iterator[dict]:
         """Yield statements with matching ids from the backend."""
 
+    def index_statements(
+        self, statements: Sequence[Mapping], target: str | None = None
+    ) -> int:
+        """Index statements as not voided on given target.
 
-class BaseAsyncLRSBackend(BaseAsyncDataBackend[Settings, Any]):
+        Raise:
+            BackendException: If any failure occurs during the write operation or
+                if an inescapable failure occurs and `ignore_errors` is set to `True`.
+            BackendParameterException: If a backend argument value is not valid.
+        """
+        statements = statements_adapter.validate_python(statements)
+        target_adapter.validate_python(target)
+
+        return self.write(
+            data=statements,
+            metadata={"voided": False},
+            target=target,
+            ignore_errors=False,
+            operation_type=BaseOperationType.INDEX,
+        )
+
+    def void_statements(
+        self, voided_statements_ids: Sequence[str], target: str | None = None
+    ) -> int:
+        """Void statements corresponding to voided_statements_ids on given target.
+
+        Raise:
+            BackendException: If any failure occurs during the write operation or
+                if an inescapable failure occurs and `ignore_errors` is set to `True`.
+            BackendParameterException: If a backend argument value is not valid.
+        """
+        voided_statements_ids = statements_ids_adapter.validate_python(
+            voided_statements_ids
+        )
+        target_adapter.validate_python(target)
+
+        voided_statements_with_extra = self.query_statements_by_ids(
+            ids=voided_statements_ids,
+            target=target,
+            include_extra=True,
+        )
+
+        statements = _check_voided_statements(
+            voided_statements_with_extra, voided_statements_ids
+        )
+
+        return self.write(
+            data=statements,
+            metadata={"voided": True},
+            target=target,
+            ignore_errors=False,
+            operation_type=BaseOperationType.UPDATE,
+        )
+
+
+class BaseAsyncLRSBackend(BaseAsyncDataBackend[Settings, Any], AsyncWritable):
     """Base async LRS backend interface."""
 
     @abstractmethod
@@ -143,6 +288,63 @@ class BaseAsyncLRSBackend(BaseAsyncDataBackend[Settings, Any]):
 
     @abstractmethod
     async def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> AsyncIterator[dict]:
         """Return the list of matching statement IDs from the database."""
+
+    async def index_statements(
+        self, statements: Sequence[Mapping], target: str | None = None
+    ) -> int:
+        """Index statements as not voided on given target.
+
+        Raise:
+            BackendException: If any failure occurs during the write operation or
+                if an inescapable failure occurs and `ignore_errors` is set to `True`.
+            BackendParameterException: If a backend argument value is not valid.
+        """
+        statements = statements_adapter.validate_python(statements)
+        target_adapter.validate_python(target)
+
+        return await self.write(
+            data=statements,
+            metadata={"voided": False},
+            target=target,
+            ignore_errors=False,
+            operation_type=BaseOperationType.INDEX,
+        )
+
+    async def void_statements(
+        self, voided_statements_ids: Sequence[str], target: str | None = None
+    ) -> int:
+        """Void statements corresponding to voided_statements_ids on given target.
+
+        Raise:
+            BackendException: If any failure occurs during the write operation or
+                if an inescapable failure occurs and `ignore_errors` is set to `True`.
+            BackendParameterException: If a backend argument value is not valid.
+        """
+        voided_statements_ids = statements_ids_adapter.validate_python(
+            voided_statements_ids
+        )
+        target_adapter.validate_python(target)
+
+        voided_statements_with_extra = [
+            statement
+            async for statement in self.query_statements_by_ids(
+                ids=voided_statements_ids,
+                target=target,
+                include_extra=True,
+            )
+        ]
+
+        statements = _check_voided_statements(
+            voided_statements_with_extra, voided_statements_ids
+        )
+
+        return await self.write(
+            data=statements,
+            metadata={"voided": True},
+            target=target,
+            ignore_errors=False,
+            operation_type=BaseOperationType.UPDATE,
+        )

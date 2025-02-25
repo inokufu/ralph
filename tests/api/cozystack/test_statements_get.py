@@ -24,7 +24,7 @@ from tests.helpers import (
 @pytest.mark.anyio
 async def test_api_statements_get(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route without any filters set up."""
@@ -51,7 +51,7 @@ async def test_api_statements_get(
 @pytest.mark.anyio
 async def test_api_statements_get_ascending(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "ascending" query parameter, should
@@ -78,7 +78,7 @@ async def test_api_statements_get_ascending(
 @pytest.mark.anyio
 async def test_api_statements_get_ascending_no_bool(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "ascending" query parameter, should
@@ -113,7 +113,7 @@ async def test_api_statements_get_ascending_no_bool(
 @pytest.mark.anyio
 async def test_api_statements_get_by_statement_id(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "statementId" query parameter, should
@@ -140,7 +140,7 @@ async def test_api_statements_get_by_statement_id(
 @pytest.mark.anyio
 async def test_api_statements_get_by_statement_id_no_uuid(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "statementId" query parameter, should
@@ -175,7 +175,7 @@ async def test_api_statements_get_by_statement_id_no_uuid(
 @pytest.mark.anyio
 async def test_api_statements_get_by_verb(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "verb" query parameter, should
@@ -206,7 +206,7 @@ async def test_api_statements_get_by_verb(
 @pytest.mark.anyio
 async def test_api_statements_get_by_verb_unknown_iri(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "verb" query parameter, should
@@ -239,7 +239,7 @@ async def test_api_statements_get_by_verb_unknown_iri(
 @pytest.mark.anyio
 async def test_api_statements_get_by_verb_no_iri(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "verb" query parameter, should
@@ -275,7 +275,7 @@ async def test_api_statements_get_by_verb_no_iri(
 @pytest.mark.anyio
 async def test_api_statements_get_by_activity(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "activity" query parameter, should
@@ -297,7 +297,7 @@ async def test_api_statements_get_by_activity(
 @pytest.mark.anyio
 async def test_api_statements_get_by_activity_unknown_iri(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "activity" query parameter, should
@@ -334,7 +334,7 @@ async def test_api_statements_get_by_activity_unknown_iri(
 @pytest.mark.anyio
 async def test_api_statements_get_by_activity_no_iri(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "activity" query parameter, should
@@ -374,7 +374,7 @@ async def test_api_statements_get_by_activity_no_iri(
 @pytest.mark.anyio
 async def test_api_statements_get_since_timestamp(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "since" query parameter, should
@@ -413,7 +413,7 @@ async def test_api_statements_get_since_timestamp(
 @pytest.mark.anyio
 async def test_api_statements_get_since_no_timestamp(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a "since" query parameter, should
@@ -448,7 +448,7 @@ async def test_api_statements_get_since_no_timestamp(
 @pytest.mark.anyio
 async def test_api_statements_get_until_timestamp(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "until" query parameter,
@@ -485,7 +485,7 @@ async def test_api_statements_get_until_timestamp(
 @pytest.mark.anyio
 async def test_api_statements_get_until_no_timestamp(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given an "until" query parameter,
@@ -521,7 +521,7 @@ async def test_api_statements_get_until_no_timestamp(
 async def test_api_statements_get_with_pagination(
     client: AsyncClient,
     monkeypatch: MonkeyPatch,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a request leading to more results than
@@ -584,7 +584,7 @@ async def test_api_statements_get_with_pagination(
 async def test_api_statements_get_with_pagination_and_query(
     client: AsyncClient,
     monkeypatch: MonkeyPatch,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a request with a query parameter
@@ -637,7 +637,7 @@ async def test_api_statements_get_with_pagination_and_query(
 @pytest.mark.anyio
 async def test_api_statements_get_with_no_matching_statement(
     client: AsyncClient,
-    init_cozystack_db_and_monkeypatch_backend: Callable[[list[dict] | None], None],
+    init_cozystack_db_and_monkeypatch_backend: Callable,
     cozy_auth_token: str,
 ):
     """Test the get statements API route, given a query yielding no matching statement,

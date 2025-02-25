@@ -59,6 +59,7 @@ def test_models_xapi_object_base_sub_statement_object(object_class):
 
     assert isinstance(sub_statement.object, object_class)
 
+
 def test_models_xapi_object_base_sub_statement_object_validation_error():
     """Test BaseXapiSubStatement Object validation error."""
     sub_statement_as_dict = mock_xapi_instance(BaseXapiSubStatement).model_dump()
@@ -67,4 +68,3 @@ def test_models_xapi_object_base_sub_statement_object_validation_error():
 
     with pytest.raises(ValidationError):
         BaseXapiSubStatement.model_validate(sub_statement_as_dict)
-

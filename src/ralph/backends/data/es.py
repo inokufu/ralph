@@ -65,7 +65,7 @@ class ESDataBackendSettings(BaseDataBackendSettings):
         "http://localhost:9200"  # CommaSeparatedTuple("http://localhost:9200")
     )
     POINT_IN_TIME_KEEP_ALIVE: str = "1m"
-    REFRESH_AFTER_WRITE: Literal["false", "true", "wait_for"] | None = None
+    REFRESH_AFTER_WRITE: Literal["false", "true", "wait_for"] | None = "wait_for"
 
 
 class ESQueryPit(BaseModel):
@@ -287,9 +287,10 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
             kwargs["search_after"] = query.search_after
             yield from documents
 
-    def write(
+    def write(  # noqa: PLR0913
         self,
-        data: IOBase | Iterable[bytes] | Iterable[dict],
+        data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -299,6 +300,7 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
 
         Args:
             data (Iterable or IOBase): The data containing documents to write.
+            metadata (Mapping): The metadata related to the documents.
             target (str or None): The target Elasticsearch index name.
                 If target is `None`, the `DEFAULT_INDEX` is used instead.
             chunk_size (int or None): The number of documents to write in one batch.
@@ -319,11 +321,14 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
             BackendParameterException: If the `operation_type` is `APPEND` as it is not
                 supported.
         """
-        return super().write(data, target, chunk_size, ignore_errors, operation_type)
+        return super().write(
+            data, metadata, target, chunk_size, ignore_errors, operation_type
+        )
 
-    def _write_dicts(
+    def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -337,7 +342,9 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
         try:
             for success, action in streaming_bulk(
                 client=self.client,
-                actions=ESDataBackend.to_documents(data, target, operation_type),
+                actions=ESDataBackend.to_documents(
+                    data, metadata, target, operation_type
+                ),
                 chunk_size=chunk_size,
                 raise_on_error=(not ignore_errors),
                 refresh=self.settings.REFRESH_AFTER_WRITE,
@@ -373,7 +380,8 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
     @staticmethod
     def to_documents(
         data: Iterable[Mapping],
-        target: str,
+        metadata: Mapping,
+        target: str | None,
         operation_type: BaseOperationType,
     ) -> Iterator[dict]:
         """Convert dictionaries from `data` to ES documents and yield them."""
@@ -381,18 +389,29 @@ class ESDataBackend(BaseDataBackend[Settings, ESQuery], Writable, Listable):
             for item in data:
                 yield {
                     "_index": target,
-                    "_id": item.get("id", None),
+                    "_id": item.get("id"),
                     "_op_type": operation_type.value,
-                    "doc": item,
+                    "doc": {
+                        "statement": item,
+                        "metadata": metadata,
+                    },
                 }
         elif operation_type in (BaseOperationType.CREATE, BaseOperationType.INDEX):
             for item in data:
-                yield {
+                document = {
                     "_index": target,
-                    "_id": item.get("id", None),
+                    "_id": item.get("id"),
                     "_op_type": operation_type.value,
-                    "_source": item,
                 }
+
+                if "@timestamp" in item:
+                    document["_source"] = {"@timestamp": item.pop("@timestamp")}
+                else:
+                    document["_source"] = {}
+
+                document["_source"].update({"statement": item, "metadata": metadata})
+
+                yield document
         else:
             # operation_type == BaseOperationType.DELETE (by exclusion)
             for item in data:
