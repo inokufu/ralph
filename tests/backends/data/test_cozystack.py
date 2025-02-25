@@ -483,6 +483,29 @@ def test_backends_data_cozystack_write_with_update_operation(
     ] * 10
 
 
+def test_backends_data_cozystack_write_with_update_operation_failure(
+    cozystack_custom: Callable[[], CozyStackClient], cozy_auth_target: str
+):
+    """
+    Test the `CozyStackDataBackend.write` method, given an `UPDATE` `operation_type`,
+    should check if _rev field exists.
+    """
+    cozystack_custom()
+    backend = CozyStackDataBackend()
+
+    data = [{"id": str(idx), "value": str(idx)} for idx in range(10)]
+
+    assert len(list(backend.read(target=cozy_auth_target))) == 0
+    assert backend.write(data, target=cozy_auth_target) == 10
+
+    data = [{"id": str(idx), "value": str(idx + 10)} for idx in range(10)]
+
+    with pytest.raises(BackendException, match="Missing `_rev` key in dict"):
+        backend.write(
+            data, target=cozy_auth_target, operation_type=BaseOperationType.UPDATE
+        )
+
+
 def test_backends_data_cozystack_write_with_append_operation(
     cozystack_custom: Callable[[], CozyStackClient], caplog: LogCaptureFixture
 ):

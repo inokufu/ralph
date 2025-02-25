@@ -294,7 +294,7 @@ def test_backends_lrs_fs_query_statements(fs, fs_lrs_backend):
     assert backend.write(documents_default) == 1
 
     # Insert documents into custom target.
-    documents_custom = [{"id": "3", "timestamp": "2023-05-25T00:00:20.194929+00:00"}]
+    documents_custom = [{"id": "3", "timestamp": "2023-05-26T00:00:20.194929+00:00"}]
     assert backend.write(documents_custom, target=custom_target) == 1
 
     # Check the expected search query results.
@@ -306,6 +306,30 @@ def test_backends_lrs_fs_query_statements(fs, fs_lrs_backend):
         RalphStatementsQuery.model_construct(limit=10), target=custom_target
     )
     assert result.statements == documents_custom
+
+    backend.close()
+
+
+def test_backends_lrs_fs_query_statements_voided(fs, fs_lrs_backend):
+    """Test the `FSLRSBackend.query_statements` method, given a query,
+    should return matching statements.
+    """
+    # Create a custom directory
+    custom_target = "custom_dir"
+    fs.create_dir(f"foo/{custom_target}")
+
+    # Instantiate FSLRSBackend.
+    backend = fs_lrs_backend()
+
+    # Insert voied documents into default target.
+    documents_voided = [{"id": "4", "timestamp": "2023-06-25T00:00:20.194929+00:00"}]
+    assert backend.write(documents_voided, {"voided": True}) == 1
+
+    # Check the expected search query results for voidedStatementId
+    result = backend.query_statements(
+        RalphStatementsQuery.model_construct(voided_statement_id="4")
+    )
+    assert result.statements == documents_voided
 
     backend.close()
 

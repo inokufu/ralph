@@ -1006,3 +1006,56 @@ async def test_api_statements_put_voiding_twice(  # noqa: PLR0913
             "a Statement that has already been voided"
         )
     }
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "backend",
+    [
+        get_async_es_test_backend,
+        get_async_mongo_test_backend,
+        get_es_test_backend,
+        get_mongo_test_backend,
+    ],
+)
+async def test_api_statements_put_voiding_failure(  # noqa: PLR0913
+    client, backend, monkeypatch, basic_auth_credentials, es, mongo
+):
+    """
+    Test the put statements API route for voiding when backend has failure.
+    """
+
+    async def write_mock(*args, **kwargs):
+        """Raise an exception. Mocks the database.write method."""
+        raise BackendException()
+
+    backend_instance = backend()
+    monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend_instance)
+
+    # Insert statements
+    statement = mock_statement()
+
+    response = await client.put(
+        "/xAPI/statements/",
+        params={"statementId": statement["id"]},
+        headers={"Authorization": f"Basic {basic_auth_credentials}"},
+        json=statement,
+    )
+    assert response.status_code == 204
+
+    # Mock write method to cause failure
+    monkeypatch.setattr(backend_instance, "write", write_mock)
+
+    voiding_statement = mock_statement(
+        verb=VOIDING_VERB,
+        object={"objectType": "StatementRef", "id": statement["id"]},
+    )
+
+    response = await client.put(
+        "/xAPI/statements/",
+        params={"statementId": voiding_statement["id"]},
+        headers={"Authorization": f"Basic {basic_auth_credentials}"},
+        json=voiding_statement,
+    )
+
+    assert response.status_code == 500

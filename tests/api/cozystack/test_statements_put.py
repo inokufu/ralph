@@ -655,3 +655,55 @@ async def test_api_statements_put_voiding_twice(
             "a Statement that has already been voided"
         )
     }
+
+
+@pytest.mark.anyio
+async def test_api_statements_put_voiding_failure(
+    client: AsyncClient,
+    monkeypatch: MonkeyPatch,
+    cozystack_custom: Callable,
+    cozy_auth_token: str,
+):
+    """
+    Test the put statements API route for voiding when backend has failure.
+    """
+
+    async def write_mock(*args, **kwargs):
+        """Raise an exception. Mocks the database.write method."""
+        raise BackendException()
+
+    # configure cozy auth
+    configure_env_for_mock_cozy_auth(monkeypatch)
+
+    # set up a fresh database
+    cozystack_custom()
+    backend_instance = get_cozystack_test_backend()
+    monkeypatch.setattr("ralph.api.routers.statements.BACKEND_CLIENT", backend_instance)
+
+    # Insert statements
+    statement = mock_statement()
+
+    response = await client.put(
+        "/xAPI/statements/",
+        params={"statementId": statement["id"]},
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=statement,
+    )
+    assert response.status_code == 204
+
+    # Mock write method to cause failure
+    monkeypatch.setattr(backend_instance, "write", write_mock)
+
+    voiding_statement = mock_statement(
+        verb=VOIDING_VERB,
+        object={"objectType": "StatementRef", "id": statement["id"]},
+    )
+
+    response = await client.put(
+        "/xAPI/statements/",
+        params={"statementId": voiding_statement["id"]},
+        headers={"X-Auth-Token": f"Bearer {cozy_auth_token}"},
+        json=voiding_statement,
+    )
+
+    assert response.status_code == 500

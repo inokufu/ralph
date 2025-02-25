@@ -79,8 +79,12 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
         if params.statement_id:
             self._add_filter_by_id(filters, params.statement_id)
+            self._add_filter_by_voided(filters, voided=False)
         elif params.voided_statement_id:
-            self._add_filter_by_voided_id(filters, params.voided_statement_id)
+            self._add_filter_by_id(filters, params.voided_statement_id)
+            self._add_filter_by_voided(filters, voided=True)
+        else:
+            self._add_filter_by_voided(filters, voided=False)
 
         self._add_filter_by_agent(filters, params.agent, params.related_agents)
         self._add_filter_by_authority(filters, params.authority)
@@ -192,27 +196,20 @@ class FSLRSBackend(BaseLRSBackend[FSLRSBackendSettings], FSDataBackend):
 
         def match_statement_id(item: Mapping) -> bool:
             """Return `True` if the statement has the given `statement_id`."""
-            return (
-                item.get("statement")["id"] == statement_id
-                and not item.get("metadata")["voided"]
-            )
+            return item.get("statement")["id"] == statement_id
 
         if statement_id:
             filters.append(match_statement_id)
 
     @staticmethod
-    def _add_filter_by_voided_id(filters: Sequence, statement_id: str | None) -> None:
+    def _add_filter_by_voided(filters: Sequence, voided: bool) -> None:
         """Add the `match_statement_id` filter if `voided_statement_id` is set."""
 
-        def match_voided_statement_id(item: Mapping) -> bool:
-            """Return `True` if the statement has the given `statement_id`."""
-            return (
-                item.get("statement")["id"] == statement_id
-                and item.get("metadata")["voided"]
-            )
+        def match_voided(item: Mapping) -> bool:
+            """Return `True` if the statement voided is the same as voided param."""
+            return item.get("metadata").get("voided", False) == voided
 
-        if statement_id:
-            filters.append(match_voided_statement_id)
+        filters.append(match_voided)
 
     @staticmethod
     def _get_related_agents(statement: Mapping) -> Iterable[Mapping]:
