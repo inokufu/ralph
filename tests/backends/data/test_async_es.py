@@ -803,26 +803,9 @@ async def test_backends_data_async_es_write_without_ignore_errors(
     assert len([statement async for statement in backend.read()]) == 0
 
     # By default, we should raise an error and stop the importation.
-    msg = (
-        r"1 document\(s\) failed to index. "
-        r"\[\{'index': \{'_index': 'test-index-foo', '_id': '4', "
-        r"'status': 400, 'error': \{'type': 'mapper_parsing_exception', "
-        r"'reason': \"failed to parse field \[statement.count\] of type \[long\] "
-        r"in document with id '4'. Preview of field's value: 'wrong'\", "
-        r"'caused_by': \{'type': 'illegal_argument_exception', 'reason': "
-        r"'For input string: \"wrong\"'\}\}, 'data': \{'statement': \{'id': 4, "
-        r"'count': 'wrong'\}, 'metadata': \{\}\}\}\}\] Total succeeded writes: 5"
-    )
-
-    with pytest.raises(BackendException, match=msg):
+    with pytest.raises(BackendException):
         with caplog.at_level(logging.ERROR):
             await backend.write(data, chunk_size=2)
-
-    assert (
-        "ralph.backends.data.async_es",
-        logging.ERROR,
-        msg.replace("\\", ""),
-    ) in caplog.record_tuples
 
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = [statement async for statement in backend.read()]

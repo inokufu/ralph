@@ -27,6 +27,12 @@ ES_PORT     = 9200
 ES_INDEX    = statements
 ES_URL      = $(ES_PROTOCOL)://$(ES_HOST):$(ES_PORT)
 
+# -- MongoDB
+MONGO_CONNECTION_URI = mongodb://mongo:27017/
+MONGO_DATABASE       = statements
+MONGO_COLLECTION     = marsha
+
+
 # -- Arnold
 ARNOLD              = ARNOLD_IMAGE_TAG=master bin/arnold
 ARNOLD_APP          = ralph
@@ -122,7 +128,8 @@ bootstrap: \
   .env \
   build \
   .ralph/auth.json \
-  es-index
+  es-index \
+  mongo-indexes
 .PHONY: bootstrap
 
 build: ## build the app container
@@ -167,6 +174,12 @@ es-index: run-es
 	@echo -e "\nConfiguring $(ES_INDEX) index..."
 	curl -X PUT $(ES_URL)/$(ES_INDEX)/_settings -H 'Content-Type: application/json' -d '{"index": {"number_of_replicas": 0}}'
 .PHONY: es-index
+
+mongo-indexes: ## create mongo indexes
+mongo-indexes: run-mongo 
+	@echo "Creating index for $(MONGO_COLLECTION) collection on $(MONGO_DATABASE) database"
+	@$(COMPOSE_EXEC_APP) python create_mongo_indexes.py $(MONGO_CONNECTION_URI) $(MONGO_DATABASE) $(MONGO_COLLECTION)
+.PHONY: mongo-indexes 
 
 k3d-cluster: ## boot a k3d cluster for k8s-related development
 k3d-cluster: \

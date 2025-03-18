@@ -651,7 +651,7 @@ def test_backends_lrs_cozystack_query_statements_bad_args(
     cozystack_custom()
     backend = CozyStackLRSBackend()
 
-    for params in [0, "abc", {"a": "b"}, [1, 2, 3], True]:
+    for params in [0, "abc", {"a": "b"}, [1, 2, 3], True, None]:
         with pytest.raises(ValidationError):
             next(
                 backend.query_statements(
@@ -677,7 +677,7 @@ def test_backends_lrs_cozystack_query_statements_by_ids_bad_args(
     cozystack_custom()
     backend = CozyStackLRSBackend()
 
-    for ids in [[0], 0, "0", "abc", True]:
+    for ids in [[0], 0, "0", "abc", True, None]:
         with pytest.raises(ValidationError):
             next(
                 backend.query_statements_by_ids(
@@ -695,7 +695,7 @@ def test_backends_lrs_cozystack_query_statements_by_ids_bad_args(
                 )
             )
 
-    for include_extra in [0, "abc", [True]]:
+    for include_extra in [0, "abc", [True], None]:
         with pytest.raises(ValidationError):
             next(
                 backend.query_statements_by_ids(
@@ -711,7 +711,7 @@ def test_backends_lrs_cozystack_index_statements_bad_args(
     cozystack_custom()
     backend = CozyStackLRSBackend()
 
-    for statements in [0, "abc", [0, 1, 2], ["a", "b", "c"], {"a": "b"}]:
+    for statements in [0, "abc", [0, 1, 2], ["a", "b", "c"], {"a": "b"}, None]:
         with pytest.raises(ValidationError):
             backend.index_statements(statements=statements)
 
@@ -727,7 +727,7 @@ def test_backends_lrs_cozystack_void_statements_bad_args(
     cozystack_custom()
     backend = CozyStackLRSBackend()
 
-    for voided_statements_ids in [0, "abc", [0, 1, 2], {"a": "b"}]:
+    for voided_statements_ids in [0, "abc", [0, 1, 2], {"a": "b"}, None]:
         with pytest.raises(ValidationError):
             backend.void_statements(voided_statements_ids=voided_statements_ids)
 

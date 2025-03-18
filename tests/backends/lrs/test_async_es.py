@@ -778,7 +778,7 @@ async def test_backends_lrs_async_es_query_statements_bad_args():
     """Test the `AsyncESLRSBackend.query_statements` method with bad args."""
     backend = AsyncESLRSBackend()
 
-    for params in [0, "abc", {"a": "b"}, [1, 2, 3], True]:
+    for params in [0, "abc", {"a": "b"}, [1, 2, 3], True, None]:
         with pytest.raises(ValidationError):
             [x async for x in await backend.query_statements(params=params)]
 
@@ -800,7 +800,7 @@ async def test_backends_lrs_async_es_query_statements_by_ids_bad_args():
     """Test the `AsyncESLRSBackend.query_statements_by_ids` method with bad args."""
     backend = AsyncESLRSBackend()
 
-    for ids in [[0], 0, "0", "abc", True]:
+    for ids in [[0], 0, "0", "abc", True, None]:
         with pytest.raises(ValidationError):
             [x async for x in backend.query_statements_by_ids(ids=ids)]
 
@@ -814,7 +814,7 @@ async def test_backends_lrs_async_es_query_statements_by_ids_bad_args():
                 )
             ]
 
-    for include_extra in [0, "abc", [True]]:
+    for include_extra in [0, "abc", [True], None]:
         with pytest.raises(ValidationError):
             [
                 x
@@ -831,7 +831,7 @@ async def test_backends_lrs_async_es_index_statements_bad_args():
     """Test the `AsyncESLRSBackend.index_statemennts` method with bad args."""
     backend = AsyncESLRSBackend()
 
-    for statements in [0, "abc", [0, 1, 2], ["a", "b", "c"], {"a": "b"}]:
+    for statements in [0, "abc", [0, 1, 2], ["a", "b", "c"], {"a": "b"}, None]:
         with pytest.raises(ValidationError):
             await backend.index_statements(statements=statements)
 
@@ -847,7 +847,7 @@ async def test_backends_lrs_async_es_void_statements_bad_args():
     """Test the `AsyncESLRSBackend.void_statemennts` method with bad args."""
     backend = AsyncESLRSBackend()
 
-    for voided_statements_ids in [0, "abc", [0, 1, 2], {"a": "b"}]:
+    for voided_statements_ids in [0, "abc", [0, 1, 2], {"a": "b"}, None]:
         with pytest.raises(ValidationError):
             await backend.void_statements(voided_statements_ids=voided_statements_ids)
 
