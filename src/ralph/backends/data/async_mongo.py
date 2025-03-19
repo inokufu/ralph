@@ -191,6 +191,7 @@ class AsyncMongoDataBackend(
     async def write(  # noqa: PLR0913
         self,
         data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -201,6 +202,7 @@ class AsyncMongoDataBackend(
 
         Args:
             data (Iterable or IOBase): The data containing documents to write.
+            metadata (Mapping): The metadata related to the documents.
             target (str or None): The target MongoDB collection name.
             chunk_size (int or None): The number of documents to write in one batch.
                 If `chunk_size` is `None` it defaults to `WRITE_CHUNK_SIZE`.
@@ -223,12 +225,19 @@ class AsyncMongoDataBackend(
                 supported.
         """
         return await super().write(
-            data, target, chunk_size, ignore_errors, operation_type, concurrency
+            data,
+            metadata,
+            target,
+            chunk_size,
+            ignore_errors,
+            operation_type,
+            concurrency,
         )
 
-    async def _write_dicts(
+    async def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -239,19 +248,27 @@ class AsyncMongoDataBackend(
         collection = self._get_target_collection(target)
         msg = "Start writing to the %s collection of the %s database (chunk size: %d)"
         logger.debug(msg, collection, self.database, chunk_size)
+
         if operation_type == BaseOperationType.UPDATE:
-            data = MongoDataBackend.to_replace_one(data)
+            data = MongoDataBackend.to_replace_one(data, metadata)
             for batch in iter_by_batch(data, chunk_size):
                 count += await self._bulk_update(batch, ignore_errors, collection)
+
             logger.info("Updated %d documents with success", count)
+
         elif operation_type == BaseOperationType.DELETE:
             for batch in iter_by_batch(MongoDataBackend.to_ids(data), chunk_size):
                 count += await self._bulk_delete(batch, ignore_errors, collection)
+
             logger.info("Deleted %d documents with success", count)
+
         else:
-            data = MongoDataBackend.to_documents(data, ignore_errors, operation_type)
+            data = MongoDataBackend.to_documents(
+                data, metadata, ignore_errors, operation_type
+            )
             for batch in iter_by_batch(data, chunk_size):
                 count += await self._bulk_import(batch, ignore_errors, collection)
+
             logger.info("Inserted %d documents with success", count)
 
         return count
@@ -301,7 +318,7 @@ class AsyncMongoDataBackend(
         """Delete a batch of documents from the selected database collection."""
         try:
             deleted_documents = await collection.delete_many(
-                {"_source.id": {"$in": batch}}
+                {"_source.statement.id": {"$in": batch}}
             )
         except (BulkWriteError, PyMongoError, BSONError, ValueError) as error:
             msg = "Failed to delete document chunk: %s"

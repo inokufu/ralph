@@ -33,7 +33,7 @@ def insert_es_statements(es_client, statements, index=ES_TEST_INDEX):
                 "_index": index,
                 "_id": statement["id"],
                 "_op_type": "index",
-                "_source": statement,
+                "_source": {"statement": statement, "metadata": {"voided": False}},
             }
             for statement in statements
         ],
@@ -49,6 +49,7 @@ def insert_mongo_statements(mongo_client, statements, collection):
         list(
             MongoDataBackend.to_documents(
                 data=statements,
+                metadata={"voided": False},
                 ignore_errors=True,
                 operation_type=BaseOperationType.CREATE,
             )
@@ -101,7 +102,7 @@ def insert_cozystack_statements(statements, target):
     )
     backend = CozyStackDataBackend(settings=settings)
 
-    success = backend.write(statements, target=target)
+    success = backend.write(statements, {"voided": False}, target=target)
     assert success == len(statements)
 
 

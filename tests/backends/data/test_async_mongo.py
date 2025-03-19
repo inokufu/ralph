@@ -50,7 +50,7 @@ async def test_backends_data_async_mongo_default_instantiation(monkeypatch, fs):
     assert isinstance(backend.client, AsyncIOMotorClient)
     assert backend.database.name == "statements"
     assert backend.collection.name == "marsha"
-    assert str(backend.settings.CONNECTION_URI) == "mongodb://localhost:27017/"
+    assert str(backend.settings.CONNECTION_URI) == "mongodb://mongo:27017/"
     assert backend.settings.CLIENT_OPTIONS == MongoClientOptions()
     assert backend.settings.LOCALE_ENCODING == "utf8"
     assert backend.settings.READ_CHUNK_SIZE == 500
@@ -597,7 +597,14 @@ async def test_backends_data_async_mongo_write_with_concurrency(
     """
 
     async def mock_write(  # noqa: PLR0913
-        self, data, target, chunk_size, ignore_errors, operation_type, concurrency
+        self,
+        data,
+        metadata,
+        target,
+        chunk_size,
+        ignore_errors,
+        operation_type,
+        concurrency,
     ):
         """Mock the AsyncWritable `write` method."""
         assert concurrency == 4
@@ -620,7 +627,10 @@ async def test_backends_data_async_mongo_write_with_target(
     backend = async_mongo_backend()
     timestamp = {"timestamp": "2022-06-27T15:36:50"}
     documents = [{"id": "foo", **timestamp}, {"id": "bar", **timestamp}]
-    assert await backend.write(documents, target="foo_target_collection") == 2
+    assert (
+        await backend.write(documents, {"meta": "data"}, target="foo_target_collection")
+        == 2
+    )
 
     # The documents should not be written to the default collection.
     assert not [statement async for statement in backend.read()]
@@ -628,13 +638,20 @@ async def test_backends_data_async_mongo_write_with_target(
     result = [
         statement async for statement in backend.read(target="foo_target_collection")
     ]
+
     assert result[0] == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", **timestamp},
+        "_source": {
+            "statement": {"id": "foo", **timestamp},
+            "metadata": {"meta": "data"},
+        },
     }
     assert result[1] == {
         "_id": "62b9ce92fcde2b2edba56bf4",
-        "_source": {"id": "bar", **timestamp},
+        "_source": {
+            "statement": {"id": "bar", **timestamp},
+            "metadata": {"meta": "data"},
+        },
     }
 
 
@@ -681,19 +698,28 @@ async def test_backends_data_async_mongo_write_without_target(
     """Test the `AsyncMongoDataBackend.write` method, given a no `target` argument,
     should write documents to the default collection.
     """
-
     backend = async_mongo_backend()
+
     timestamp = {"timestamp": "2022-06-27T15:36:50"}
     documents = [{"id": "foo", **timestamp}, {"id": "bar", **timestamp}]
-    assert await backend.write(documents) == 2
+
+    assert await backend.write(documents, {"meta": "data"}) == 2
+
     result = [statement async for statement in backend.read()]
+
     assert result[0] == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", **timestamp},
+        "_source": {
+            "statement": {"id": "foo", **timestamp},
+            "metadata": {"meta": "data"},
+        },
     }
     assert result[1] == {
         "_id": "62b9ce92fcde2b2edba56bf4",
-        "_source": {"id": "bar", **timestamp},
+        "_source": {
+            "statement": {"id": "bar", **timestamp},
+            "metadata": {"meta": "data"},
+        },
     }
 
 
@@ -719,16 +745,32 @@ async def test_backends_data_async_mongo_write_with_duplicated_key_error(
 
     # Given `ignore_errors` argument set to `True`, the `write` method should not raise
     # an exception.
-    assert await backend.write(documents, ignore_errors=True) == 2
+    assert await backend.write(documents, {"meta": "data"}, ignore_errors=True) == 2
+
     assert (
         await backend.write(
-            documents, operation_type=BaseOperationType.CREATE, ignore_errors=True
+            documents,
+            {"meta": "data"},
+            operation_type=BaseOperationType.CREATE,
+            ignore_errors=True,
         )
         == 0
     )
     assert [statement async for statement in backend.read()] == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {
+                "statement": {"id": "foo", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {
+                "statement": {"id": "bar", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
     ]
 
     # Given `ignore_errors` argument set to `False`, the `write` method should raise
@@ -737,9 +779,22 @@ async def test_backends_data_async_mongo_write_with_duplicated_key_error(
         await backend.write(documents)
     with pytest.raises(BackendException, match="E11000 duplicate key error collection"):
         await backend.write(documents, operation_type=BaseOperationType.CREATE)
+
     assert [statement async for statement in backend.read()] == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {
+                "statement": {"id": "foo", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {
+                "statement": {"id": "bar", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
     ]
 
 
@@ -758,21 +813,29 @@ async def test_backends_data_async_mongo_write_with_delete_operation(
         {"id": "bar", **timestamp},
         {"id": "baz", **timestamp},
     ]
-    assert await backend.write(documents) == 3
+    assert await backend.write(documents, {"meta": "data"}) == 3
+
     assert len([statement async for statement in backend.read()]) == 3
+
     assert (
         await backend.write(documents[:2], operation_type=BaseOperationType.DELETE) == 2
     )
+
     assert [statement async for statement in backend.read()] == [
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": documents[2]}
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {"statement": documents[2], "metadata": {"meta": "data"}},
+        }
     ]
 
     # Given binary data, the `write` method should have the same behaviour.
     binary_documents = [json.dumps(documents[2]).encode("utf8")]
+
     assert (
         await backend.write(binary_documents, operation_type=BaseOperationType.DELETE)
         == 1
     )
+
     assert not [statement async for statement in backend.read()]
 
 
@@ -787,9 +850,10 @@ async def test_backends_data_async_mongo_write_with_delete_operation_failure(
     backend = async_mongo_backend()
     msg = (
         "Failed to delete document chunk: Invalid document "
-        "{'q': {'_source.id': {'$in': [<class 'object'>]}}, 'limit': 0} "
+        "{'q': {'_source.statement.id': {'$in': [<class 'object'>]}}, 'limit': 0} "
         "| cannot encode object: <class 'object'>, of type: <class 'type'>"
     )
+
     with pytest.raises(BackendException, match=msg):
         await backend.write([{"id": object}], operation_type=BaseOperationType.DELETE)
 
@@ -824,23 +888,38 @@ async def test_backends_data_async_mongo_write_with_update_operation(
     timestamp = {"timestamp": "2022-06-27T15:36:50"}
     documents = [{"id": "foo", **timestamp}, {"id": "bar", **timestamp}]
 
-    assert await backend.write(documents) == 2
+    assert await backend.write(documents, {"meta": "data"}) == 2
+
     new_timestamp = {"timestamp": "2022-06-27T16:36:50"}
     documents = [{"id": "foo", **new_timestamp}, {"id": "bar", **new_timestamp}]
-    assert await backend.write(documents, operation_type=BaseOperationType.UPDATE) == 2
+
+    assert (
+        await backend.write(
+            documents, {"meta": "tada"}, operation_type=BaseOperationType.UPDATE
+        )
+        == 2
+    )
 
     results = [statement async for statement in backend.read()]
+
     assert results[0] == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", **new_timestamp},
+        "_source": {
+            "statement": {"id": "foo", **new_timestamp},
+            "metadata": {"meta": "tada"},
+        },
     }
     assert results[1] == {
         "_id": "62b9ce92fcde2b2edba56bf4",
-        "_source": {"id": "bar", **new_timestamp},
+        "_source": {
+            "statement": {"id": "bar", **new_timestamp},
+            "metadata": {"meta": "tada"},
+        },
     }
 
     # Given binary data, the `write` method should have the same behaviour.
     binary_documents = [json.dumps({"id": "foo", "new_field": "bar"}).encode("utf8")]
+
     assert (
         await backend.write(binary_documents, operation_type=BaseOperationType.UPDATE)
         == 1
@@ -848,7 +927,7 @@ async def test_backends_data_async_mongo_write_with_update_operation(
     results = [statement async for statement in backend.read()]
     assert results[0] == {
         "_id": "62b9ce922c26b46b68ffc68f",
-        "_source": {"id": "foo", "new_field": "bar"},
+        "_source": {"statement": {"id": "foo", "new_field": "bar"}, "metadata": {}},
     }
 
 
@@ -859,8 +938,8 @@ async def test_backends_data_async_mongo_write_with_update_operation_failure(
     """Test the `AsyncMongoDataBackend.write` method with the `UPDATE` `operation_type`,
     given an AsyncIOMotorClient failure, should raise a `BackendException`.
     """
-
     backend = async_mongo_backend()
+
     schema = {
         "$jsonSchema": {
             "bsonType": "object",
@@ -868,10 +947,10 @@ async def test_backends_data_async_mongo_write_with_update_operation_failure(
             "properties": {
                 "_source": {
                     "bsonType": "object",
-                    "required": ["timestamp"],
+                    "required": ["statement.timestamp"],
                     "description": "must be an object",
                     "properties": {
-                        "timestamp": {
+                        "statement.timestamp": {
                             "bsonType": "string",
                             "description": "must be a string and is required",
                         }
@@ -896,7 +975,7 @@ async def test_backends_data_async_mongo_write_with_update_operation_failure(
         )
         == 1
     )
-    assert [statement async for statement in backend.read()][0]["_source"][
+    assert [statement async for statement in backend.read()][0]["_source"]["statement"][
         "new"
     ] == "field"
 
@@ -942,10 +1021,18 @@ async def test_backends_data_async_mongo_write_with_create_operation(
         {"timestamp": "2022-06-27T15:36:50"},
         {"timestamp": "2023-06-27T15:36:50"},
     ]
-    assert await backend.write(documents, operation_type=BaseOperationType.CREATE) == 2
+
+    assert (
+        await backend.write(
+            documents, {"meta": "data"}, operation_type=BaseOperationType.CREATE
+        )
+        == 2
+    )
+
     results = [statement async for statement in backend.read()]
-    assert results[0]["_source"]["timestamp"] == documents[0]["timestamp"]
-    assert results[1]["_source"]["timestamp"] == documents[1]["timestamp"]
+
+    assert results[0]["_source"]["statement"]["timestamp"] == documents[0]["timestamp"]
+    assert results[1]["_source"]["statement"]["timestamp"] == documents[1]["timestamp"]
 
 
 @pytest.mark.parametrize(
@@ -1043,21 +1130,25 @@ async def test_backends_data_async_mongo_write_with_custom_chunk_size(
     """
 
     backend = async_mongo_backend()
+
     timestamp = {"timestamp": "2022-06-27T15:36:50"}
     new_timestamp = {"timestamp": "2023-06-27T15:36:50"}
+
     documents = [
         {"id": "foo", **timestamp},
         {"id": "bar", **timestamp},
         {"id": "baz", **timestamp},
     ]
+
     new_documents = [
         {"id": "foo", **new_timestamp},
         {"id": "bar", **new_timestamp},
         {"id": "baz", **new_timestamp},
     ]
+
     # Index operation type.
     with caplog.at_level(logging.DEBUG):
-        assert await backend.write(documents, chunk_size=2) == 3
+        assert await backend.write(documents, {"meta": "data"}, chunk_size=2) == 3
 
     assert (
         "ralph.backends.data.async_mongo",
@@ -1072,10 +1163,29 @@ async def test_backends_data_async_mongo_write_with_custom_chunk_size(
     ) in caplog.record_tuples
 
     assert [statement async for statement in backend.read()] == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": {"id": "baz", **timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {
+                "statement": {"id": "foo", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {
+                "statement": {"id": "bar", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {
+                "statement": {"id": "baz", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
     ]
+
     # Delete operation type.
     assert (
         await backend.write(
@@ -1084,29 +1194,72 @@ async def test_backends_data_async_mongo_write_with_custom_chunk_size(
         == 3
     )
     assert not [statement async for statement in backend.read()]
+
     # Create operation type.
     assert (
         await backend.write(
-            documents, chunk_size=1, operation_type=BaseOperationType.CREATE
+            documents,
+            {"meta": "data"},
+            chunk_size=1,
+            operation_type=BaseOperationType.CREATE,
         )
         == 3
     )
     assert [statement async for statement in backend.read()] == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **timestamp}},
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": {"id": "baz", **timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {
+                "statement": {"id": "foo", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {
+                "statement": {"id": "bar", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {
+                "statement": {"id": "baz", **timestamp},
+                "metadata": {"meta": "data"},
+            },
+        },
     ]
     # Update operation type.
     assert (
         await backend.write(
-            new_documents, chunk_size=3, operation_type=BaseOperationType.UPDATE
+            new_documents,
+            {"mate": "tada"},
+            chunk_size=3,
+            operation_type=BaseOperationType.UPDATE,
         )
         == 3
     )
     assert [statement async for statement in backend.read()] == [
-        {"_id": "62b9ce922c26b46b68ffc68f", "_source": {"id": "foo", **new_timestamp}},
-        {"_id": "62b9ce92fcde2b2edba56bf4", "_source": {"id": "bar", **new_timestamp}},
-        {"_id": "62b9ce92baa5a0964d3320fb", "_source": {"id": "baz", **new_timestamp}},
+        {
+            "_id": "62b9ce922c26b46b68ffc68f",
+            "_source": {
+                "statement": {"id": "foo", **new_timestamp},
+                "metadata": {"mate": "tada"},
+            },
+        },
+        {
+            "_id": "62b9ce92fcde2b2edba56bf4",
+            "_source": {
+                "statement": {"id": "bar", **new_timestamp},
+                "metadata": {"mate": "tada"},
+            },
+        },
+        {
+            "_id": "62b9ce92baa5a0964d3320fb",
+            "_source": {
+                "statement": {"id": "baz", **new_timestamp},
+                "metadata": {"mate": "tada"},
+            },
+        },
     ]
 
 

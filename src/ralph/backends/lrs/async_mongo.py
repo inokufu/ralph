@@ -8,6 +8,10 @@ from ralph.backends.lrs.base import (
     BaseAsyncLRSBackend,
     RalphStatementsQuery,
     StatementQueryResult,
+    ids_adapter,
+    include_extra_adapter,
+    params_adapter,
+    target_adapter,
 )
 from ralph.backends.lrs.mongo import MongoLRSBackend, MongoLRSBackendSettings
 from ralph.exceptions import BackendException, BackendParameterException
@@ -24,6 +28,9 @@ class AsyncMongoLRSBackend(
         self, params: RalphStatementsQuery, target: str | None = None
     ) -> StatementQueryResult:
         """Return the statements query payload using xAPI parameters."""
+        params_adapter.validate_python(params)
+        target_adapter.validate_python(target)
+
         query = MongoLRSBackend.get_query(params)
         try:
             mongo_response = [
@@ -41,19 +48,28 @@ class AsyncMongoLRSBackend(
             search_after = mongo_response[-1]["_id"]
 
         return StatementQueryResult(
-            statements=[document["_source"] for document in mongo_response],
+            statements=[
+                document["_source"]["statement"] for document in mongo_response
+            ],
             pit_id=None,
             search_after=search_after,
         )
 
     async def query_statements_by_ids(
-        self, ids: Sequence[str], target: str | None = None
+        self, ids: Sequence[str], target: str | None = None, include_extra: bool = False
     ) -> AsyncIterator[dict]:
         """Yield statements with matching ids from the backend."""
-        query = self.query_class(filter={"_source.id": {"$in": ids}})
+        ids_adapter.validate_python(ids)
+        target_adapter.validate_python(target)
+        include_extra_adapter.validate_python(include_extra)
+
+        query = self.query_class(filter={"_source.statement.id": {"$in": ids}})
         try:
             async for document in self.read(query=query, target=target):
-                yield document["_source"]
+                if include_extra:
+                    yield document["_source"]
+                else:
+                    yield document["_source"]["statement"]
         except (BackendException, BackendParameterException) as error:
             logger.error("Failed to read from MongoDB")
             raise error

@@ -11,6 +11,7 @@ from pydantic import TypeAdapter, ValidationError, conlist, constr
 from ralph.backends.cozystack import exceptions
 from ralph.backends.data.base import BaseOperationType
 from ralph.models.cozy import CozyAuthData
+from ralph.utils import check_dict_keys
 
 NonEmptyStr = constr(strict=True, min_length=1)
 
@@ -179,43 +180,11 @@ class CozyStackClient:
             return response.json()
 
     @classmethod
-    def _check_item_for_update_or_delete_operation(cls, item: Mapping):
-        """Raise ValueError if _id or _rev field missing in item."""
-        for field in ["_id", "_rev"]:
-            if field not in item:
-                raise ValueError(
-                    f"Missing `{field}` field in item for update or delete operation"
-                )
-
-    @classmethod
-    def _prepare_data(cls, data: Iterable[Mapping], operation_type: BaseOperationType):
-        """Enrich data based on operation type."""
-        prepared_data = []
-
+    def _check_data(cls, data: Iterable[Mapping], operation_type: BaseOperationType):
+        """Check data based on operation type."""
         for item in data:
-            prepared_item = {}
-
-            if "id" in item:
-                item["id"] = str(item["id"])
-                prepared_item["_id"] = item["id"]
-
-            if "_rev" in item:
-                prepared_item["_rev"] = item.pop("_rev")
-
-            if operation_type in (BaseOperationType.CREATE, BaseOperationType.INDEX):
-                prepared_item["source"] = item
-
-            elif operation_type == BaseOperationType.UPDATE:
-                cls._check_item_for_update_or_delete_operation(prepared_item)
-                prepared_item["source"] = item
-
-            elif operation_type == BaseOperationType.DELETE:
-                cls._check_item_for_update_or_delete_operation(prepared_item)
-                prepared_item["_deleted"] = True
-
-            prepared_data.append(prepared_item)
-
-        return prepared_data
+            if operation_type in [BaseOperationType.UPDATE, BaseOperationType.DELETE]:
+                check_dict_keys(item, ["_id", "_rev"])
 
     def bulk_operation(
         self, target: str, data: Iterable[Mapping], operation_type: BaseOperationType
@@ -237,12 +206,12 @@ class CozyStackClient:
         """  # noqa: E501
         data = data_adapter.validate_python(data)
         operation_type_adapter.validate_python(operation_type)
+        self._check_data(data, operation_type)
 
         url = os.path.join("/", self.doctype, "_bulk_docs")
-        prepared_data = self._prepare_data(data, operation_type)
 
         with CozyStackHttpClient(target=target) as client:
-            response = client.post(url, json={"docs": prepared_data})
+            response = client.post(url, json={"docs": data})
             self.check_error(response)
 
         return len([item for item in response.json() if "error" not in item])

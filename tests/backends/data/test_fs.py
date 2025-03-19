@@ -775,7 +775,7 @@ def test_backends_data_fs_write_with_file_not_found_error(fs_backend, fs, caplog
     )
     with pytest.raises(BackendException, match=re.escape(msg)):
         with caplog.at_level(logging.ERROR):
-            backend.write(target="/unreachable/foo.txt", data=[b"foo"])
+            backend.write(target="/unreachable/foo.txt", data=[b'{"foo": "bar"}\n'])
 
     assert ("ralph.backends.data.fs", logging.ERROR, msg) in caplog.record_tuples
 
@@ -814,7 +814,16 @@ def test_backends_data_fs_write_with_update_operation(fs_backend, fs, monkeypatc
 
     # Overwriting foo.txt.
     assert list(backend.read(query="foo.txt", raw_output=True)) == [b"content"]
-    assert backend.write(data=[b"bar"], target="foo.txt", **kwargs) == 1
+
+    assert (
+        backend.write(
+            data=[b'{"foo": "bar"}\n'],
+            metadata={"meta": "data"},
+            target="foo.txt",
+            **kwargs,
+        )
+        == 1
+    )
 
     # When the `write` method is called successfully, then a new entry should be added
     # to the history.
@@ -832,15 +841,24 @@ def test_backends_data_fs_write_with_update_operation(fs_backend, fs, monkeypatc
             "action": "write",
             "id": "/foo/foo.txt",
             "filename": "foo.txt",
-            "size": 3,
+            "size": 60,
             "timestamp": frozen_now,
         },
     ]
-    assert list(backend.read(query="foo.txt", raw_output=True)) == [b"bar"]
+    assert list(backend.read(query="foo.txt", raw_output=True)) == [
+        b'{"statement": {"foo": "bar"}, "metadata": {"meta": "data"}}\n',
+    ]
 
     # Clearing foo.txt.
-    assert backend.write(data=[b""], target="foo.txt", **kwargs) == 1
-    assert not list(backend.read(query="foo.txt", raw_output=True))
+    assert (
+        backend.write(
+            data=[b"{}"], metadata=b'{"meta": "bytes"}', target="foo.txt", **kwargs
+        )
+        == 1
+    )
+    assert list(backend.read(query="foo.txt", raw_output=True)) == [
+        b'{"statement": {}, "metadata": {"meta": "bytes"}}\n'
+    ]
 
     # When the `write` method is called successfully, then a new entry should be added
     # to the history.
@@ -850,7 +868,7 @@ def test_backends_data_fs_write_with_update_operation(fs_backend, fs, monkeypatc
             "action": "write",
             "id": "/foo/foo.txt",
             "filename": "foo.txt",
-            "size": 0,
+            "size": 49,
             "timestamp": frozen_now,
         },
         {
@@ -858,14 +876,24 @@ def test_backends_data_fs_write_with_update_operation(fs_backend, fs, monkeypatc
             "action": "read",
             "id": "/foo/foo.txt",
             "filename": "foo.txt",
-            "size": 0,
+            "size": 49,
             "timestamp": frozen_now,
         },
     ]
 
     # Creating bar.txt.
-    assert backend.write(data=[b"baz"], target="bar.txt", **kwargs) == 1
-    assert list(backend.read(query="bar.txt", raw_output=True)) == [b"baz"]
+    assert (
+        backend.write(
+            data=[b'{"foo": "baz"}\n'],
+            metadata={"meta": "tada"},
+            target="bar.txt",
+            **kwargs,
+        )
+        == 1
+    )
+    assert list(backend.read(query="bar.txt", raw_output=True)) == [
+        b'{"statement": {"foo": "baz"}, "metadata": {"meta": "tada"}}\n'
+    ]
 
     # When the `write` method is called successfully, then a new entry should be added
     # to the history.
@@ -875,7 +903,7 @@ def test_backends_data_fs_write_with_update_operation(fs_backend, fs, monkeypatc
             "action": "write",
             "id": "/foo/bar.txt",
             "filename": "bar.txt",
-            "size": 3,
+            "size": 60,
             "timestamp": frozen_now,
         },
         {
@@ -883,75 +911,24 @@ def test_backends_data_fs_write_with_update_operation(fs_backend, fs, monkeypatc
             "action": "read",
             "id": "/foo/bar.txt",
             "filename": "bar.txt",
-            "size": 3,
+            "size": 60,
             "timestamp": frozen_now,
         },
     ]
 
 
-@pytest.mark.parametrize(
-    "data,expected",
-    [
-        ([b"bar"], [b"foobar"]),
-        ([b"bar", b"baz"], [b"foobarbaz"]),
-        ((b"bar" for _ in range(1)), [b"foobar"]),
-        ((b"bar" for _ in range(3)), [b"foobarbarbar"]),
-        (
-            [{}, {"foo": [1, 2, 4], "bar": {"baz": None}}],
-            [b'foo{}\n{"foo": [1, 2, 4], "bar": {"baz": null}}\n'],
-        ),
-    ],
-)
-def test_backends_data_fs_write_with_append_operation(
-    data, expected, fs_backend, fs, monkeypatch
-):
+def test_backends_data_fs_write_with_append_operation(fs_backend, fs, caplog):
     """Test the `FSDataBackend.write` method, given an `APPEND` `operation_type`,
     should append the provided data to the end of the target file.
     """
-
-    # Create files in default directory.
-    fs.create_file("foo/foo.txt", contents="foo")
-
-    # Freeze the ralph.utils.now() value.
-    frozen_now = now()
-    monkeypatch.setattr("ralph.backends.data.fs.now", lambda: frozen_now)
-
     backend = fs_backend()
-    kwargs = {"operation_type": BaseOperationType.APPEND}
 
-    # Overwriting foo.txt.
-    assert list(backend.read(query="foo.txt", raw_output=True)) == [b"foo"]
-    assert backend.write(data=data, target="foo.txt", **kwargs) == 1
-    assert list(backend.read(query="foo.txt", raw_output=True)) == expected
+    msg = "Append operation_type is not allowed"
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(BackendParameterException, match=msg):
+            backend.write(data=[], operation_type=BaseOperationType.APPEND)
 
-    # When the `write` method is called successfully, then a new entry should be added
-    # to the history.
-    assert backend.history == [
-        {
-            "backend": "fs",
-            "action": "read",
-            "id": "/foo/foo.txt",
-            "filename": "foo.txt",
-            "size": 3,
-            "timestamp": frozen_now,
-        },
-        {
-            "backend": "fs",
-            "action": "write",
-            "id": "/foo/foo.txt",
-            "filename": "foo.txt",
-            "size": len(expected[0]),
-            "timestamp": frozen_now,
-        },
-        {
-            "backend": "fs",
-            "action": "read",
-            "id": "/foo/foo.txt",
-            "filename": "foo.txt",
-            "size": len(expected[0]),
-            "timestamp": frozen_now,
-        },
-    ]
+    assert ("ralph.backends.data.base", logging.ERROR, msg) in caplog.record_tuples
 
 
 def test_backends_data_fs_write_with_no_data(fs_backend, caplog):
@@ -981,9 +958,11 @@ def test_backends_data_fs_write_without_target(fs_backend, monkeypatch):
 
     expected_filename = f"{frozen_now}-{frozen_uuid4}"
     assert not os.path.exists(expected_filename)
-    assert backend.write(data=[b"foo", b"bar"]) == 1
+    assert backend.write(data=[b'{"foo": "bar"}\n']) == 1
     assert os.path.exists(expected_filename)
-    assert list(backend.read(query=expected_filename, raw_output=True)) == [b"foobar"]
+    assert list(backend.read(query=expected_filename, raw_output=True)) == [
+        b'{"statement": {"foo": "bar"}, "metadata": {}}\n',
+    ]
 
     # When the `write` method is called successfully, then a new entry should be added
     # to the history.
@@ -993,7 +972,7 @@ def test_backends_data_fs_write_without_target(fs_backend, monkeypatch):
             "action": "write",
             "id": f"/{expected_filename}",
             "filename": expected_filename,
-            "size": 6,
+            "size": 46,
             "timestamp": frozen_now,
         },
         {
@@ -1001,7 +980,7 @@ def test_backends_data_fs_write_without_target(fs_backend, monkeypatch):
             "action": "read",
             "id": f"/{expected_filename}",
             "filename": expected_filename,
-            "size": 6,
+            "size": 46,
             "timestamp": frozen_now,
         },
     ]

@@ -68,7 +68,7 @@ class MongoDataBackendSettings(BaseDataBackendSettings):
         ),
     }  # We specify regex_engine as some regex are no longer supported in Pydantic V2
 
-    CONNECTION_URI: MongoDsn = MongoDsn("mongodb://localhost:27017/")
+    CONNECTION_URI: MongoDsn = MongoDsn("mongodb://mongo:27017/")
     DEFAULT_DATABASE: Annotated[
         str, StringConstraints(pattern=r"^[^\s.$/\\\"\x00]+$")
     ] = "statements"
@@ -232,9 +232,10 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
             logger.error(msg, error)
             raise BackendException(msg % error) from error
 
-    def write(
+    def write(  # noqa: PLR0913
         self,
         data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -244,6 +245,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
 
         Args:
             data (Iterable or IOBase): The data containing documents to write.
+            metadata (Mapping): The metadata related to the documents.
             target (str or None): The target MongoDB collection name.
             chunk_size (int or None): The number of documents to write in one batch.
                 If `chunk_size` is `None` it defaults to `WRITE_CHUNK_SIZE`.
@@ -263,11 +265,14 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
             BackendParameterException: If the `operation_type` is `APPEND` as it is not
                 supported.
         """
-        return super().write(data, target, chunk_size, ignore_errors, operation_type)
+        return super().write(
+            data, metadata, target, chunk_size, ignore_errors, operation_type
+        )
 
-    def _write_dicts(
+    def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -278,18 +283,25 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
         collection = self._get_target_collection(target)
         msg = "Start writing to the %s collection of the %s database (chunk size: %d)"
         logger.debug(msg, collection, self.database, chunk_size)
+
         if operation_type == BaseOperationType.UPDATE:
-            for batch in iter_by_batch(self.to_replace_one(data), chunk_size):
+            for batch in iter_by_batch(self.to_replace_one(data, metadata), chunk_size):
                 count += self._bulk_update(batch, ignore_errors, collection)
+
             logger.info("Updated %d documents with success", count)
+
         elif operation_type == BaseOperationType.DELETE:
             for batch in iter_by_batch(self.to_ids(data), chunk_size):
                 count += self._bulk_delete(batch, ignore_errors, collection)
+
             logger.info("Deleted %d documents with success", count)
+
         else:
-            data = self.to_documents(data, ignore_errors, operation_type)
+            data = self.to_documents(data, metadata, ignore_errors, operation_type)
+
             for batch in iter_by_batch(data, chunk_size):
                 count += self._bulk_import(batch, ignore_errors, collection)
+
             logger.info("Inserted %d documents with success", count)
 
         return count
@@ -314,17 +326,20 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
             yield statement.get("id")
 
     @staticmethod
-    def to_replace_one(data: Iterable[Mapping]) -> Iterable[ReplaceOne]:
+    def to_replace_one(
+        data: Iterable[Mapping], metadata: Mapping
+    ) -> Iterable[ReplaceOne]:
         """Convert `data` statements to Mongo `ReplaceOne` objects."""
         for statement in data:
             yield ReplaceOne(
-                {"_source.id": {"$eq": statement.get("id")}},
-                {"_source": statement},
+                {"_source.statement.id": {"$eq": statement.get("id")}},
+                {"_source": {"statement": statement, "metadata": metadata}},
             )
 
     @staticmethod
     def to_documents(
         data: Iterable[Mapping],
+        metadata: Mapping,
         ignore_errors: bool,
         operation_type: BaseOperationType,
     ) -> Generator[dict, None, None]:
@@ -342,6 +357,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
                     continue
                 logger.error(msg, statement)
                 raise BackendException(msg % statement)
+
             if "timestamp" not in statement:
                 msg = "statement %s has no 'timestamp' field"
                 if ignore_errors:
@@ -349,6 +365,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
                     continue
                 logger.error(msg, statement)
                 raise BackendException(msg % statement)
+
             try:
                 timestamp = int(isoparse(statement["timestamp"]).timestamp())
             except ValueError as err:
@@ -358,6 +375,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
                     continue
                 logger.error(msg, statement)
                 raise BackendException(msg % statement) from err
+
             document = {
                 "_id": ObjectId(
                     # This might become a problem in February 2106.
@@ -369,7 +387,7 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
                         ).hexdigest()[:16]
                     )
                 ),
-                "_source": statement,
+                "_source": {"statement": statement, "metadata": metadata},
             }
 
             yield document
@@ -406,7 +424,9 @@ class MongoDataBackend(BaseDataBackend[Settings, MongoQuery], Writable, Listable
     ) -> int:
         """Delete a `batch` of documents from the MongoDB `collection`."""
         try:
-            deleted_documents = collection.delete_many({"_source.id": {"$in": batch}})
+            deleted_documents = collection.delete_many(
+                {"_source.statement.id": {"$in": batch}}
+            )
         except (BulkWriteError, PyMongoError, BSONError, ValueError) as error:
             msg = "Failed to delete document chunk: %s"
             if ignore_errors:

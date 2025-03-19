@@ -113,9 +113,10 @@ class Writable(Configurable, ABC):
     default_operation_type = BaseOperationType.INDEX
     unsupported_operation_types: set[BaseOperationType] = set()
 
-    def write(
+    def write(  # noqa: PLR0913
         self,
         data: IOBase | Iterable[bytes] | Iterable[Mapping],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -125,6 +126,7 @@ class Writable(Configurable, ABC):
 
         Args:
             data (Iterable or IOBase): The data to write.
+            metadata (Mapping): The metadata related to the documents.
             target (str or None): The target container name.
                 If `target` is `None`, a default value is used instead.
             chunk_size (int or None): The number of records or bytes to write in one
@@ -144,6 +146,9 @@ class Writable(Configurable, ABC):
                 if an inescapable failure occurs and `ignore_errors` is set to `True`.
             BackendParameterException: If a backend argument value is not valid.
         """
+        if not metadata:
+            metadata = {}
+
         if not operation_type:
             operation_type = self.default_operation_type
 
@@ -163,11 +168,20 @@ class Writable(Configurable, ABC):
         chunk_size = chunk_size if chunk_size else self.settings.WRITE_CHUNK_SIZE
         is_bytes = isinstance(first_record, bytes)
         writer = self._write_bytes if is_bytes else self._write_dicts
-        return writer(data, target, chunk_size, ignore_errors, operation_type)
 
-    def _write_bytes(
+        if is_bytes and not isinstance(metadata, bytes):
+            metadata = next(
+                parse_dict_to_bytes(
+                    [metadata], self.settings.LOCALE_ENCODING, ignore_errors
+                )
+            )
+
+        return writer(data, metadata, target, chunk_size, ignore_errors, operation_type)
+
+    def _write_bytes(  # noqa: PLR0913
         self,
         data: Iterable[bytes],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -175,14 +189,17 @@ class Writable(Configurable, ABC):
     ) -> int:
         """Method called by `self.write` writing bytes. See `self.write`."""
         statements = parse_iterable_to_dict(data, ignore_errors)
+        metadata = next(parse_iterable_to_dict([metadata], ignore_errors))
+
         return self._write_dicts(
-            statements, target, chunk_size, ignore_errors, operation_type
+            statements, metadata, target, chunk_size, ignore_errors, operation_type
         )
 
     @abstractmethod
-    def _write_dicts(
+    def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -192,7 +209,7 @@ class Writable(Configurable, ABC):
         locale = self.settings.LOCALE_ENCODING
         statements = parse_dict_to_bytes(data, locale, ignore_errors)
         return self._write_bytes(
-            statements, target, chunk_size, ignore_errors, operation_type
+            statements, metadata, target, chunk_size, ignore_errors, operation_type
         )
 
 
@@ -375,6 +392,7 @@ class AsyncWritable(Configurable, ABC):
     async def write(  # noqa: PLR0913
         self,
         data: IOBase | Iterable[bytes] | Iterable[dict],
+        metadata: Mapping | None = None,
         target: str | None = None,
         chunk_size: int | None = None,
         ignore_errors: bool = False,
@@ -385,6 +403,7 @@ class AsyncWritable(Configurable, ABC):
 
         Args:
             data (Iterable or IOBase): The data to write.
+            metadata (Mapping): The metadata related to the documents.
             target (str or None): The target container name.
                 If `target` is `None`, a default value is used instead.
             chunk_size (int or None): The number of records or bytes to write in one
@@ -406,6 +425,9 @@ class AsyncWritable(Configurable, ABC):
                 if an inescapable failure occurs and `ignore_errors` is set to `True`.
             BackendParameterException: If a backend argument value is not valid.
         """
+        if not metadata:
+            metadata = {}
+
         if not operation_type:
             operation_type = self.default_operation_type
 
@@ -428,7 +450,9 @@ class AsyncWritable(Configurable, ABC):
 
         concurrency = concurrency if concurrency else 1
         if concurrency == 1:
-            return await writer(data, target, chunk_size, ignore_errors, operation_type)
+            return await writer(
+                data, metadata, target, chunk_size, ignore_errors, operation_type
+            )
 
         if concurrency < 1:
             msg = "concurrency must be a strictly positive integer"
@@ -439,15 +463,18 @@ class AsyncWritable(Configurable, ABC):
         for batch in iter_by_batch(iter_by_batch(data, chunk_size), concurrency):
             tasks = set()
             for chunk in batch:
-                task = writer(chunk, target, chunk_size, ignore_errors, operation_type)
+                task = writer(
+                    chunk, metadata, target, chunk_size, ignore_errors, operation_type
+                )
                 tasks.add(task)
             result = await gather_with_limited_concurrency(concurrency, *tasks)
             count += sum(result)
         return count
 
-    async def _write_bytes(
+    async def _write_bytes(  # noqa: PLR0913
         self,
         data: Iterable[bytes],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -456,13 +483,14 @@ class AsyncWritable(Configurable, ABC):
         """Method called by `self.write` writing bytes. See `self.write`."""
         statements = parse_iterable_to_dict(data, ignore_errors)
         return await self._write_dicts(
-            statements, target, chunk_size, ignore_errors, operation_type
+            statements, metadata, target, chunk_size, ignore_errors, operation_type
         )
 
     @abstractmethod
-    async def _write_dicts(
+    async def _write_dicts(  # noqa: PLR0913
         self,
         data: Iterable[Mapping],
+        metadata: Mapping,
         target: str | None,
         chunk_size: int,
         ignore_errors: bool,
@@ -472,7 +500,7 @@ class AsyncWritable(Configurable, ABC):
         locale = self.settings.LOCALE_ENCODING
         statements = parse_dict_to_bytes(data, locale, ignore_errors)
         return await self._write_bytes(
-            statements, target, chunk_size, ignore_errors, operation_type
+            statements, metadata, target, chunk_size, ignore_errors, operation_type
         )
 
 

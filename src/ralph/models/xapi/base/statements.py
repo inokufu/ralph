@@ -50,6 +50,16 @@ def ensure_timestamp_is_valid(value: Any) -> Any:
     return value
 
 
+def check_verb_is_voided(verb: str) -> bool:
+    """Check that verb is voided."""
+    return verb == VOIDED_VERB_ID
+
+
+def check_statement_is_voiding(statement: Mapping) -> bool:
+    """Check that statement is voiding."""
+    return check_verb_is_voided(statement["verb"]["id"])
+
+
 class BaseXapiStatement(BaseModelWithConfig):
     """Pydantic model for base xAPI statements."""
 
@@ -124,13 +134,14 @@ class BaseXapiStatement(BaseModelWithConfig):
 
         return values
 
+    def is_voiding_statement(self) -> bool:
+        """Check if statement is a voiding statement."""
+        return check_verb_is_voided(str(self.verb.id))
+
     @model_validator(mode="after")
     def check_voiding_requirements(self) -> Self:
         """Check if a voiding statement is valid."""
-        if (
-            str(self.verb.id) == VOIDED_VERB_ID
-            and self.object.objectType != "StatementRef"
-        ):
+        if self.is_voiding_statement() and self.object.objectType != "StatementRef":
             raise ValueError("Statement verb voided does not use object 'StatementRef'")
 
         return self

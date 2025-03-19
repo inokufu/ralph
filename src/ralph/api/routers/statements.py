@@ -3,7 +3,7 @@
 import json
 import logging
 import os
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal
@@ -39,7 +39,7 @@ from ralph.backends.lrs.base import (
     RalphStatementsQuery,
 )
 from ralph.conf import settings
-from ralph.exceptions import BackendException, BadFormatException
+from ralph.exceptions import BackendException, BackendParameterException
 from ralph.models.xapi.base.agents import (
     BaseXapiAgent,
     BaseXapiAgentWithAccount,
@@ -48,7 +48,10 @@ from ralph.models.xapi.base.agents import (
     BaseXapiAgentWithOpenId,
 )
 from ralph.models.xapi.base.common import IRI
-from ralph.models.xapi.base.statements import BaseXapiStatement
+from ralph.models.xapi.base.statements import (
+    BaseXapiStatement,
+    check_statement_is_voiding,
+)
 from ralph.models.xapi.config import BaseModelWithConfig
 from ralph.utils import (
     await_if_coroutine,
@@ -165,6 +168,42 @@ def strict_query_params(request: Request) -> None:
             )
 
 
+async def get_statements_by_ids(
+    statements_ids: list[str], target: str | None, include_extra: bool = False
+) -> Iterator[dict]:
+    """Get statements from list of statement id on a given target.
+
+    Args:
+        statements_ids (list of str): List of statement ids to query.
+        target (str or None): The target container to query from.
+        include_extra (bool): Whether to include full source object.
+
+    Return:
+        Iterator[dict]: Statements corresponding to given ids and target.
+    Raise:
+        HTTPException: If query failed.
+    """
+    try:
+        if isinstance(BACKEND_CLIENT, BaseLRSBackend):
+            return list(
+                BACKEND_CLIENT.query_statements_by_ids(
+                    ids=statements_ids, target=target, include_extra=include_extra
+                )
+            )
+        else:
+            return [
+                x
+                async for x in BACKEND_CLIENT.query_statements_by_ids(
+                    ids=statements_ids, target=target, include_extra=include_extra
+                )
+            ]
+    except BackendException as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="xAPI statements query failed",
+        ) from error
+
+
 @router.get(
     "",
     response_model=GetResponse,
@@ -189,11 +228,7 @@ async def get(  # noqa: PLR0912, PLR0913
     ] = None,
     voided_statement_id: Annotated[
         UUID | None,
-        Query(
-            description="**Not implemented** Id of voided Statement to fetch",
-            alias="voidedStatementId",
-            include_in_schema=False,
-        ),
+        Query(description="Id of voided Statement to fetch", alias="voidedStatementId"),
     ] = None,
     agent: Annotated[
         Json | None,
@@ -459,6 +494,7 @@ async def get(  # noqa: PLR0912, PLR0913
     # exactly a multiple of the "limit", in which case we'll offer an extra page
     # with 0 results.
     response = {}
+
     if len(query_result.statements) == limit:
         # Search after relies on sorting info located in the last hit
         path = request.url.path
@@ -485,7 +521,7 @@ async def get(  # noqa: PLR0912, PLR0913
         )
 
     # If the request was done with a statement Id, we return the statement
-    if statement_id:
+    if statement_id or voided_statement_id:
         if not query_result.statements:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -544,25 +580,9 @@ async def put(
     # Finish enriching statements after forwarding
     _enrich_statement_with_authority(statement_as_dict, current_user)
 
-    try:
-        if isinstance(BACKEND_CLIENT, BaseLRSBackend):
-            existing_statements = list(
-                BACKEND_CLIENT.query_statements_by_ids(
-                    ids=[statement_id], target=current_user.target
-                )
-            )
-        else:
-            existing_statements = [
-                x
-                async for x in BACKEND_CLIENT.query_statements_by_ids(
-                    ids=[statement_id], target=current_user.target
-                )
-            ]
-    except BackendException as error:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="xAPI statements query failed",
-        ) from error
+    existing_statements = await get_statements_by_ids(
+        statements_ids=[statement_id], target=current_user.target
+    )
 
     if existing_statements:
         # The LRS specification calls for deep comparison of duplicate statement ids.
@@ -576,16 +596,38 @@ async def put(
                 )
         return
 
-    # For valid requests, perform the bulk indexing of all incoming statements
+    if statement.is_voiding_statement():
+        voided_statement_id = str(statement_as_dict["object"]["id"])
+
+        try:
+            success_count = await await_if_coroutine(
+                BACKEND_CLIENT.void_statements(
+                    voided_statements_ids=[voided_statement_id],
+                    target=current_user.target,
+                )
+            )
+        except BackendParameterException as exc:
+            logger.error("Bad voiding request")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
+        except BackendException as exc:
+            logger.error("Failed to update statement")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Statement update failed",
+            ) from exc
+
+        logger.info("Updated %d statements with success", success_count)
+
     try:
         success_count = await await_if_coroutine(
-            BACKEND_CLIENT.write(
-                data=[statement_as_dict],
+            BACKEND_CLIENT.index_statements(
+                statements=[statement_as_dict],
                 target=current_user.target,
-                ignore_errors=False,
             )
         )
-    except (BackendException, BadFormatException) as exc:
+    except (BackendException, BackendParameterException) as exc:
         logger.error("Failed to index submitted statement")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -645,25 +687,9 @@ async def post(
             headers=_filter_headers_before_forwarding(headers=request.headers),
         )
 
-    try:
-        if isinstance(BACKEND_CLIENT, BaseLRSBackend):
-            existing_statements = list(
-                BACKEND_CLIENT.query_statements_by_ids(
-                    ids=list(statements_dict), target=current_user.target
-                )
-            )
-        else:
-            existing_statements = [
-                x
-                async for x in BACKEND_CLIENT.query_statements_by_ids(
-                    ids=list(statements_dict), target=current_user.target
-                )
-            ]
-    except BackendException as error:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="xAPI statements query failed",
-        ) from error
+    existing_statements = await get_statements_by_ids(
+        statements_ids=list(statements_dict), target=current_user.target
+    )
 
     # If there are duplicate statements, remove them from our id list and
     # dictionary for insertion. We will return the shortened list of ids below
@@ -672,6 +698,7 @@ async def post(
     # See: https://github.com/openfun/ralph/issues/345
     if existing_statements:
         existing_ids = set()
+
         for existing in existing_statements:
             existing_ids.add(existing["id"])
 
@@ -694,17 +721,47 @@ async def post(
             response.status_code = status.HTTP_204_NO_CONTENT
             return
 
+    statements = list(statements_dict.values())
+
+    voiding_statements = [
+        statement for statement in statements if check_statement_is_voiding(statement)
+    ]
+
+    if voiding_statements:
+        voided_statements_ids = [
+            str(statement["object"]["id"]) for statement in voiding_statements
+        ]
+
+        try:
+            success_count = await await_if_coroutine(
+                BACKEND_CLIENT.void_statements(
+                    voided_statements_ids=voided_statements_ids,
+                    target=current_user.target,
+                )
+            )
+        except BackendParameterException as exc:
+            logger.error("Bad voiding request")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
+        except BackendException as exc:
+            logger.error("Failed to bulk update statements")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Statements bulk update failed",
+            ) from exc
+
+        logger.info("Updated %d statements with success", success_count)
+
     # For valid requests, perform the bulk indexing of all incoming statements
     try:
         success_count = await await_if_coroutine(
-            BACKEND_CLIENT.write(
-                data=statements_dict.values(),
-                target=current_user.target,
-                ignore_errors=False,
+            BACKEND_CLIENT.index_statements(
+                statements=statements, target=current_user.target
             )
         )
-    except (BackendException, BadFormatException) as exc:
-        logger.error("Failed to index submitted statements")
+    except (BackendException, BackendParameterException) as exc:
+        logger.error("Failed to bulk index submitted statements")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Statements bulk indexation failed",

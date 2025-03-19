@@ -56,7 +56,7 @@ MONGO_TEST_DATABASE = os.environ.get(
     "RALPH_BACKENDS__DATA__MONGO__TEST_DATABASE", "statements"
 )
 MONGO_TEST_CONNECTION_URI = os.environ.get(
-    "RALPH_BACKENDS__DATA__MONGO__TEST_CONNECTION_URI", "mongodb://localhost:27017/"
+    "RALPH_BACKENDS__DATA__MONGO__TEST_CONNECTION_URI", "mongodb://mongo:27017/"
 )
 
 # CozyStack backend defaults
@@ -405,8 +405,10 @@ def cozystack_custom(
     def _cozystack_custom():
         """Create indices and yield client."""
         client.create_index(cozy_auth_target, [])
-        client.create_index(cozy_auth_target, ["source.id"])
-        client.create_index(cozy_auth_target, ["source.timestamp", "source.id"])
+        client.create_index(cozy_auth_target, ["source.statement.id"])
+        client.create_index(
+            cozy_auth_target, ["source.statement.timestamp", "source.statement.id"]
+        )
 
         return client
 
@@ -441,7 +443,7 @@ def es_data_stream():
             # the Elasticsearch database to be queried even if no document has
             # been inserted before.
             "properties": {
-                "timestamp": {
+                "statement.timestamp": {
                     "type": "date",
                     "index": True,
                 }

@@ -806,7 +806,7 @@ def test_cli_write_command_with_fs_backend(fs):
     result = runner.invoke(
         cli,
         "write -b fs -t file1 --fs-default-directory-path foo".split(),
-        input=b"test content",
+        input=b'{"foo": "bar"}',
     )
 
     assert result.exit_code == 0
@@ -814,14 +814,14 @@ def test_cli_write_command_with_fs_backend(fs):
     with filename.open("rb") as test_file:
         content = test_file.read()
 
-    assert b"test content" in content
+    assert b'{"foo": "bar"}' in content
 
     # Trying to create the same file without -f should raise an error
     runner = CliRunner()
     result = runner.invoke(
         cli,
         "write -b fs -t file1 --fs-default-directory-path foo".split(),
-        input=b"other content",
+        input=b'{"foo": "baz"}',
     )
     assert result.exit_code == 1
     assert "file1 already exists and overwrite is not allowed" in result.output
@@ -831,7 +831,7 @@ def test_cli_write_command_with_fs_backend(fs):
     result = runner.invoke(
         cli,
         "write -b fs -t file1 -o update --fs-default-directory-path foo".split(),
-        input=b"other content",
+        input=b'{"foo": "baz"}',
     )
 
     assert result.exit_code == 0
@@ -839,7 +839,7 @@ def test_cli_write_command_with_fs_backend(fs):
     with filename.open("rb") as test_file:
         content = test_file.read()
 
-    assert b"other content" in content
+    assert b'{"foo": "baz"}' in content
 
 
 def test_cli_write_command_with_chunk_size(fs, monkeypatch):
@@ -898,7 +898,9 @@ def test_cli_write_command_with_es_backend(es):
     documents = list(scan(es, index=ES_TEST_INDEX, size=10))
 
     assert len(documents) == 10
-    assert [document.get("_source") for document in documents] == records
+    assert [
+        document.get("_source").get("statement") for document in documents
+    ] == records
 
 
 @pytest.mark.parametrize("host_,port_", [("0.0.0.0", "8000"), ("127.0.0.1", "80")])
