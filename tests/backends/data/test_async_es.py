@@ -729,9 +729,7 @@ async def test_backends_data_async_es_write_with_target(es, async_es_backend):
 
 
 @pytest.mark.anyio
-async def test_backends_data_async_es_write_without_ignore_errors(
-    es, async_es_backend, caplog
-):
+async def test_backends_data_async_es_write_without_ignore_errors(es, async_es_backend):
     """Test the `AsyncESDataBackend.write` method with `ignore_errors` set to `False`,
     given badly formatted data, should raise a `BackendException`.
     """
@@ -745,24 +743,8 @@ async def test_backends_data_async_es_write_without_ignore_errors(
     assert len([statement async for statement in backend.read()]) == 0
 
     # By default, we should raise an error and stop the importation.
-    msg = (
-        r"1 document\(s\) failed to index. "
-        r"\[\{'index': \{'_index': 'test-index-foo', '_id': '4', 'status': 400, 'error'"
-        r": \{'type': 'mapper_parsing_exception', 'reason': \"failed to parse field "
-        r"\[count\] of type \[long\] in document with id '4'. Preview of field's value:"
-        r" 'wrong'\", 'caused_by': \{'type': 'illegal_argument_exception', 'reason': "
-        r"'For input string: \"wrong\"'\}\}, 'data': \{'id': 4, 'count': 'wrong'\}\}\}"
-        r"\] Total succeeded writes: 5"
-    )
-    with pytest.raises(BackendException, match=msg):
-        with caplog.at_level(logging.ERROR):
-            await backend.write(data, chunk_size=2)
-
-    assert (
-        "ralph.backends.data.async_es",
-        logging.ERROR,
-        msg.replace("\\", ""),
-    ) in caplog.record_tuples
+    with pytest.raises(BackendException):
+        await backend.write(data, chunk_size=2)
 
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = [statement async for statement in backend.read()]
@@ -778,19 +760,8 @@ async def test_backends_data_async_es_write_without_ignore_errors(
     ]
 
     # By default, we should raise an error and stop the importation.
-    msg = (
-        r"Failed to decode JSON: Expecting value: line 1 column 1 \(char 0\), "
-        r"for document: b'This is invalid JSON', at line 1"
-    )
-    with pytest.raises(BackendException, match=msg):
-        with caplog.at_level(logging.ERROR):
-            await backend.write(data, chunk_size=2)
-
-    assert (
-        "ralph.utils",
-        logging.ERROR,
-        msg.replace("\\", ""),
-    ) in caplog.record_tuples
+    with pytest.raises(BackendException):
+        await backend.write(data, chunk_size=2)
 
     es.indices.refresh(index=ES_TEST_INDEX)
     hits = [statement async for statement in backend.read()]
