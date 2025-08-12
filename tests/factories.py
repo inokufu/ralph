@@ -14,8 +14,6 @@ from polyfactory.factories.pydantic_factory import (
 from polyfactory.fields import Ignore
 from pydantic import BaseModel
 
-from ralph.models.edx.navigational.fields.events import NavigationalEventField
-from ralph.models.edx.navigational.statements import UISeqNext, UISeqPrev
 from ralph.models.xapi.base.common import IRI, URI, LanguageTag, MailtoEmail
 from ralph.models.xapi.base.contexts import (
     BaseXapiContext,
@@ -134,20 +132,6 @@ class VirtualClassroomPostedPublicMessageContextActivitiesFactory(
     __set_as_default_factory_for_type__ = True
 
     category = lambda: mock_xapi_instance(VirtualClassroomProfileActivity)  # noqa: E731
-
-
-class UISeqPrevFactory(ModelFactory[UISeqPrev]):
-    __model__ = UISeqPrev
-    __set_as_default_factory_for_type__ = True
-
-    event = lambda: mock_instance(NavigationalEventField, old=1, new=0)  # noqa: E731
-
-
-class UISeqNextFactory(ModelFactory[UISeqNext]):
-    __model__ = UISeqNext
-    __set_as_default_factory_for_type__ = True
-
-    event = lambda: mock_instance(NavigationalEventField, old=0, new=1)  # noqa: E731
 
 
 class VirtualClassroomContextContextActivitiesFactory(

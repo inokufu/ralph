@@ -2,7 +2,6 @@
 
 from datetime import datetime
 
-from ...selector import selector
 from ..base.statements import BaseXapiStatement
 from ..concepts.activity_types.acrossx_profile import MessageActivity
 from ..concepts.activity_types.scorm_profile import CMIInteractionActivity
@@ -57,13 +56,6 @@ class VirtualClassroomInitialized(BaseVirtualClassroomStatement):
         context (dict): See VirtualClassroomInitializedContext.
     """
 
-    __selector__ = selector(
-        verb__id="http://adlnet.gov/expapi/verbs/initialized",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
-
     verb: InitializedVerb = InitializedVerb()
     object: VirtualClassroomActivity
     context: VirtualClassroomInitializedContext
@@ -79,13 +71,6 @@ class VirtualClassroomJoined(BaseVirtualClassroomStatement):
         object (dict): See VirtualClassroomActivity.
         context (dict): See VirtualClassroomJoinedContext.
     """
-
-    __selector__ = selector(
-        verb__id="http://activitystrea.ms/join",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
 
     verb: JoinVerb = JoinVerb()
     object: VirtualClassroomActivity
@@ -104,13 +89,6 @@ class VirtualClassroomLeft(BaseVirtualClassroomStatement):
 
     """
 
-    __selector__ = selector(
-        verb__id="http://activitystrea.ms/leave",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
-
     verb: LeaveVerb = LeaveVerb()
     object: VirtualClassroomActivity
     context: VirtualClassroomContext
@@ -127,13 +105,6 @@ class VirtualClassroomTerminated(BaseVirtualClassroomStatement):
         context (dict): See VirtualClassroomTerminatedContext.
 
     """
-
-    __selector__ = selector(
-        verb__id="http://adlnet.gov/expapi/verbs/terminated",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
 
     verb: TerminatedVerb = TerminatedVerb()
     object: VirtualClassroomActivity
@@ -155,13 +126,6 @@ class VirtualClassroomMuted(BaseVirtualClassroomStatement):
 
     """
 
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/muted",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
-
     verb: MutedVerb = MutedVerb()
     object: VirtualClassroomActivity
     context: VirtualClassroomContext
@@ -178,13 +142,6 @@ class VirtualClassroomUnmuted(BaseVirtualClassroomStatement):
         context (dict): See VirtualClassroomContext.
 
     """
-
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/unmuted",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
 
     verb: UnmutedVerb = UnmutedVerb()
     object: VirtualClassroomActivity
@@ -203,13 +160,6 @@ class VirtualClassroomStartedCamera(BaseVirtualClassroomStatement):
 
     """
 
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/started-camera",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
-
     verb: StartedCameraVerb = StartedCameraVerb()
     object: VirtualClassroomActivity
     context: VirtualClassroomContext
@@ -227,13 +177,6 @@ class VirtualClassroomStoppedCamera(BaseVirtualClassroomStatement):
 
     """
 
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/stopped-camera",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
-
     verb: StoppedCameraVerb = StoppedCameraVerb()
     object: VirtualClassroomActivity
     context: VirtualClassroomContext
@@ -250,13 +193,6 @@ class VirtualClassroomSharedScreen(BaseVirtualClassroomStatement):
         context (dict): See VirtualClassroomSharedScreenContext.
 
     """
-
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/shared-screen",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
 
     verb: SharedScreenVerb = SharedScreenVerb()
     object: VirtualClassroomActivity
@@ -276,13 +212,6 @@ class VirtualClassroomUnsharedScreen(BaseVirtualClassroomStatement):
 
     """
 
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/unshared-screen",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
-
     verb: UnsharedScreenVerb = UnsharedScreenVerb()
     object: VirtualClassroomActivity
     context: VirtualClassroomContext
@@ -299,13 +228,6 @@ class VirtualClassroomRaisedHand(BaseVirtualClassroomStatement):
         context (dict): See VirtualClassroomRaisedHandContext.
 
     """
-
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/raised-hand",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
 
     verb: RaisedHandVerb = RaisedHandVerb()
     object: VirtualClassroomActivity
@@ -324,13 +246,6 @@ class VirtualClassroomLoweredHand(BaseVirtualClassroomStatement):
 
     """
 
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/virtual-classroom/verbs/lowered-hand",
-        object__definition__type=(
-            "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-        ),
-    )
-
     verb: LoweredHandVerb = LoweredHandVerb()
     object: VirtualClassroomActivity
     context: VirtualClassroomContext
@@ -348,13 +263,6 @@ class VirtualClassroomStartedPoll(BaseVirtualClassroomStatement):
         context (dict): See VirtualClassroomLoweredHandContext.
 
     """
-
-    __selector__ = selector(
-        verb__id="http://adlnet.gov/expapi/verbs/asked",
-        object__definition__type=(
-            "http://adlnet.gov/expapi/activities/cmi.interaction"
-        ),
-    )
 
     verb: AskedVerb = AskedVerb()
     object: CMIInteractionActivity
@@ -376,13 +284,6 @@ class VirtualClassroomAnsweredPoll(BaseVirtualClassroomStatement):
         timestamp (datetime): Consists of the timestamp of when the event occurred.
     """
 
-    __selector__ = selector(
-        verb__id="http://adlnet.gov/expapi/verbs/answered",
-        object__definition__type=(
-            "http://adlnet.gov/expapi/activities/cmi.interaction"
-        ),
-    )
-
     verb: AnsweredVerb = AnsweredVerb()
     object: CMIInteractionActivity
     context: VirtualClassroomAnsweredPollContext
@@ -400,11 +301,6 @@ class VirtualClassroomPostedPublicMessage(BaseVirtualClassroomStatement):
         context (dict): See VirtualClassroomPostedPublicMessageContext.
 
     """
-
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/acrossx/verbs/posted",
-        object__definition__type="https://w3id.org/xapi/acrossx/activities/message",
-    )
 
     verb: PostedVerb = PostedVerb()
     object: MessageActivity

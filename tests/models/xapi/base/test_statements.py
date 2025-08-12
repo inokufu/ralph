@@ -1,11 +1,8 @@
 """Tests for the BaseXapiStatement."""
 
-import json
-
 import pytest
 from pydantic import ValidationError
 
-from ralph.models.selector import ModelSelector
 from ralph.models.xapi.base.agents import BaseXapiAgentWithAccount
 from ralph.models.xapi.base.groups import (
     BaseXapiAnonymousGroup,
@@ -596,22 +593,3 @@ def test_models_xapi_base_statement_with_valid_version():
     assert "1.0.3" == BaseXapiStatement(**statement).model_dump()["version"]
     del statement["version"]
     assert "1.0.0" == BaseXapiStatement(**statement).model_dump()["version"]
-
-
-@pytest.mark.parametrize(
-    "model",
-    list(ModelSelector("ralph.models.xapi").model_rules),
-)
-def test_models_xapi_base_statement_should_consider_valid_all_defined_xapi_models(
-    model,
-):
-    """Test that all defined xAPI models in the ModelSelector make valid statements."""
-
-    # All specific xAPI models should inherit BaseXapiStatement
-    assert issubclass(model, BaseXapiStatement)
-    statement = mock_xapi_instance(model)
-    statement = statement.json(exclude_none=True, by_alias=True)
-    try:
-        BaseXapiStatement(**json.loads(statement))
-    except ValidationError as err:
-        pytest.fail(f"Specific xAPI models should be valid BaseXapiStatements: {err}")

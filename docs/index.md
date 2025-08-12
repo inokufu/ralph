@@ -28,7 +28,6 @@ Ralph is a toolbox for your learning analytics, it can be used as a:
 - [**library**](./tutorials/library.md), to fetch learning events from various backends, (de)serialize or
     convert them from and to various standard formats such as
     [xAPI](https://adlnet.gov/projects/xapi/), or
-    [openedx](https://docs.openedx.org/en/latest/developers/references/internal_data_formats/tracking_logs/index.html)
 
 ## What is an LRS?
 

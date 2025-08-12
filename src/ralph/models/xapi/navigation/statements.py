@@ -1,6 +1,5 @@
 """Navigation xAPI event definitions."""
 
-from ...selector import selector
 from ..base.statements import BaseXapiStatement
 from ..concepts.activity_types.activity_streams_vocabulary import PageActivity
 from ..concepts.verbs.scorm_profile import TerminatedVerb
@@ -17,11 +16,6 @@ class PageViewed(BaseXapiStatement):
        verb (dict): See ViewedVerb.
     """
 
-    __selector__ = selector(
-        object__definition__type="http://activitystrea.ms/schema/1.0/page",
-        verb__id="http://id.tincanapi.com/verb/viewed",
-    )
-
     object: PageActivity
     verb: ViewedVerb = ViewedVerb()
 
@@ -35,11 +29,6 @@ class PageTerminated(BaseXapiStatement):
        object (dict): See PageActivity.
        verb (dict): See TerminatedVerb.
     """
-
-    __selector__ = selector(
-        object__definition__type="http://activitystrea.ms/schema/1.0/page",
-        verb__id="http://adlnet.gov/expapi/verbs/terminated",
-    )
 
     object: PageActivity
     verb: TerminatedVerb = TerminatedVerb()

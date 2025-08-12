@@ -2,7 +2,6 @@
 
 from datetime import datetime
 
-from ...selector import selector
 from ..base.statements import BaseXapiStatement
 from ..concepts.activity_types.audio import AudioActivity
 from ..concepts.activity_types.scorm_profile import CourseActivity
@@ -44,11 +43,6 @@ class LMSRegisteredCourse(BaseLMSStatement):
         context (dict): See LMSRegistrationContext.
     """
 
-    __selector__ = selector(
-        verb__id="http://adlnet.gov/expapi/verbs/registered",
-        object__definition__type="http://adlnet.gov/expapi/activities/course",
-    )
-
     verb: RegisteredVerb = RegisteredVerb()
     object: CourseActivity
     context: LMSRegistrationContext
@@ -64,11 +58,6 @@ class LMSUnregisteredCourse(BaseLMSStatement):
         object (dict): See CourseActivity.
         context (dict): See LMSRegistrationContext.
     """
-
-    __selector__ = selector(
-        verb__id="http://id.tincanapi.com/verb/unregistered",
-        object__definition__type="http://adlnet.gov/expapi/activities/course",
-    )
 
     verb: UnregisteredVerb = UnregisteredVerb()
     object: CourseActivity
@@ -86,11 +75,6 @@ class LMSAccessedPage(BaseLMSStatement):
         object (dict): See LMSPageObject.
     """
 
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/netc/verbs/accessed",
-        object__definition__type="https://w3id.org/xapi/acrossx/activities/webpage",
-    )
-
     verb: AccessedVerb = AccessedVerb()
     object: LMSPageObject
 
@@ -105,11 +89,6 @@ class LMSAccessedFile(BaseLMSStatement):
         verb (dict): See AccessedVerb.
         object (dict): See LMSFileObject.
     """
-
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/netc/verbs/accessed",
-        object__definition__type="http://activitystrea.ms/file",
-    )
 
     verb: AccessedVerb = AccessedVerb()
     object: LMSFileObject
@@ -126,11 +105,6 @@ class LMSUploadedFile(BaseLMSStatement):
         context (dict) See LMSCommonContext.
     """
 
-    __selector__ = selector(
-        verb__id="https://w3id.org/xapi/netc/verbs/uploaded",
-        object__definition__type="http://activitystrea.ms/file",
-    )
-
     verb: UploadedVerb = UploadedVerb()
     object: LMSFileObject
     context: LMSCommonContext
@@ -146,11 +120,6 @@ class LMSDownloadedFile(BaseLMSStatement):
         object (dict): See LMSFileObject.
         context (dict): see LMSCommonContext.
     """
-
-    __selector__ = selector(
-        verb__id="http://id.tincanapi.com/verb/downloaded",
-        object__definition__type="http://activitystrea.ms/file",
-    )
 
     verb: DownloadedVerb = DownloadedVerb()
     object: LMSFileObject
@@ -169,11 +138,6 @@ class LMSUploadedVideo(BaseLMSStatement):
         context (dict): see LMSCommonContext.
     """
 
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="https://w3id.org/xapi/netc/verbs/uploaded",
-    )
-
     object: VideoActivity
     verb: UploadedVerb = UploadedVerb()
     context: LMSCommonContext
@@ -189,11 +153,6 @@ class LMSDownloadedVideo(BaseLMSStatement):
         object (dict): See VideoActivity.
         context (dict): See LMSDownloadedVideoContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="http://id.tincanapi.com/verb/downloaded",
-    )
 
     object: VideoActivity
     verb: DownloadedVerb = DownloadedVerb()
@@ -212,11 +171,6 @@ class LMSUploadedDocument(BaseLMSStatement):
         context (dict): see LMSCommonContext.
     """
 
-    __selector__ = selector(
-        object__definition__type="http://id.tincanapi.com/activitytype/document",
-        verb__id="https://w3id.org/xapi/netc/verbs/uploaded",
-    )
-
     object: DocumentActivity
     verb: UploadedVerb = UploadedVerb()
     context: LMSCommonContext
@@ -232,11 +186,6 @@ class LMSDownloadedDocument(BaseLMSStatement):
         object (dict): See DocumentActivity.
         context (dict): see LMSCommonContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="http://id.tincanapi.com/activitytype/document",
-        verb__id="http://id.tincanapi.com/verb/downloaded",
-    )
 
     object: DocumentActivity
     verb: DownloadedVerb = DownloadedVerb()
@@ -255,11 +204,6 @@ class LMSUploadedAudio(BaseLMSStatement):
         context (dict): see LMSCommonContext.
     """
 
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/audio/activity-type/audio",
-        verb__id="https://w3id.org/xapi/netc/verbs/uploaded",
-    )
-
     object: AudioActivity
     verb: UploadedVerb = UploadedVerb()
     context: LMSCommonContext
@@ -275,11 +219,6 @@ class LMSDownloadedAudio(BaseLMSStatement):
         object (dict): See AudioActivity.
         context (dict): see LMSDownloadedAudioContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/audio/activity-type/audio",
-        verb__id="http://id.tincanapi.com/verb/downloaded",
-    )
 
     object: AudioActivity
     verb: DownloadedVerb = DownloadedVerb()

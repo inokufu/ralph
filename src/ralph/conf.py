@@ -164,7 +164,6 @@ class Settings(BaseSettings):
     AUTH_FILE: Path = _CORE.APP_DIR / "auth.json"
     AUTH_CACHE_MAX_SIZE: int = 100
     AUTH_CACHE_TTL: int = 3600
-    CONVERTER_EDX_XAPI_UUID_NAMESPACE: str | None = None
     EXECUTION_ENVIRONMENT: str = "development"
     HISTORY_FILE: Path = _CORE.APP_DIR / "history.json"
     LOGGING: dict = {

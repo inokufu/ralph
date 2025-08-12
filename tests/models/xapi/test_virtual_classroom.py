@@ -5,7 +5,6 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from ralph.models.selector import ModelSelector
 from ralph.models.xapi.virtual_classroom.contexts import (
     VirtualClassroomContextContextActivities,
 )
@@ -28,35 +27,6 @@ from ralph.models.xapi.virtual_classroom.statements import (
 )
 
 from tests.factories import mock_xapi_instance
-
-
-@pytest.mark.parametrize(
-    "class_",
-    [
-        VirtualClassroomInitialized,
-        VirtualClassroomJoined,
-        VirtualClassroomLeft,
-        VirtualClassroomTerminated,
-        VirtualClassroomPostedPublicMessage,
-        VirtualClassroomStartedPoll,
-        VirtualClassroomAnsweredPoll,
-        VirtualClassroomSharedScreen,
-        VirtualClassroomUnsharedScreen,
-        VirtualClassroomMuted,
-        VirtualClassroomUnmuted,
-        VirtualClassroomRaisedHand,
-        VirtualClassroomLoweredHand,
-        VirtualClassroomStartedCamera,
-        VirtualClassroomStoppedCamera,
-    ],
-)
-def test_models_xapi_virtual_classroom_selectors_with_valid_statements(class_):
-    """Test given a valid virtual classroom xAPI statement the `get_first_model`
-    selector method should return the expected model.
-    """
-    statement = json.loads(mock_xapi_instance(class_).model_dump_json())
-    model = ModelSelector(module="ralph.models.xapi").get_first_model(statement)
-    assert model is class_
 
 
 def test_models_xapi_virtual_classroom_initialized_with_valid_statement():

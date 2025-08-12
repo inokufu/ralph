@@ -10,7 +10,6 @@ import pytest
 from click.exceptions import BadParameter
 from click.testing import CliRunner
 from elasticsearch.helpers import bulk, scan
-from pydantic import ValidationError
 
 from ralph import cli as cli_module
 from ralph.backends.data.fs import FSDataBackend
@@ -22,11 +21,8 @@ from ralph.cli import (
     cli,
 )
 from ralph.conf import settings
-from ralph.exceptions import BackendParameterException, ConfigurationException
-from ralph.models.edx.navigational.statements import UIPageClose
-from ralph.models.xapi.navigation.statements import PageTerminated
+from ralph.exceptions import BackendParameterException
 
-from tests.factories import mock_instance
 from tests.fixtures.backends import (
     ES_TEST_HOSTS,
     ES_TEST_INDEX,
@@ -494,45 +490,6 @@ def test_cli_extract_command_with_es_parser():
     result = runner.invoke(cli, "extract -p es".split(), input=es_output)
     assert result.exit_code == 0
     assert "\n".join([json.dumps({"id": idx}) for idx in range(10)]) in result.output
-
-
-def test_cli_validate_command_with_edx_format():
-    """Test ralph validate command using the edx format."""
-    event = mock_instance(UIPageClose)
-
-    event_str = event.model_dump_json()
-    runner = CliRunner()
-    result = runner.invoke(cli, ["validate", "-f", "edx"], input=event_str)
-    assert event_str in result.output
-
-
-@pytest.mark.parametrize("valid_uuid", ["ee241f8b-174f-5bdb-bae9-c09de5fe017f"])
-def test_cli_convert_command_from_edx_to_xapi_format(valid_uuid):
-    """Test ralph convert command from edx to xapi format."""
-    event = mock_instance(UIPageClose)
-
-    event_str = event.model_dump_json()
-    runner = CliRunner()
-    command = f"-v ERROR convert -f edx -t xapi -u {valid_uuid} -p https://fun-mooc.fr"
-    result = runner.invoke(cli, command.split(), input=event_str)
-    assert result.exit_code == 0
-    try:
-        PageTerminated(**json.loads(result.output))
-    except ValidationError as err:
-        pytest.fail(f"Converted event is invalid: {err}")
-
-
-@pytest.mark.parametrize("invalid_uuid", ["", None, 1, {}])
-def test_cli_convert_command_with_invalid_uuid(invalid_uuid):
-    """Test that the ralph convert command raises an exception when the uuid namespace
-    is invalid.
-    """
-    runner = CliRunner()
-    command = f"convert -f edx -t xapi -u '{invalid_uuid}' -p https://fun-mooc.fr"
-    result = runner.invoke(cli, command.split())
-    assert result.exit_code > 0
-    assert isinstance(result.exception, ConfigurationException)
-    assert str(result.exception) == "Invalid UUID namespace"
 
 
 @cli.command()

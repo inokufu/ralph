@@ -1,6 +1,5 @@
 """Video xAPI event definitions."""
 
-from ...selector import selector
 from ..base.statements import BaseXapiStatement
 from ..concepts.activity_types.video import VideoActivity
 from ..concepts.verbs.scorm_profile import (
@@ -53,11 +52,6 @@ class VideoInitialized(BaseVideoStatement):
         context (dict): See VideoInitializedContext.
     """
 
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="http://adlnet.gov/expapi/verbs/initialized",
-    )
-
     verb: InitializedVerb = InitializedVerb()
     context: VideoInitializedContext
 
@@ -72,11 +66,6 @@ class VideoPlayed(BaseVideoStatement):
         result (dict): See VideoPlayedResult.
         context (dict): See VideoPlayedContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="https://w3id.org/xapi/video/verbs/played",
-    )
 
     verb: PlayedVerb = PlayedVerb()
     result: VideoPlayedResult
@@ -93,11 +82,6 @@ class VideoPaused(BaseVideoStatement):
         result (dict): See VideoPausedResult.
         context (dict): See VideoPausedContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="https://w3id.org/xapi/video/verbs/paused",
-    )
 
     verb: PausedVerb = PausedVerb()
     result: VideoPausedResult
@@ -116,11 +100,6 @@ class VideoSeeked(BaseVideoStatement):
         context (dict): See VideoSeekedContext.
     """
 
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="https://w3id.org/xapi/video/verbs/seeked",
-    )
-
     verb: SeekedVerb = SeekedVerb()
     result: VideoSeekedResult
     context: VideoSeekedContext
@@ -136,11 +115,6 @@ class VideoCompleted(BaseVideoStatement):
         result (dict): See VideoCompletedResult.
         context (dict): See VideoCompletedContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="http://adlnet.gov/expapi/verbs/completed",
-    )
 
     verb: CompletedVerb = CompletedVerb()
     result: VideoCompletedResult
@@ -158,11 +132,6 @@ class VideoTerminated(BaseVideoStatement):
         context (dict): See VideoTerminatedContext.
     """
 
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="http://adlnet.gov/expapi/verbs/terminated",
-    )
-
     verb: TerminatedVerb = TerminatedVerb()
     result: VideoTerminatedResult
     context: VideoTerminatedContext
@@ -178,11 +147,6 @@ class VideoEnableClosedCaptioning(BaseVideoStatement):
         result (dict): See VideoEnableClosedCaptioningResult.
         context (dict): See VideoEnableClosedCaptioningContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="http://adlnet.gov/expapi/verbs/interacted",
-    )
 
     verb: InteractedVerb = InteractedVerb()
     result: VideoEnableClosedCaptioningResult
@@ -200,11 +164,6 @@ class VideoVolumeChangeInteraction(BaseVideoStatement):
         context (dict): See VideoVolumeChangeInteractionContext.
     """
 
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="http://adlnet.gov/expapi/verbs/interacted",
-    )
-
     verb: InteractedVerb = InteractedVerb()
     result: VideoVolumeChangeInteractionResult
     context: VideoVolumeChangeInteractionContext
@@ -220,11 +179,6 @@ class VideoScreenChangeInteraction(BaseVideoStatement):
         result (dict): See VideoScreenChangeInteractionResult.
         context (dict): See VideoScreenChangeInteractionContext.
     """
-
-    __selector__ = selector(
-        object__definition__type="https://w3id.org/xapi/video/activity-type/video",
-        verb__id="http://adlnet.gov/expapi/verbs/interacted",
-    )
 
     verb: InteractedVerb = InteractedVerb()
     result: VideoScreenChangeInteractionResult

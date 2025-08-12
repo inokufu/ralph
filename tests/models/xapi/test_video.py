@@ -5,8 +5,6 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from ralph.models.selector import ModelSelector
-from ralph.models.validator import Validator
 from ralph.models.xapi.video.contexts import VideoContextContextActivities
 from ralph.models.xapi.video.statements import (
     VideoCompleted,
@@ -21,50 +19,6 @@ from ralph.models.xapi.video.statements import (
 )
 
 from tests.factories import mock_xapi_instance
-
-
-@pytest.mark.parametrize(
-    "class_",
-    [
-        VideoCompleted,
-        VideoInitialized,
-        VideoPaused,
-        VideoPlayed,
-        VideoSeeked,
-        VideoTerminated,
-    ],
-)
-def test_models_xapi_video_selectors_with_valid_statements(class_):
-    """Test given a valid video xAPI statement the `get_first_model`
-    selector method should return the expected model.
-    """
-    statement = json.loads(mock_xapi_instance(class_).model_dump_json())
-    model = ModelSelector(module="ralph.models.xapi").get_first_model(statement)
-    assert model is class_
-
-
-@pytest.mark.parametrize(
-    "class_",
-    [
-        VideoVolumeChangeInteraction,
-        VideoEnableClosedCaptioning,
-        VideoScreenChangeInteraction,
-    ],
-)
-def test_models_xapi_video_interaction_validator_with_valid_statements(class_):
-    """Test given a valid video interaction xAPI statement the `get_first_valid_model`
-    validator method should return the expected model.
-    """
-
-    statement = json.loads(
-        mock_xapi_instance(class_).model_dump_json(exclude_none=True, by_alias=True)
-    )
-
-    model = Validator(ModelSelector(module="ralph.models.xapi")).get_first_valid_model(
-        statement
-    )
-
-    assert isinstance(model, class_)
 
 
 def test_models_xapi_video_initialized_with_valid_statement():

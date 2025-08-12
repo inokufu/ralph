@@ -22,7 +22,7 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 license = { file = "LICENSE.md" }
-keywords = ["LRS", "Analytics", "xAPI", "Open edX"]
+keywords = ["LRS", "Analytics", "xAPI"]
 dependencies = [
     # By default, we only consider core dependencies required to use Ralph as a
     # library (mostly models).

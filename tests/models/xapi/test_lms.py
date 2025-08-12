@@ -5,7 +5,6 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from ralph.models.selector import ModelSelector
 from ralph.models.xapi.lms.contexts import LMSContextContextActivities
 from ralph.models.xapi.lms.statements import (
     LMSAccessedFile,
@@ -23,32 +22,6 @@ from ralph.models.xapi.lms.statements import (
 )
 
 from tests.factories import mock_xapi_instance
-
-
-@pytest.mark.parametrize(
-    "class_",
-    [
-        LMSDownloadedVideo,
-        LMSAccessedFile,
-        LMSAccessedPage,
-        LMSDownloadedFile,
-        LMSUploadedFile,
-        LMSRegisteredCourse,
-        LMSUnregisteredCourse,
-        LMSUploadedVideo,
-        LMSDownloadedDocument,
-        LMSUploadedDocument,
-        LMSDownloadedAudio,
-        LMSUploadedAudio,
-    ],
-)
-def test_models_xapi_lms_selectors_with_valid_statements(class_):
-    """Test given a valid LMS xAPI statement the `get_first_model`
-    selector method should return the expected model.
-    """
-    statement = json.loads(mock_xapi_instance(class_).model_dump_json())
-    model = ModelSelector(module="ralph.models.xapi").get_first_model(statement)
-    assert model is class_
 
 
 def test_models_xapi_lms_registered_course_with_valid_statement():
