@@ -34,12 +34,6 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-[project.urls]
-"Homepage" = "https://openfun.github.io/ralph/"
-"Bug Tracker" = "https://github.com/openfun/ralph/issues"
-"Changelog" = "https://github.com/openfun/ralph/blob/main/CHANGELOG.md"
-"Repository" = "https://github.com/openfun/ralph"
-
 [project.optional-dependencies]
 backend-es = [
     "elasticsearch[async]~=8.16",
