@@ -42,8 +42,3 @@ Makefile
 # Assets
 data
 
-# Arnold environment / objects
-.team
-group_vars
-src/tray
-k3d-storage

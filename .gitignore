@@ -27,10 +27,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Helm chart
-Chart.lock
-charts/
-
 # Environments
 .env
 .venv
@@ -53,14 +49,6 @@ coverage.xml
 
 # Documentation site
 site/
-
-# Arnold environment
-bin/arnold
-bin/init-cluster
-bin/vault_password
-.team
-group_vars/
-k3d-storage/
 
 # Mac OS
 .DS_Store
